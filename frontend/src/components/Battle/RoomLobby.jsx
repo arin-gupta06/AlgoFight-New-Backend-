@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -16,7 +16,12 @@ import {
     faUserCheck,
     faTimes,
     faBell,
-    faDoorOpen
+    faSearch,
+    faFilter,
+    faCheckDouble,
+    faUserGraduate,
+    faGraduationCap,
+    faClock
 } from "@fortawesome/free-solid-svg-icons";
 import { requestJson } from "../../services/api";
 import { useAuth } from "../../contexts/AuthContext";
@@ -38,6 +43,8 @@ export default function RoomLobby() {
     const [countdown, setCountdown] = useState(null);
     const [joinRequests, setJoinRequests] = useState([]);
     const [kickingUserId, setKickingUserId] = useState(null);
+    const [searchQuery, setSearchQuery] = useState("");
+    const [filterTab, setFilterTab] = useState("ALL"); // "ALL" | "READY" | "WAITING"
 
     const socketRef = useRef(null);
 
@@ -239,7 +246,7 @@ export default function RoomLobby() {
         }
     };
 
-    // Host Approves Join Request
+    // Host Approves Single Join Request
     const handleApproveJoin = async (req) => {
         try {
             setJoinRequests((prev) => prev.filter((r) => r.userId !== req.userId));
@@ -270,7 +277,41 @@ export default function RoomLobby() {
         }
     };
 
-    // Host Rejects Join Request
+    // Host Approves ALL Join Requests in Batch
+    const handleApproveAllJoin = async () => {
+        if (joinRequests.length === 0) return;
+        const currentBatch = [...joinRequests];
+        setJoinRequests([]);
+
+        try {
+            for (const req of currentBatch) {
+                await requestJson(`/api/battle/rooms/${room?.id || roomCode}/join`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ userId: req.userId }),
+                    includeAuth: true,
+                }).catch(() => {});
+            }
+
+            if (socketRef.current?.readyState === WebSocket.OPEN) {
+                socketRef.current.send(JSON.stringify({
+                    action: "approve_all_join_requests",
+                    payload: {
+                        roomCode,
+                        hostId: currentUserId,
+                        requests: currentBatch,
+                    },
+                }));
+            }
+
+            notify({ type: "success", title: "Batch Admission", message: `Admitted ${currentBatch.length} students into the lobby.` });
+            loadRoom(true);
+        } catch (err) {
+            notify({ type: "error", title: "Batch Approval Failed", message: err.message });
+        }
+    };
+
+    // Host Rejects Single Join Request
     const handleRejectJoin = (req) => {
         setJoinRequests((prev) => prev.filter((r) => r.userId !== req.userId));
         if (socketRef.current?.readyState === WebSocket.OPEN) {
@@ -285,6 +326,26 @@ export default function RoomLobby() {
             }));
         }
         notify({ type: "info", title: "Request Declined", message: `Declined entry for ${req.username}.` });
+    };
+
+    // Host Rejects ALL Join Requests
+    const handleRejectAllJoin = () => {
+        if (joinRequests.length === 0) return;
+        const currentBatch = [...joinRequests];
+        setJoinRequests([]);
+
+        if (socketRef.current?.readyState === WebSocket.OPEN) {
+            socketRef.current.send(JSON.stringify({
+                action: "reject_all_join_requests",
+                payload: {
+                    roomCode,
+                    hostId: currentUserId,
+                    requests: currentBatch,
+                    reason: "Host declined all pending join requests.",
+                },
+            }));
+        }
+        notify({ type: "info", title: "Requests Declined", message: `Declined ${currentBatch.length} pending join requests.` });
     };
 
     // Host Kicks Player
@@ -353,6 +414,11 @@ export default function RoomLobby() {
 
     // Host Starts Battle
     const handleStartBattle = async () => {
+        if (participants.length < 2) {
+            notify({ type: "warning", title: "Waiting for Combatants", message: "At least 2 participants are required to launch battle." });
+            return;
+        }
+
         try {
             setStarting(true);
             if (room?.id) {
@@ -376,7 +442,34 @@ export default function RoomLobby() {
         }
     };
 
-    const allReady = participants.length >= 2 && participants.every((p) => p.isReady || p.userId === room?.hostId);
+    // Metrics for classroom / 50-student scaling
+    const maxCapacity = room?.maxPlayers || 2;
+    const readyCount = useMemo(() => {
+        return participants.filter((p) => p.isReady || p.userId === room?.hostId || p.userId === room?.host?.id).length;
+    }, [participants, room?.hostId, room?.host?.id]);
+
+    const readyPercentage = useMemo(() => {
+        if (participants.length === 0) return 0;
+        return Math.round((readyCount / participants.length) * 100);
+    }, [readyCount, participants.length]);
+
+    // Filter & Search
+    const filteredParticipants = useMemo(() => {
+        return participants.filter((p) => {
+            const name = (p.user?.username || p.username || "").toLowerCase();
+            const id = (p.userId || "").toLowerCase();
+            const query = searchQuery.trim().toLowerCase();
+            const matchesSearch = !query || name.includes(query) || id.includes(query);
+
+            const isPlayerHost = p.userId === room?.hostId || p.userId === room?.host?.id;
+            const isPlayerReady = p.isReady || isPlayerHost;
+
+            if (!matchesSearch) return false;
+            if (filterTab === "READY") return isPlayerReady;
+            if (filterTab === "WAITING") return !isPlayerReady;
+            return true;
+        });
+    }, [participants, searchQuery, filterTab, room?.hostId, room?.host?.id]);
 
     if (loading) {
         return (
@@ -412,7 +505,8 @@ export default function RoomLobby() {
                         <FontAwesomeIcon icon={faArrowLeft} /> Leave Lobby
                     </button>
                     <div className="lobby-badge">
-                        <FontAwesomeIcon icon={faUsers} /> CUSTOM BATTLE LOBBY
+                        <FontAwesomeIcon icon={maxCapacity >= 16 ? faGraduationCap : faUsers} />
+                        {maxCapacity >= 16 ? `CLASSROOM ARENA (${maxCapacity} SEATS)` : "CUSTOM BATTLE LOBBY"}
                     </div>
                 </div>
 
@@ -433,16 +527,40 @@ export default function RoomLobby() {
                         <div className="room-specs">
                             <div className="spec-item">
                                 <span className="spec-label">Capacity</span>
-                                <span className="spec-val">{participants.length} / {room?.maxPlayers || 2}</span>
+                                <span className="spec-val">{participants.length} / {maxCapacity}</span>
                             </div>
                             <div className="spec-item">
                                 <span className="spec-label">Time Limit</span>
                                 <span className="spec-val">{room?.timeLimitMinutes || 15} Mins</span>
                             </div>
                             <div className="spec-item">
+                                <span className="spec-label">Problems</span>
+                                <span className="spec-val">{room?.questionCount || 3} ({room?.difficulty || "MIX"})</span>
+                            </div>
+                            <div className="spec-item">
                                 <span className="spec-label">Status</span>
                                 <span className={`spec-status ${room?.status?.toLowerCase()}`}>{room?.status || "WAITING"}</span>
                             </div>
+                        </div>
+                    </div>
+
+                    {/* Readiness Progress Bar for Classroom / Tournament */}
+                    <div className="readiness-meter-container">
+                        <div className="readiness-meter-labels">
+                            <span className="meter-title">
+                                <FontAwesomeIcon icon={faCheckCircle} /> Readiness Status: <strong>{readyCount} / {participants.length} Students Ready</strong> ({readyPercentage}%)
+                            </span>
+                            <span className="meter-sub">
+                                {participants.length >= 2 ? "Ready to start battle when instructor launches" : "Waiting for at least 2 participants to join"}
+                            </span>
+                        </div>
+                        <div className="readiness-progress-track">
+                            <motion.div
+                                className="readiness-progress-fill"
+                                initial={{ width: 0 }}
+                                animate={{ width: `${readyPercentage}%` }}
+                                transition={{ duration: 0.4 }}
+                            />
                         </div>
                     </div>
                 </motion.div>
@@ -461,7 +579,22 @@ export default function RoomLobby() {
                                     <FontAwesomeIcon icon={faBell} className="request-bell pulse" />
                                     <span>Incoming Join Requests ({joinRequests.length})</span>
                                 </div>
-                                <span className="requests-sub">As host, you control who enters this arena.</span>
+                                <div className="requests-batch-actions">
+                                    <button
+                                        className="btn-batch-allow"
+                                        onClick={handleApproveAllJoin}
+                                        title="Admit all waiting students into the lobby"
+                                    >
+                                        <FontAwesomeIcon icon={faCheckDouble} /> Admit All ({joinRequests.length})
+                                    </button>
+                                    <button
+                                        className="btn-batch-reject"
+                                        onClick={handleRejectAllJoin}
+                                        title="Decline all waiting requests"
+                                    >
+                                        <FontAwesomeIcon icon={faTimes} /> Decline All
+                                    </button>
+                                </div>
                             </div>
 
                             <div className="requests-list">
@@ -489,14 +622,14 @@ export default function RoomLobby() {
                                                 onClick={() => handleApproveJoin(req)}
                                                 title="Admit player into lobby"
                                             >
-                                                <FontAwesomeIcon icon={faUserCheck} /> Allow In
+                                                <FontAwesomeIcon icon={faUserCheck} /> Allow
                                             </button>
                                             <button
                                                 className="btn-req-reject"
                                                 onClick={() => handleRejectJoin(req)}
                                                 title="Decline player"
                                             >
-                                                <FontAwesomeIcon icon={faTimes} /> Decline
+                                                <FontAwesomeIcon icon={faTimes} />
                                             </button>
                                         </div>
                                     </motion.div>
@@ -506,14 +639,55 @@ export default function RoomLobby() {
                     )}
                 </AnimatePresence>
 
-                {/* Participants Grid */}
+                {/* Participants Section with Search & Filter Bar */}
                 <div className="participants-section">
-                    <h3 className="section-title-hud">
-                        <FontAwesomeIcon icon={faUsers} /> COMBATANTS IN LOBBY ({participants.length}/{room?.maxPlayers || 2})
-                    </h3>
+                    <div className="participants-toolbar">
+                        <h3 className="section-title-hud" style={{ margin: 0 }}>
+                            <FontAwesomeIcon icon={faUsers} /> COMBATANTS ({participants.length}/{maxCapacity})
+                        </h3>
+
+                        {/* Search & Filter Controls */}
+                        <div className="participants-controls">
+                            <div className="search-bar-hud">
+                                <FontAwesomeIcon icon={faSearch} className="search-icon" />
+                                <input
+                                    type="text"
+                                    placeholder="Search student / combatant..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                />
+                                {searchQuery && (
+                                    <button className="clear-search" onClick={() => setSearchQuery("")}>
+                                        <FontAwesomeIcon icon={faTimes} />
+                                    </button>
+                                )}
+                            </div>
+
+                            <div className="filter-pill-group">
+                                <button
+                                    className={`filter-pill ${filterTab === "ALL" ? "active" : ""}`}
+                                    onClick={() => setFilterTab("ALL")}
+                                >
+                                    All ({participants.length})
+                                </button>
+                                <button
+                                    className={`filter-pill ${filterTab === "READY" ? "active" : ""}`}
+                                    onClick={() => setFilterTab("READY")}
+                                >
+                                    Ready ({readyCount})
+                                </button>
+                                <button
+                                    className={`filter-pill ${filterTab === "WAITING" ? "active" : ""}`}
+                                    onClick={() => setFilterTab("WAITING")}
+                                >
+                                    Waiting ({participants.length - readyCount})
+                                </button>
+                            </div>
+                        </div>
+                    </div>
 
                     <div className="participants-grid">
-                        {participants.map((player, idx) => {
+                        {filteredParticipants.map((player, idx) => {
                             const isPlayerHost = player.userId === room?.hostId || player.userId === room?.host?.id;
                             const isMe = player.userId === currentUserId;
                             const playerName = player.user?.username || player.username || `Player ${idx + 1}`;
@@ -524,6 +698,7 @@ export default function RoomLobby() {
                                     className={`participant-card ${isMe ? "me" : ""}`}
                                     initial={{ opacity: 0, scale: 0.95 }}
                                     animate={{ opacity: 1, scale: 1 }}
+                                    layout
                                 >
                                     <div className="participant-avatar">
                                         {(playerName || "P")[0].toUpperCase()}
@@ -562,7 +737,7 @@ export default function RoomLobby() {
                                                 title={`Kick ${playerName} from lobby`}
                                             >
                                                 <FontAwesomeIcon icon={faUserSlash} />
-                                                <span>{kickingUserId === player.userId ? "Kicking..." : "Kick"}</span>
+                                                <span>{kickingUserId === player.userId ? "..." : "Kick"}</span>
                                             </button>
                                         )}
                                     </div>
@@ -570,16 +745,26 @@ export default function RoomLobby() {
                             );
                         })}
 
-                        {/* Empty Slots */}
-                        {Array.from({ length: Math.max(0, (room?.maxPlayers || 2) - participants.length) }).map((_, idx) => (
-                            <div key={`empty-${idx}`} className="participant-card empty-slot">
-                                <div className="empty-slot-text">
-                                    <FontAwesomeIcon icon={faUsers} />
-                                    <span>Waiting for player to join...</span>
-                                    <span className="slot-code">Share code: <b>{roomCode}</b></span>
+                        {/* If filtered list is empty due to search */}
+                        {filteredParticipants.length === 0 && (
+                            <div className="no-students-found">
+                                <FontAwesomeIcon icon={faSearch} />
+                                <span>No combatants matching "{searchQuery}" in {filterTab.toLowerCase()} category.</span>
+                            </div>
+                        )}
+
+                        {/* Open Capacity Card (Streamlined for 50-student rooms rather than 48 individual empty slots) */}
+                        {participants.length < maxCapacity && (
+                            <div className="capacity-summary-card" onClick={copyCode} title="Click to copy invite code">
+                                <div className="capacity-icon">
+                                    <FontAwesomeIcon icon={faUserGraduate} />
+                                </div>
+                                <div className="capacity-info">
+                                    <span className="capacity-title">{maxCapacity - participants.length} Open Seats Available</span>
+                                    <span className="capacity-desc">Share code <b style={{ color: '#00e5ff' }}>{roomCode}</b> with classmates or contestants to join this lobby.</span>
                                 </div>
                             </div>
-                        ))}
+                        )}
                     </div>
                 </div>
 
@@ -597,10 +782,11 @@ export default function RoomLobby() {
                         <button
                             className="btn-hud-launch"
                             onClick={handleStartBattle}
-                            disabled={starting || !allReady}
-                            title={!allReady ? "Waiting for all players to be ready" : "Launch Match"}
+                            disabled={starting || participants.length < 2}
+                            title={participants.length < 2 ? "Waiting for at least 2 participants" : `Launch match with ${readyCount}/${participants.length} ready`}
                         >
-                            <FontAwesomeIcon icon={faPlay} /> {starting ? "LAUNCHING..." : "START BATTLE"}
+                            <FontAwesomeIcon icon={faPlay} />
+                            {starting ? "LAUNCHING..." : `START BATTLE (${readyCount}/${participants.length} Ready)`}
                         </button>
                     )}
                 </div>

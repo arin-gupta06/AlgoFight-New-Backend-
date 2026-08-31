@@ -5,6 +5,7 @@ import { faBell } from '@fortawesome/free-solid-svg-icons';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotificationInbox } from '../../contexts/NotificationInboxContext';
+import { isAdminUser } from '../../constants/admins';
 import InboxDropdown from './InboxDropdown';
 import logoIcon from '../../assets/algofight-logo.png';
 
@@ -24,6 +25,8 @@ const Navbar = () => {
     return location.pathname === path ? 'active-link' : '';
   };
 
+  const isAdmin = isAdminUser(user);
+
   return (
     <>
       <nav className="navbar">
@@ -40,7 +43,13 @@ const Navbar = () => {
               <li><Link to="/rewards" className={isActive('/rewards')}>Rewards</Link></li>
               <li><Link to="/about" className={isActive('/about')}>About</Link></li>
               <li><Link to="/developer" className={isActive('/developer')}>Developers</Link></li>
-              <li><Link to="/admin" className={isActive('/admin')} style={{ color: '#00e5ff' }}>Control Hub</Link></li>
+              {isAdmin && (
+                <li>
+                  <Link to="/admin" className={isActive('/admin')} style={{ color: '#00e5ff' }}>
+                    Control Hub
+                  </Link>
+                </li>
+              )}
             </ul>
           </div>
 

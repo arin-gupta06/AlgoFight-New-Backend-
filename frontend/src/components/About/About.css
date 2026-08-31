@@ -9,6 +9,41 @@
   font-family: 'Inter', sans-serif;
 }
 
+.about-content-wrapper {
+  width: 100%;
+}
+
+.about-content-wrapper.is-modal-view .learn-hero,
+.about-content-wrapper.is-modal-view .learn-mission-panel,
+.about-content-wrapper.is-modal-view .learn-arch-panel,
+.about-content-wrapper.is-modal-view .learn-flow-section {
+  margin-bottom: 36px;
+  padding: 34px 36px;
+}
+
+.about-content-wrapper.is-modal-view .learn-hero h1 {
+  font-size: clamp(2rem, 3.8vw, 2.8rem);
+  margin-bottom: 14px;
+}
+
+.about-content-wrapper.is-modal-view .learn-hero p {
+  font-size: 1.02rem;
+  line-height: 1.75;
+}
+
+.about-content-wrapper.is-modal-view .learn-hero-stats {
+  margin-top: 28px;
+  gap: 18px;
+}
+
+.about-content-wrapper.is-modal-view .mission-grid {
+  gap: 20px;
+}
+
+.about-content-wrapper.is-modal-view .arch-grid {
+  gap: 20px;
+}
+
 .learn-hero,
 .learn-mission-panel,
 .learn-arch-panel,

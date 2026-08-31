@@ -135,10 +135,6 @@ export class BattleRoomService {
             throw new Error("Cannot start battle with fewer than 2 participants");
         }
 
-        if (room.status !== "READY" && !room.participants.every((p) => p.isReady)) {
-            throw new Error("Cannot start battle: All players must be ready");
-        }
-
         return this.battleRoomRepository.startBattle(room.id);
     }
 

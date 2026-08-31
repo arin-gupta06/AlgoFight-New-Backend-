@@ -22,6 +22,7 @@ import { useNavigate } from 'react-router-dom';
 import BackgroundPaths from '../BackgroundPaths/BackgroundPaths';
 import '../BackgroundPaths/BackgroundPaths.css';
 import { fetchPracticeProblems } from '../../services/api';
+import PublicInfoModal from '../Common/PublicInfoModal';
 
 const featureCards = [
     {
@@ -59,6 +60,13 @@ const featureCards = [
 function Home() {
     const navigate = useNavigate();
     const [featuredProblems, setFeaturedProblems] = useState([]);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [activeModalTab, setActiveModalTab] = useState('about');
+
+    const handleOpenModal = (tabKey) => {
+        setActiveModalTab(tabKey);
+        setIsModalOpen(true);
+    };
 
     useEffect(() => {
         const getProblems = async () => {
@@ -210,20 +218,20 @@ function Home() {
                         </div>
                         <div className="link-col">
                             <h4>Architecture</h4>
-                            <a href="/about">About System</a>
-                            <a href="/developers">Architects</a>
+                            <a onClick={() => handleOpenModal('about')} style={{ cursor: 'pointer' }}>About System</a>
+                            <a href="/developer">Architects</a>
                             <a href="/admin">Control Hub</a>
                         </div>
                         <div className="link-col">
-                            <h4>Community</h4>
-                            <a href="/about">Progression</a>
-                            <a href="/rewards">Rewards</a>
-                            <a href="/profile">Profile</a>
+                            <h4>Support</h4>
+                            <a onClick={() => handleOpenModal('help')} style={{ cursor: 'pointer' }}>Help Center</a>
+                            <a onClick={() => handleOpenModal('contact')} style={{ cursor: 'pointer' }}>Contact Us</a>
+                            <a onClick={() => handleOpenModal('blog')} style={{ cursor: 'pointer' }}>DevLog</a>
                         </div>
                         <div className="link-col">
                             <h4>Legal</h4>
-                            <a href="/terms">Terms</a>
-                            <a href="/privacy">Privacy</a>
+                            <a onClick={() => handleOpenModal('terms')} style={{ cursor: 'pointer' }}>Terms</a>
+                            <a onClick={() => handleOpenModal('privacy')} style={{ cursor: 'pointer' }}>Privacy</a>
                             <a href="/cookies">Cookies</a>
                         </div>
                     </div>
@@ -231,12 +239,20 @@ function Home() {
                 <div className="footer-bottom">
                     <p>&copy; 2026 AlgoFight. All rights reserved.</p>
                     <div className="social-icons">
-                        <a href="/developers">Arin Gupta</a>
-                        <a href="/developers">Vivek Chaurasiya</a>
-                        <a href="/developers">Krish Dargar</a>
+                        <a href="/developer">Arin Gupta</a>
+                        <a href="/developer">Vivek Chaurasiya</a>
+                        <a href="/developer">Krish Dargar</a>
                     </div>
                 </div>
             </footer>
+
+            {/* Public Info Overlay Modal */}
+            <PublicInfoModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                activeTab={activeModalTab}
+                onSelectTab={setActiveModalTab}
+            />
         </BackgroundPaths>
     );
 }

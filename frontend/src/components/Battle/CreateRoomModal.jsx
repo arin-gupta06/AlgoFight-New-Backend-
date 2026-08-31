@@ -75,9 +75,14 @@ export default function CreateRoomModal({ isOpen, onClose }) {
 
                     <form onSubmit={handleCreate} className="modal-form">
                         <div className="form-group-hud">
-                            <label><FontAwesomeIcon icon={faUsers} /> Max Participants</label>
-                            <div className="pill-selector">
-                                {[2, 4, 6, 8].map((num) => (
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <label><FontAwesomeIcon icon={faUsers} /> Max Participants (Classroom / Arena)</label>
+                                <span style={{ fontSize: '0.85rem', color: '#00e5ff', fontWeight: 700, fontFamily: 'Space Grotesk' }}>
+                                    {maxPlayers} Students
+                                </span>
+                            </div>
+                            <div className="pill-grid-4">
+                                {[2, 4, 8, 16, 25, 50, 75, 100].map((num) => (
                                     <button
                                         key={num}
                                         type="button"
@@ -88,12 +93,34 @@ export default function CreateRoomModal({ isOpen, onClose }) {
                                     </button>
                                 ))}
                             </div>
+                            <div className="custom-size-row">
+                                <div className="custom-size-left">
+                                    <span className="custom-size-label">Custom Class Size:</span>
+                                    <div className="custom-size-input-wrapper">
+                                        <input
+                                            type="number"
+                                            min="2"
+                                            max="100"
+                                            value={maxPlayers}
+                                            onChange={(e) => setMaxPlayers(Math.max(2, Math.min(100, Number(e.target.value) || 2)))}
+                                            className="custom-size-input"
+                                        />
+                                        <span className="custom-size-unit">Seats</span>
+                                    </div>
+                                </div>
+                                <span className="custom-size-hint">Direct Entry (2–100)</span>
+                            </div>
                         </div>
 
                         <div className="form-group-hud">
-                            <label><FontAwesomeIcon icon={faClock} /> Time Limit</label>
-                            <div className="pill-selector">
-                                {[5, 10, 15, 30].map((mins) => (
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <label><FontAwesomeIcon icon={faClock} /> Time Limit</label>
+                                <span style={{ fontSize: '0.85rem', color: '#00e5ff', fontWeight: 700, fontFamily: 'Space Grotesk' }}>
+                                    {timeLimit} Mins
+                                </span>
+                            </div>
+                            <div className="pill-grid-3">
+                                {[5, 10, 15, 30, 45, 60].map((mins) => (
                                     <button
                                         key={mins}
                                         type="button"
@@ -108,7 +135,7 @@ export default function CreateRoomModal({ isOpen, onClose }) {
 
                         <div className="form-group-hud">
                             <label><FontAwesomeIcon icon={faPlus} /> Number of Questions</label>
-                            <div className="pill-selector">
+                            <div className="pill-grid-3">
                                 {[1, 3, 5].map((num) => (
                                     <button
                                         key={num}
@@ -120,12 +147,12 @@ export default function CreateRoomModal({ isOpen, onClose }) {
                                     </button>
                                 ))}
                             </div>
-                            <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)', marginTop: '8px' }}>The battle ends strictly when the time expires or a participant completes all questions.</p>
+                            <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)', marginTop: '6px' }}>The battle ends strictly when the time expires or a participant completes all questions.</p>
                         </div>
 
                         <div className="form-group-hud">
                             <label><FontAwesomeIcon icon={faFire} /> Problem Difficulty</label>
-                            <div className="pill-selector">
+                            <div className="pill-grid-4">
                                 {["EASY", "MEDIUM", "HARD", "MIX"].map((diff) => (
                                     <button
                                         key={diff}
@@ -137,7 +164,7 @@ export default function CreateRoomModal({ isOpen, onClose }) {
                                     </button>
                                 ))}
                             </div>
-                            <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)', marginTop: '8px' }}>MIX will dynamically balance questions: ~30% Hard, 50% Medium, 20% Easy.</p>
+                            <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)', marginTop: '6px' }}>MIX will dynamically balance questions: ~30% Hard, 50% Medium, 20% Easy.</p>
                         </div>
 
                         <div className="modal-actions">

@@ -5,6 +5,7 @@ import { AnimatePresence } from 'framer-motion';
 import Login from './components/Login/Login.jsx';
 import NavBar from './components/NavBar/NavBar.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
+import AdminRoute from './components/AdminRoute.jsx';
 
 // 🚀 Code-split secondary route components with React.lazy
 const LandingPage = lazy(() => import('./components/LandingPage/LandingPage.jsx'));
@@ -15,6 +16,10 @@ const Profile = lazy(() => import('./components/Profile/Profile.jsx'));
 const LiveBattle = lazy(() => import('./components/Battle/LiveBattle.jsx'));
 const Leaderboard = lazy(() => import('./components/Leaderboard/Leaderboard.jsx'));
 const About = lazy(() => import('./components/About/About.jsx'));
+const Blog = lazy(() => import('./components/Blog/Blog.jsx'));
+const Careers = lazy(() => import('./components/Careers/Careers.jsx'));
+const Help = lazy(() => import('./components/Help/Help.jsx'));
+const Contact = lazy(() => import('./components/Contact/Contact.jsx'));
 const Developer = lazy(() => import('./components/Developer/Developer.jsx'));
 const BattleArena = lazy(() => import('./components/Battle/BattleArena.jsx'));
 const Practice = lazy(() => import('./components/Practice/Practice.jsx'));
@@ -24,6 +29,7 @@ const Privacy = lazy(() => import('./components/Legal/Privacy.jsx'));
 const Cookies = lazy(() => import('./components/Legal/Cookies.jsx'));
 const RoomLobby = lazy(() => import("./components/Battle/RoomLobby.jsx"));
 const ControlHub = lazy(() => import('./components/Admin/ControlHub.jsx'));
+
 // Fast, non-blocking loading placeholder
 function PageLoader() {
   return (
@@ -82,7 +88,7 @@ function App() {
           <Route path="/rewards" element={<ProtectedRoute><Rewards /></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
           <Route path="/profile/:userId" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-          <Route path="/admin" element={<ProtectedRoute><ControlHub /></ProtectedRoute>} />
+          <Route path="/admin" element={<AdminRoute><ControlHub /></AdminRoute>} />
 
           {/* ✅ Battle Routes */}
           <Route path="/battle" element={<ProtectedRoute><BattleArena /></ProtectedRoute>} />
@@ -93,11 +99,17 @@ function App() {
           <Route path="/practice/:problemId" element={<ProtectedRoute><PracticeWorkspace /></ProtectedRoute>} />
 
           <Route path="/leaderboard" element={<ProtectedRoute><Leaderboard /></ProtectedRoute>} />
-          <Route path="/developer" element={<ProtectedRoute><Developer /></ProtectedRoute>} />
-          <Route path="/about" element={<ProtectedRoute><About /></ProtectedRoute>} />
-          <Route path="/terms" element={<ProtectedRoute><Terms /></ProtectedRoute>} />
-          <Route path="/privacy" element={<ProtectedRoute><Privacy /></ProtectedRoute>} />
-          <Route path="/cookies" element={<ProtectedRoute><Cookies /></ProtectedRoute>} />
+
+          {/* ✅ Public Informational Routes (No Login Required) */}
+          <Route path="/about" element={<About />} />
+          <Route path="/blog" element={<Blog />} />
+          <Route path="/careers" element={<Careers />} />
+          <Route path="/help" element={<Help />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route path="/developer" element={<Developer />} />
+          <Route path="/terms" element={<Terms />} />
+          <Route path="/privacy" element={<Privacy />} />
+          <Route path="/cookies" element={<Cookies />} />
         </Route>
       </Routes>
     </AnimatePresence>

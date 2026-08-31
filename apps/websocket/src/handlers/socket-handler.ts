@@ -759,6 +759,41 @@ export class SocketHandler {
                     break;
                 }
 
+                case "approve_all_join_requests": {
+                    const { roomCode, hostId, requests } = data;
+                    if (roomCode && hostId && Array.isArray(requests)) {
+                        try {
+                            const room = await this.battleRoomRepo.getRoomByCode(roomCode)
+                                || await this.battleRoomRepo.getRoomById(roomCode);
+                            if (room && room.hostId === hostId) {
+                                for (const req of requests) {
+                                    if (!req?.userId) continue;
+                                    try {
+                                        await this.battleRoomService.joinRoom(room.id, req.userId);
+                                        this.connectionManager.sendToUser(req.userId, "join_request_approved", {
+                                            roomCode,
+                                            message: "Host approved your join request!",
+                                        });
+                                        this.connectionManager.broadcastToRoom(roomCode, "player_joined", {
+                                            userId: req.userId,
+                                            username: req.username || "Player",
+                                        });
+                                    } catch (e) {
+                                        // continue admitting other students
+                                    }
+                                }
+                                this.connectionManager.broadcastToRoom(roomCode, "room_updated", {
+                                    roomCode,
+                                    action: "batch_players_joined",
+                                });
+                            }
+                        } catch (err: any) {
+                            this.send(socket, "error", err.message || "Failed to approve all join requests");
+                        }
+                    }
+                    break;
+                }
+
                 case "reject_join_request": {
                     const { roomCode, hostId, targetUserId, reason } = data;
                     if (roomCode && hostId && targetUserId) {
@@ -769,6 +804,24 @@ export class SocketHandler {
                                 roomCode,
                                 message: reason || "Host declined your join request.",
                             });
+                        }
+                    }
+                    break;
+                }
+
+                case "reject_all_join_requests": {
+                    const { roomCode, hostId, requests, reason } = data;
+                    if (roomCode && hostId && Array.isArray(requests)) {
+                        const room = await this.battleRoomRepo.getRoomByCode(roomCode)
+                            || await this.battleRoomRepo.getRoomById(roomCode);
+                        if (room && room.hostId === hostId) {
+                            for (const req of requests) {
+                                if (!req?.userId) continue;
+                                this.connectionManager.sendToUser(req.userId, "join_request_rejected", {
+                                    roomCode,
+                                    message: reason || "Host declined your join request.",
+                                });
+                            }
                         }
                     }
                     break;
@@ -813,13 +866,16 @@ export class SocketHandler {
                                 timeLimitSeconds: room.timeLimitMinutes * 60,
                                 startTime: Date.now(),
                                 totalQuestions: problems.length,
-                                players: room.participants.map(p => ({
-                                    userId: p.userId,
-                                    username: p.userId,
-                                    points: 0,
-                                    solvedProblems: [],
-                                    solvedCount: 0
-                                }))
+                                players: room.participants.map(p => {
+                                    const presence = this.connectionManager.getPresence(p.userId);
+                                    return {
+                                        userId: p.userId,
+                                        username: (p as any).user?.username || presence?.username || p.userId,
+                                        points: 0,
+                                        solvedProblems: [],
+                                        solvedCount: 0
+                                    };
+                                })
                             };
 
                             await this.redis.set(`battle_state:${room.id}`, JSON.stringify(battleState), "EX", (room.timeLimitMinutes * 60) + 300);
@@ -952,18 +1008,59 @@ export class SocketHandler {
                     break;
                 }
 
+                case "leave_battle":
                 case "forfeit_battle": {
                     const { roomId } = data;
                     const session = this.socketUsers.get(socket);
                     const userId = session?.userId || currentUserId.value;
+                    const username = session?.username || data.username || "A player";
                     if (!roomId || !userId) break;
 
-                    await this.battleService.finishBattle(roomId, "FORFEIT_SURRENDER", undefined, userId);
-                    this.connectionManager.broadcastToRoom(roomId, "battle_forfeited", {
-                        roomId,
-                        forfeitedUserId: userId,
-                        reason: "Player surrendered the match.",
-                    });
+                    const rawState = await this.redis.get(`battle_state:${roomId}`);
+                    if (rawState) {
+                        const state = JSON.parse(rawState);
+                        const player = state.players?.find((p: any) => p.userId === userId || p.username === username);
+                        if (player) {
+                            player.status = "LEFT";
+                            player.forfeited = true;
+                        }
+
+                        const activePlayers = state.players?.filter((p: any) => p.status !== "LEFT" && !p.forfeited) || [];
+
+                        this.connectionManager.broadcastToRoom(roomId, "player_left_battle", {
+                            roomId,
+                            userId,
+                            username,
+                            reason: `${username} left the battle arena.`,
+                            remainingActiveCount: activePlayers.length,
+                            totalPlayers: state.players?.length || 0,
+                        });
+
+                        if (activePlayers.length <= 1 && state.status === "RUNNING") {
+                            const winner = activePlayers[0];
+                            await this.battleService.finishBattle(roomId, "OPPONENT_FORFEIT", winner?.userId, userId);
+                            this.connectionManager.broadcastToRoom(roomId, "battle_over", {
+                                roomId,
+                                winner: winner?.username || "Opponent",
+                                reason: "OPPONENT_FORFEIT",
+                                forfeitedPlayer: username,
+                                finalState: state,
+                            });
+                        } else {
+                            await this.redis.set(`battle_state:${roomId}`, JSON.stringify(state), "EX", 1800);
+                            this.connectionManager.broadcastToRoom(roomId, "battle_state_sync", state);
+                        }
+                    } else {
+                        this.connectionManager.broadcastToRoom(roomId, "player_left_battle", {
+                            roomId,
+                            userId,
+                            username,
+                            reason: `${username} left the battle arena.`,
+                        });
+                    }
+
+                    this.connectionManager.leaveRoom(roomId, socket);
+                    if (session) delete session.roomId;
                     break;
                 }
 
@@ -1038,11 +1135,12 @@ export class SocketHandler {
             if (rawState) {
                 const state = JSON.parse(rawState);
                 if (state.status === "RUNNING") {
-                    const opponent = state.players.find((p: any) => p.userId !== session.userId);
+                    const opponent = state.players?.find((p: any) => p.userId !== session.userId);
 
                     this.connectionManager.broadcastToRoom(session.roomId, "opponent_disconnected", {
                         userId: session.userId,
                         username: session.username,
+                        message: `${session.username} has disconnected from the battle.`,
                         reconnectDeadline: Date.now() + 60000
                     });
 
@@ -1053,7 +1151,34 @@ export class SocketHandler {
                         if (currentStateRaw) {
                             const currentState = JSON.parse(currentStateRaw);
                             if (currentState.status === "RUNNING") {
-                                await this.battleService.finishBattle(session.roomId!, "OPPONENT_FORFEIT", opponent?.userId, session.userId);
+                                const player = currentState.players?.find((p: any) => p.userId === session.userId);
+                                if (player) {
+                                    player.status = "LEFT";
+                                    player.forfeited = true;
+                                }
+                                const active = currentState.players?.filter((p: any) => p.status !== "LEFT" && !p.forfeited) || [];
+                                
+                                if (active.length <= 1) {
+                                    const winner = active[0] || opponent;
+                                    await this.battleService.finishBattle(session.roomId!, "OPPONENT_FORFEIT", winner?.userId, session.userId);
+                                    this.connectionManager.broadcastToRoom(session.roomId!, "battle_over", {
+                                        roomId: session.roomId,
+                                        winner: winner?.username || "Opponent",
+                                        reason: "OPPONENT_FORFEIT",
+                                        forfeitedPlayer: session.username,
+                                        finalState: currentState,
+                                    });
+                                } else {
+                                    await this.redis.set(`battle_state:${session.roomId}`, JSON.stringify(currentState), "EX", 1800);
+                                    this.connectionManager.broadcastToRoom(session.roomId!, "battle_state_sync", currentState);
+                                    this.connectionManager.broadcastToRoom(session.roomId!, "player_left_battle", {
+                                        roomId: session.roomId,
+                                        userId: session.userId,
+                                        username: session.username,
+                                        reason: `${session.username} timed out and forfeited.`,
+                                        remainingActiveCount: active.length,
+                                    });
+                                }
                             }
                         }
                     }, 60000);

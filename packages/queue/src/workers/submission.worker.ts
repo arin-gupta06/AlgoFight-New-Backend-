@@ -29,7 +29,7 @@ export const submissionWorker = new Worker(
   },
   {
     connection: redisConnection,
-    concurrency: 5,
+    concurrency: 15,
   },
 );
 
@@ -44,7 +44,7 @@ submissionWorker.on("failed", (job, error) => {
 logger.info(
   {
     queue: QUEUE_NAMES.SUBMISSION,
-    concurrency: 5,
+    concurrency: 15,
   },
   "Submission worker initialized",
 );

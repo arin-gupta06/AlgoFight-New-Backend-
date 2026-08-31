@@ -511,20 +511,34 @@
   flex-wrap: wrap;
 }
 
+.pill-grid-4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.pill-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
 .pill-btn {
-  flex: 1;
-  min-width: 80px;
-  padding: 10px 14px;
+  padding: 10px 8px;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.12);
   color: #9cb0ca;
   font-family: 'Inter', sans-serif;
-  font-size: 0.88rem;
+  font-size: 0.86rem;
   font-weight: 600;
   border-radius: 999px;
   cursor: pointer;
   transition: all 0.2s ease;
   text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
 }
 
 .pill-btn:hover {
@@ -538,6 +552,69 @@
   border-color: #00e5ff;
   color: #00e5ff;
   box-shadow: 0 0 14px rgba(0, 229, 255, 0.2);
+}
+
+/* Custom Size Row */
+.custom-size-row {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px dashed rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  padding: 8px 14px;
+  gap: 10px;
+}
+
+.custom-size-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.custom-size-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #a3b2c8;
+}
+
+.custom-size-input-wrapper {
+  display: flex;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(0, 229, 255, 0.3);
+  border-radius: 8px;
+  padding: 3px 8px;
+  gap: 4px;
+}
+
+.custom-size-input-wrapper:focus-within {
+  border-color: #00e5ff;
+  box-shadow: 0 0 10px rgba(0, 229, 255, 0.25);
+}
+
+.custom-size-input {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #00e5ff;
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: 0.95rem;
+  width: 44px;
+  text-align: center;
+}
+
+.custom-size-unit {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 600;
+}
+
+.custom-size-hint {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.45);
 }
 
 .code-input {

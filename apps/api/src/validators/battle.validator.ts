@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const CreateBattleRoomSchema = z.object({
     hostId: z.string(),
-    maxPlayers: z.number().int().min(2).max(8).optional().default(2),
+    maxPlayers: z.number().int().min(2).max(100).optional().default(2),
     timeLimitMinutes: z.number().int().min(1).max(60).optional().default(15),
     difficulty: z.string().optional().default("Mix"),
     questionCount: z.number().int().min(1).max(10).optional().default(3),

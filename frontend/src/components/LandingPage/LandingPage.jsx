@@ -12,7 +12,6 @@ import {
   faChevronLeft, 
   faChevronRight,
   faEnvelope,
-  faPhone,
   faLocationDot,
   faClock,
   faUsers,
@@ -30,6 +29,7 @@ import BackgroundPaths from '../BackgroundPaths/BackgroundPaths';
 import logoIcon from '../../assets/algofight-logo.png';
 import LiquidWhitePaintMask from '../ui/LiquidWhitePaintMask';
 import CircularTestimonials from '../ui/circular-testimonials';
+import PublicInfoModal from '../Common/PublicInfoModal';
 import './LandingPage.css';
 
 const testimonialsData = [
@@ -67,6 +67,13 @@ const testimonialsData = [
 
 export default function LandingPage() {
   const navigate = useNavigate();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [activeModalTab, setActiveModalTab] = useState('about');
+
+  const handleOpenModal = (tabKey) => {
+    setActiveModalTab(tabKey);
+    setIsModalOpen(true);
+  };
 
   return (
     <BackgroundPaths>
@@ -343,9 +350,9 @@ export default function LandingPage() {
             <div className="footer-col-links">
               <h4 className="footer-col-title">COMPANY</h4>
               <ul className="footer-list">
-                <li><a onClick={() => navigate('/about')}>About Us</a></li>
-                <li><a onClick={() => navigate('/about')}>Blog</a></li>
-                <li><a onClick={() => navigate('/about')}>Careers</a></li>
+                <li><a onClick={() => handleOpenModal('about')}>About Us</a></li>
+                <li><a onClick={() => handleOpenModal('blog')}>Blog</a></li>
+                <li><a onClick={() => handleOpenModal('careers')}>Careers</a></li>
               </ul>
             </div>
 
@@ -353,10 +360,10 @@ export default function LandingPage() {
             <div className="footer-col-links">
               <h4 className="footer-col-title">SUPPORT</h4>
               <ul className="footer-list">
-                <li><a onClick={() => navigate('/developer')}>Help Center</a></li>
-                <li><a onClick={() => navigate('/developer')}>Contact Us</a></li>
-                <li><a onClick={() => navigate('/privacy')}>Privacy Policy</a></li>
-                <li><a onClick={() => navigate('/terms')}>Terms of Service</a></li>
+                <li><a onClick={() => handleOpenModal('help')}>Help Center</a></li>
+                <li><a onClick={() => handleOpenModal('contact')}>Contact Us</a></li>
+                <li><a onClick={() => handleOpenModal('privacy')}>Privacy Policy</a></li>
+                <li><a onClick={() => handleOpenModal('terms')}>Terms of Service</a></li>
               </ul>
             </div>
 
@@ -366,11 +373,7 @@ export default function LandingPage() {
               <ul className="footer-contact-items">
                 <li>
                   <FontAwesomeIcon icon={faEnvelope} className="c-icon" />
-                  <span>hello@algofight.dev</span>
-                </li>
-                <li>
-                  <FontAwesomeIcon icon={faPhone} className="c-icon" />
-                  <span>+91 98765 43210</span>
+                  <a href="mailto:supportalgofight@gmail.com" className="footer-contact-link">supportalgofight@gmail.com</a>
                 </li>
                 <li>
                   <FontAwesomeIcon icon={faLocationDot} className="c-icon" />
@@ -388,6 +391,14 @@ export default function LandingPage() {
             © {new Date().getFullYear()} AlgoFight. All rights reserved.
           </div>
         </footer>
+
+        {/* Public Info Overlay Modal */}
+        <PublicInfoModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          activeTab={activeModalTab}
+          onSelectTab={setActiveModalTab}
+        />
 
       </div>
     </BackgroundPaths>

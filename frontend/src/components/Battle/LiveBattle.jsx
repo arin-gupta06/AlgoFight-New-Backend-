@@ -377,7 +377,7 @@ export default function LiveBattle() {
         const youWin = winner === username;
         let message = `Time is up! ${winner} wins.`;
         if (data.reason === "ALL_SOLVED") message = `${winner} completed all questions first!`;
-        if (data.reason === "OPPONENT_FORFEIT") message = `Your opponent forfeited! You win!`;
+        if (data.reason === "OPPONENT_FORFEIT") message = data.forfeitedPlayer ? `${data.forfeitedPlayer} forfeited the match! You win!` : `Your opponent forfeited! You win!`;
         
         setBattleResult({
           winner: youWin ? "You" : winner,
@@ -390,12 +390,43 @@ export default function LiveBattle() {
         setShowSummary(true);
       });
 
+      socket.on("player_left_battle", (data) => {
+        const departed = data?.username || "A combatant";
+        notify({
+          type: "warning",
+          title: "Combatant Left Battle",
+          message: `${departed} has departed from the battle arena.${data?.remainingActiveCount !== undefined ? ` (${data.remainingActiveCount} remaining)` : ""}`,
+          duration: 5000,
+        });
+      });
+
+      socket.on("battle_forfeited", (data) => {
+        notify({
+          type: "info",
+          title: "Match Forfeited",
+          message: data?.reason || "A player has surrendered the match.",
+          duration: 5000,
+        });
+      });
+
       socket.on("opponent_disconnected", (data) => {
-        notify({ type: "warning", title: "Opponent Disconnected", message: "Your opponent left! They have 60 seconds to return before forfeiting.", duration: 5000 });
+        const discUser = data?.username || "Opponent";
+        notify({
+          type: "warning",
+          title: "Combatant Disconnected",
+          message: `${discUser} lost connection! They have 60 seconds to reconnect before forfeiting.`,
+          duration: 6000,
+        });
       });
 
       socket.on("opponent_reconnected", (data) => {
-        notify({ type: "success", title: "Opponent Reconnected", message: "Your opponent is back in the battle!", duration: 3000 });
+        const recUser = data?.username || "Opponent";
+        notify({
+          type: "success",
+          title: "Combatant Reconnected",
+          message: `${recUser} is back in the battle!`,
+          duration: 3000,
+        });
       });
 
       socket.on("rating_updates", (updates) => {
@@ -416,10 +447,11 @@ export default function LiveBattle() {
         socketRef.current.off("execution_progress");
         socketRef.current.off("code_result");
         socketRef.current.off("battle_over");
+        socketRef.current.off("player_left_battle");
+        socketRef.current.off("battle_forfeited");
         socketRef.current.off("opponent_disconnected");
         socketRef.current.off("opponent_reconnected");
         socketRef.current.off("rating_updates");
-        disconnectSocket();
       }
     };
   }, [notify, user?.uid, username]);
@@ -444,8 +476,17 @@ export default function LiveBattle() {
     socketRef.current.emit("submit_code", { code, language, roomId, problemId: problem.id });
   };
 
-  const goBack = () => {
-    navigate("/battle", { state: battleResult ? { result: battleResult } : undefined });
+  const handleLeaveBattle = () => {
+    if (status === "matched") {
+      if (window.confirm("Are you sure you want to leave this battle? Leaving will count as a forfeit.")) {
+        if (socketRef.current) {
+          socketRef.current.emit("leave_battle", { roomId, username, userId: user?.uid });
+        }
+        navigate("/battle");
+      }
+    } else {
+      navigate("/battle", { state: battleResult ? { result: battleResult } : undefined });
+    }
   };
 
   if (status === "connecting" || status === "waiting") {
@@ -508,13 +549,31 @@ export default function LiveBattle() {
         <div className="livebattle-header-copy" style={{ flex: 1 }}>
           <div className="livebattle-pre">LIVE BATTLE</div>
           <h1>Room {roomId}</h1>
-          <div style={{ display: 'flex', gap: '20px', marginTop: '10px' }}>
-             {liveState?.players?.map(p => (
-                <div key={p.userId} style={{ padding: '8px 12px', background: 'rgba(255,255,255,0.1)', borderRadius: '8px' }}>
-                   <span style={{ opacity: 0.7, fontSize: '0.8rem', display: 'block' }}>{p.username}</span>
-                   <strong>{p.points} pts</strong> ({p.solvedCount}/{problems.length})
-                </div>
-             ))}
+          <div style={{ display: 'flex', gap: '14px', marginTop: '10px', flexWrap: 'wrap' }}>
+             {liveState?.players?.map(p => {
+                const hasLeft = p.status === 'LEFT' || p.forfeited;
+                return (
+                  <div
+                    key={p.userId}
+                    style={{
+                      padding: '6px 12px',
+                      background: hasLeft ? 'rgba(255, 77, 77, 0.14)' : 'rgba(255,255,255,0.08)',
+                      border: hasLeft ? '1px solid rgba(255, 77, 77, 0.45)' : '1px solid rgba(0, 229, 255, 0.16)',
+                      borderRadius: '8px',
+                      opacity: hasLeft ? 0.6 : 1,
+                      transition: 'all 0.3s ease'
+                    }}
+                  >
+                     <span style={{ opacity: 0.85, fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                       {p.username}
+                       {hasLeft && (
+                         <span style={{ fontSize: '0.68rem', color: '#ff6699', fontWeight: 800, letterSpacing: '0.04em' }}>[LEFT]</span>
+                       )}
+                     </span>
+                     <strong style={{ color: hasLeft ? '#94a3b8' : '#7fefff' }}>{p.points} pts</strong> ({p.solvedCount}/{problems.length})
+                  </div>
+                );
+             })}
           </div>
         </div>
 
@@ -522,13 +581,13 @@ export default function LiveBattle() {
           <div className={`livebattle-timer flashing`} style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#ff4d4d', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <FontAwesomeIcon icon={faClock} /> {formatTime(timeLeft)}
           </div>
-          <button className="livebattle-leave-btn" onClick={goBack}>
+          <button className="livebattle-leave-btn" onClick={handleLeaveBattle}>
             {status === "finished" ? "Back to Arena" : "Leave Battle"}
           </button>
         </div>
       </motion.section>
 
-      <div className="livebattle-grid" style={{ gridTemplateColumns: isSubmitPanelOpen ? undefined : "minmax(280px, 1fr) 2fr" }}>
+      <div className={`livebattle-grid ${!isSubmitPanelOpen ? "submit-panel-collapsed" : ""}`}>
         <section className="livebattle-panel livebattle-problem-panel">
           <div className="livebattle-panel-head" style={{ paddingBottom: 0, borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
              <div className="problem-tabs" style={{ display: 'flex', gap: '10px' }}>

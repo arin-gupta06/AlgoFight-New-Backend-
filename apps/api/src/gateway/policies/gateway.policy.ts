@@ -24,17 +24,17 @@ export const DEFAULT_GATEWAY_POLICY: GatewayPolicy = {
     allowedMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedOrigins: true,
     ipRateLimit: {
-        maxRequestsPerMinute: 120,
-        burstLimit: 30,
+        maxRequestsPerMinute: 3600, // Accommodates 50-100+ concurrent students sharing a single college lab/campus NAT IP
+        burstLimit: 600,
     },
     userRateLimit: {
-        maxRequestsPerMinute: 180,
-        burstLimit: 40,
+        maxRequestsPerMinute: 240, // Generous per-user rate limit (4 req/sec per individual student)
+        burstLimit: 60,
     },
-    maxActiveConnections: 500,
-    maxActiveUsers: 250,
+    maxActiveConnections: 2500,
+    maxActiveUsers: 2000,
     enableIpJail: true,
-    maxFailedAuthBeforeJail: 10,
+    maxFailedAuthBeforeJail: 50, // Prevents a few bad student passwords from jailing the entire lab router IP
     jailDurationSeconds: 60,
     sessionTtlSeconds: 300,
 };

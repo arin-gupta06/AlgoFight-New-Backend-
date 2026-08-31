@@ -1,15 +1,32 @@
 
 .livebattle-page {
-	height: calc(100vh - 72px);
+	min-height: calc(100vh - 72px);
 	max-width: 1720px;
 	margin: 0 auto;
-	padding: 12px 20px 16px;
+	padding: 12px 20px 24px;
 	color: #f4f8ff;
 	font-family: 'Inter', sans-serif;
 	display: flex;
 	flex-direction: column;
-	overflow: hidden;
 	box-sizing: border-box;
+}
+
+@media (min-width: 1181px) {
+	.livebattle-page {
+		height: calc(100vh - 72px);
+		overflow: hidden;
+	}
+	.livebattle-grid {
+		flex: 1;
+		min-height: 0;
+	}
+	.livebattle-grid.submit-panel-collapsed {
+		grid-template-columns: minmax(280px, 1fr) 2fr;
+	}
+	.livebattle-panel {
+		height: 100%;
+		min-height: 0;
+	}
 }
 
 .livebattle-header-card,
@@ -522,12 +539,51 @@
 }
 
 @media (max-width: 1180px) {
-	.livebattle-grid {
-		grid-template-columns: 1fr;
+	.livebattle-page {
+		height: auto !important;
+		min-height: calc(100vh - 72px);
+		overflow-y: auto !important;
+		overflow-x: hidden;
+		padding: 16px 18px 48px;
+	}
+
+	.livebattle-grid,
+	.livebattle-grid.submit-panel-collapsed {
+		display: flex !important;
+		flex-direction: column !important;
+		gap: 18px !important;
+		min-height: auto !important;
+		flex: none !important;
 	}
 
 	.livebattle-panel {
+		min-height: auto !important;
+		height: auto !important;
+		flex: none !important;
+		overflow: visible !important;
+	}
+
+	.livebattle-problem-panel {
+		min-height: 360px;
+		max-height: 480px;
+	}
+
+	.livebattle-problem-scroll {
+		max-height: 400px;
+		overflow-y: auto;
+	}
+
+	.livebattle-editor-panel {
 		min-height: 460px;
+	}
+
+	.livebattle-code-editor {
+		min-height: 360px;
+		height: 380px;
+	}
+
+	.livebattle-submit-panel {
+		min-height: 320px;
 	}
 }
 

@@ -6,6 +6,7 @@ export function useAntiCheat(isActive = true) {
     const [isBlurred, setIsBlurred] = useState(false);
     const [violations, setViolations] = useState(0);
     
+    const violationsRef = useRef(0);
     const hasLeftRef = useRef(false);
     const lastWarnedTimeRef = useRef(0);
 
@@ -25,18 +26,18 @@ export function useAntiCheat(isActive = true) {
             hasLeftRef.current = false;
             lastWarnedTimeRef.current = now;
 
-            setViolations((v) => {
-                const newV = v + 1;
-                if (newV <= 3) {
-                    notify({
-                        type: 'error',
-                        title: `ANTI-CHEAT WARNING (${newV}/3)`,
-                        message: 'You left the application screen! 3 violations will result in automatic exit.',
-                        duration: 7000,
-                    });
-                }
-                return newV;
-            });
+            violationsRef.current += 1;
+            const newCount = violationsRef.current;
+            setViolations(newCount);
+
+            if (newCount <= 3) {
+                notify({
+                    type: 'error',
+                    title: `ANTI-CHEAT WARNING (${newCount}/3)`,
+                    message: 'You left the application screen! 3 violations will result in automatic exit.',
+                    duration: 7000,
+                });
+            }
         }
     }, [isActive, notify]);
 
@@ -69,18 +70,18 @@ export function useAntiCheat(isActive = true) {
             const now = Date.now();
             if (now - lastWarnedTimeRef.current > 2500) {
                 lastWarnedTimeRef.current = now;
-                setViolations((v) => {
-                    const newV = v + 1;
-                    if (newV <= 3) {
-                        notify({
-                            type: 'error',
-                            title: `ANTI-CHEAT WARNING (${newV}/3)`,
-                            message: 'Screenshots are disabled during active sessions.',
-                            duration: 7000,
-                        });
-                    }
-                    return newV;
-                });
+                violationsRef.current += 1;
+                const newCount = violationsRef.current;
+                setViolations(newCount);
+
+                if (newCount <= 3) {
+                    notify({
+                        type: 'error',
+                        title: `ANTI-CHEAT WARNING (${newCount}/3)`,
+                        message: 'Screenshots are disabled during active sessions.',
+                        duration: 7000,
+                    });
+                }
             }
         }
     }, [isActive, notify]);

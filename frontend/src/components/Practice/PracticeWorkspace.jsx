@@ -328,7 +328,7 @@ export default function PracticeWorkspace() {
         </div>
       </motion.section>
 
-      <div className="livebattle-grid" style={{ gridTemplateColumns: isSubmitPanelOpen ? undefined : "minmax(280px, 1fr) 2fr" }}>
+      <div className={`livebattle-grid ${!isSubmitPanelOpen ? "submit-panel-collapsed" : ""}`}>
         <section className="livebattle-panel livebattle-problem-panel">
           <div className="livebattle-panel-head">
             <h3>Problem</h3>

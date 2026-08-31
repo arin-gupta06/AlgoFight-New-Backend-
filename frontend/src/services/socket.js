@@ -22,7 +22,7 @@ export const getWsUrl = () => {
       ? `wss://${window.location.host}/ws`
       : `ws://${window.location.host}/ws`;
   }
-  return "ws://localhost:3000/ws";
+  return "ws://127.0.0.1:4001";
 };
 
 export const WS_URL = getWsUrl();
@@ -36,7 +36,7 @@ class BrowserSocketClient {
     
     // Reconnection State
     this.reconnectAttempts = 0;
-    this.maxReconnectAttempts = 6; // Max 30s roughly
+    this.maxReconnectAttempts = 6;
     this.reconnectTimeout = null;
     this.intentionalDisconnect = false;
 
@@ -46,37 +46,45 @@ class BrowserSocketClient {
 
   connect() {
     this.intentionalDisconnect = false;
-    
+
+    // If socket is already connected or currently connecting, do not create a second socket
     if (this.ws && (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)) {
       if (this.ws.readyState === WebSocket.OPEN && (this.auth?.uid || this.auth?.userId)) {
         this.emit("auth", {
+          token: this.auth.token,
           userId: this.auth.uid || this.auth.userId,
           username: this.auth.username || this.auth.displayName || "Player",
+          email: this.auth.email,
         });
       }
       return;
     }
 
     try {
-      this.ws = new WebSocket(WS_URL);
+      const wsUrl = getWsUrl();
+      const ws = new WebSocket(wsUrl);
+      this.ws = ws;
 
-      this.ws.onopen = () => {
+      ws.onopen = () => {
+        if (this.ws !== ws) return; // Stale instance check
         this.connected = true;
-        this.reconnectAttempts = 0; // Reset on successful connection
+        this.reconnectAttempts = 0;
         this.startHeartbeat();
         this.trigger("connect");
 
         if (this.auth?.uid || this.auth?.userId) {
           this.emit("auth", {
+            token: this.auth.token,
             userId: this.auth.uid || this.auth.userId,
             username: this.auth.username || this.auth.displayName || "Player",
+            email: this.auth.email,
           });
         }
       };
 
-      this.ws.onmessage = (event) => {
+      ws.onmessage = (event) => {
+        if (this.ws !== ws) return; // Stale instance check
         try {
-          // Backend sends pong, we just ignore it as it means the connection is alive
           if (event.data === "pong") return;
           
           const raw = JSON.parse(event.data);
@@ -92,14 +100,16 @@ class BrowserSocketClient {
         }
       };
 
-      this.ws.onclose = () => {
+      ws.onclose = () => {
+        if (this.ws !== ws) return; // Stale instance check
         this.connected = false;
         this.stopHeartbeat();
         this.trigger("disconnect");
         this.handleReconnect();
       };
 
-      this.ws.onerror = (err) => {
+      ws.onerror = (err) => {
+        if (this.ws !== ws) return; // Stale instance check
         this.trigger("connect_error", err);
       };
     } catch (err) {
@@ -110,27 +120,27 @@ class BrowserSocketClient {
 
   handleReconnect() {
     if (this.intentionalDisconnect) return;
+    if (this.ws && (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)) return;
+    if (this.reconnectTimeout) return; // Already scheduled
     
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      console.error("[WebSocket] Max reconnect attempts reached. Please refresh the page.");
+      console.warn("[WebSocket] Max reconnect attempts reached. Will retry on next interaction.");
       return;
     }
 
-    // Exponential backoff: 1s, 2s, 4s, 8s, 16s, 30s
     const baseDelay = Math.pow(2, this.reconnectAttempts) * 1000;
-    // Cap at 30 seconds
-    const cappedDelay = Math.min(baseDelay, 30000);
-    // Add 0-500ms jitter to prevent thundering herd
-    const jitter = Math.floor(Math.random() * 500);
+    const cappedDelay = Math.min(baseDelay, 15000);
+    const jitter = Math.floor(Math.random() * 300);
     const delay = cappedDelay + jitter;
 
     this.reconnectAttempts++;
-
     console.log(`[WebSocket] Disconnected. Reconnecting in ${delay}ms (Attempt ${this.reconnectAttempts})...`);
     
-    if (this.reconnectTimeout) clearTimeout(this.reconnectTimeout);
     this.reconnectTimeout = setTimeout(() => {
-      this.connect();
+      this.reconnectTimeout = null;
+      if (!this.intentionalDisconnect) {
+        this.connect();
+      }
     }, delay);
   }
 
@@ -138,11 +148,9 @@ class BrowserSocketClient {
     this.stopHeartbeat();
     this.pingInterval = setInterval(() => {
       if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-        // We can just send a simple ping message. Fastify/ws allows custom ping payload or standard frame.
-        // We will just send a JSON stringified ping event.
         this.ws.send(JSON.stringify({ action: "ping", type: "ping" }));
       }
-    }, 25000); // 25s ping
+    }, 25000);
   }
 
   stopHeartbeat() {
@@ -171,20 +179,26 @@ class BrowserSocketClient {
   }
 
   emit(action, data = {}) {
-    // Ensure all emitted messages wrap data in standard format
     const payload = JSON.stringify({ action, type: action, ...data });
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
       this.ws.send(payload);
     } else {
-      // Retry once opened
       const onOpen = () => {
-        this.ws.removeEventListener("open", onOpen);
-        this.ws.send(payload);
+        if (this.ws) {
+          this.ws.removeEventListener("open", onOpen);
+        }
+        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+          this.ws.send(payload);
+        }
       };
       if (this.ws) {
         this.ws.addEventListener("open", onOpen);
       }
     }
+  }
+
+  send(action, data = {}) {
+    this.emit(action, data);
   }
 
   trigger(event, data) {
@@ -203,12 +217,27 @@ class BrowserSocketClient {
   disconnect() {
     this.intentionalDisconnect = true;
     this.stopHeartbeat();
-    if (this.reconnectTimeout) clearTimeout(this.reconnectTimeout);
+    if (this.reconnectTimeout) {
+      clearTimeout(this.reconnectTimeout);
+      this.reconnectTimeout = null;
+    }
     
     if (this.ws) {
-      this.ws.close();
+      const closingWs = this.ws;
       this.ws = null;
       this.connected = false;
+      
+      // Detach listeners to prevent old events from leaking
+      closingWs.onopen = null;
+      closingWs.onmessage = null;
+      closingWs.onerror = null;
+      closingWs.onclose = null;
+      
+      try {
+        closingWs.close();
+      } catch (e) {
+        // Ignore close errors on teardown
+      }
     }
   }
 }

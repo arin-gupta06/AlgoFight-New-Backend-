@@ -12,7 +12,9 @@ import {
   faExclamationCircle,
   faBolt,
   faShieldHalved,
-  faBrain
+  faBrain,
+  faChevronRight,
+  faChevronLeft
 } from "@fortawesome/free-solid-svg-icons";
 import { evaluatePracticeCode, fetchProblemById, recordPracticeProgress } from "../../services/api";
 import { useNotification } from "../../contexts/NotificationContext.jsx";
@@ -82,6 +84,7 @@ export default function PracticeWorkspace() {
   const [runMode, setRunMode] = useState("idle");
   const [elapsedTime, setElapsedTime] = useState(0);
   const [showDetailedAnalysis, setShowDetailedAnalysis] = useState(false);
+  const [isSubmitPanelOpen, setIsSubmitPanelOpen] = useState(true);
 
   // Anti-Cheat Hook
   const { isBlurred, violations } = useAntiCheat(true);
@@ -325,7 +328,7 @@ export default function PracticeWorkspace() {
         </div>
       </motion.section>
 
-      <div className="livebattle-grid">
+      <div className="livebattle-grid" style={{ gridTemplateColumns: isSubmitPanelOpen ? undefined : "minmax(280px, 1fr) 2fr" }}>
         <section className="livebattle-panel livebattle-problem-panel">
           <div className="livebattle-panel-head">
             <h3>Problem</h3>
@@ -356,6 +359,16 @@ export default function PracticeWorkspace() {
                   </option>
                 ))}
               </select>
+              {!isSubmitPanelOpen && (
+                <button
+                  className="livebattle-action-btn"
+                  onClick={() => setIsSubmitPanelOpen(true)}
+                  style={{ padding: "4px 10px", minHeight: "30px", marginLeft: "4px" }}
+                  title="Open Submit Panel"
+                >
+                  <FontAwesomeIcon icon={faChevronLeft} />
+                </button>
+              )}
             </div>
           </div>
 
@@ -402,9 +415,18 @@ export default function PracticeWorkspace() {
           )}
         </section>
 
+        {isSubmitPanelOpen && (
         <section className="livebattle-panel livebattle-submit-panel">
           <div className="livebattle-panel-head">
             <h3>Submit Solution</h3>
+            <button
+              className="livebattle-action-btn"
+              onClick={() => setIsSubmitPanelOpen(false)}
+              style={{ padding: "4px 10px", minHeight: "30px" }}
+              title="Hide Submit Panel"
+            >
+              <FontAwesomeIcon icon={faChevronRight} />
+            </button>
           </div>
 
           <div className="livebattle-submit-body">
@@ -492,6 +514,7 @@ export default function PracticeWorkspace() {
             </div>
           </div>
         </section>
+        )}
       </div>
     </div>
   );

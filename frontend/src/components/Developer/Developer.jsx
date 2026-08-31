@@ -30,6 +30,7 @@ const teamMembers = [
     tone: "cyan",
     linkedin: "https://www.linkedin.com/in/arin-gupta-2b94b032a/",
     github: "https://github.com/arin-gupta06",
+    imgStyle: { objectPosition: "center top" },
   },
   {
     name: "Vivek Chaurasiya",
@@ -42,6 +43,7 @@ const teamMembers = [
     tone: "cyan",
     linkedin: "https://www.linkedin.com/in/vivek-chaurasiya-722037315",
     github: "https://github.com/VivekChaurasiya95",
+    imgStyle: { transform: "scale(1.5)", transformOrigin: "center 20%" },
   },
   {
     name: "Krish Dargar",
@@ -146,7 +148,9 @@ function Developer() {
             <div className="developer-avatar-wrap">
               <div className="developer-avatar-glow" />
               {member.pic ? (
-                 <img src={member.pic} alt={member.name} className="developer-avatar-img" />
+                 <div className="developer-avatar-container">
+                   <img src={member.pic} alt={member.name} className="developer-avatar-img" style={member.imgStyle} />
+                 </div>
               ) : (
                  <div className="developer-avatar">{member.name.charAt(0)}</div>
               )}

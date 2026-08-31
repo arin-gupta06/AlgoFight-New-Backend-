@@ -39,14 +39,16 @@ export class PrismaProblemRepository implements ProblemRepository {
         if (query.difficulty && query.difficulty.toUpperCase() !== "ALL") {
             where.difficulty = query.difficulty.toUpperCase();
         }
-        if (query.category &&
-            query.category.toUpperCase() !== "ALL") {
-            where.category = {
-                contains: query.category, mode: "insensitive"
-            };
+        const orConditions = [];
+        if (query.category && query.category.toUpperCase() !== "ALL") {
+            orConditions.push({ category: { contains: query.category, mode: "insensitive" } });
         }
         if (query.tags && query.tags.toUpperCase() !== "ALL") {
-            where.tags = { has: query.tags };
+            orConditions.push({ tags: { has: query.tags } });
+        }
+
+        if (orConditions.length > 0) {
+            where.OR = orConditions;
         }
 
 

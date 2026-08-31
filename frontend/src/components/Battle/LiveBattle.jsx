@@ -17,10 +17,12 @@ import {
   faShieldHalved,
   faUsers,
   faTimes,
-  faCheckCircle,
   faTrophy,
+  faCheckCircle,
   faBolt,
-  faChartBar
+  faChartBar,
+  faChevronLeft,
+  faChevronRight
 } from "@fortawesome/free-solid-svg-icons";
 import "./LiveBattle.css";
 
@@ -152,10 +154,10 @@ export default function LiveBattle() {
   const [battleResult, setBattleResult] = useState(null);
   const [ratingUpdates, setRatingUpdates] = useState(null);
   
-  // Execution stream states
   const [executionTimeline, setExecutionTimeline] = useState([]);
   const [executionTests, setExecutionTests] = useState([]);
   const [showDetailedAnalysis, setShowDetailedAnalysis] = useState(false);
+  const [isSubmitPanelOpen, setIsSubmitPanelOpen] = useState(true);
 
   // Anti-Cheat Hook
   const { isBlurred, violations } = useAntiCheat(status === "matched");
@@ -526,7 +528,7 @@ export default function LiveBattle() {
         </div>
       </motion.section>
 
-      <div className="livebattle-grid">
+      <div className="livebattle-grid" style={{ gridTemplateColumns: isSubmitPanelOpen ? undefined : "minmax(280px, 1fr) 2fr" }}>
         <section className="livebattle-panel livebattle-problem-panel">
           <div className="livebattle-panel-head" style={{ paddingBottom: 0, borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
              <div className="problem-tabs" style={{ display: 'flex', gap: '10px' }}>
@@ -572,6 +574,16 @@ export default function LiveBattle() {
               <option value="cpp" style={{ background: '#111' }}>C++</option>
               <option value="python" style={{ background: '#111' }}>Python</option>
             </select>
+            {!isSubmitPanelOpen && (
+              <button
+                className="livebattle-action-btn"
+                onClick={() => setIsSubmitPanelOpen(true)}
+                style={{ padding: "4px 10px", minHeight: "30px", marginLeft: "4px" }}
+                title="Open Submit Panel"
+              >
+                <FontAwesomeIcon icon={faChevronLeft} />
+              </button>
+            )}
           </div>
 
           <textarea
@@ -592,9 +604,18 @@ export default function LiveBattle() {
           )}
         </section>
 
+        {isSubmitPanelOpen && (
         <section className="livebattle-panel livebattle-submit-panel">
           <div className="livebattle-panel-head">
             <h3>Submit Solution</h3>
+            <button
+              className="livebattle-action-btn"
+              onClick={() => setIsSubmitPanelOpen(false)}
+              style={{ padding: "4px 10px", minHeight: "30px" }}
+              title="Hide Submit Panel"
+            >
+              <FontAwesomeIcon icon={faChevronRight} />
+            </button>
           </div>
 
           <div className="livebattle-submit-body">
@@ -697,6 +718,7 @@ export default function LiveBattle() {
             </div>
           </div>
         </section>
+        )}
       </div>
     </div>
   );

@@ -51,10 +51,23 @@ export function SocketProvider({ children }) {
     socketClient.on("battle_state_sync", handleBattleStateSync);
     socketClient.on("battle_stats_update", handleBattleStateSync);
 
-    // Connect with user credentials
-    connectSocket(null, userId, username);
+    // Connect with user credentials and token if available
+    let active = true;
+    (async () => {
+      try {
+        const token = user?.getIdToken ? await user.getIdToken() : null;
+        if (active) {
+          connectSocket(token, userId, username);
+        }
+      } catch {
+        if (active) {
+          connectSocket(null, userId, username);
+        }
+      }
+    })();
 
     return () => {
+      active = false;
       socketClient.off("profile_update", handleProfileUpdate);
       socketClient.off("leaderboard_update", handleLeaderboardUpdate);
       socketClient.off("match_found", handleMatchFound);

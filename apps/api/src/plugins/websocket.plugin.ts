@@ -35,7 +35,7 @@ export default fp(async function (app: FastifyInstance) {
             done();
         });
 
-        fastify.get("/ws", { websocket: true }, (connection: any, req) => {
+        const handleSocketConnection = (connection: any, req: any) => {
             const socket: any = connection.socket || connection;
             socket.isAlive = true;
             
@@ -43,7 +43,7 @@ export default fp(async function (app: FastifyInstance) {
                 socket.isAlive = true;
             });
 
-            logger.info("New WebSocket connection established");
+            logger.info({ path: req?.url }, "New WebSocket connection established");
             const currentUserId: { value: string | null } = { value: null };
 
             socket.on("message", (data: any) => {
@@ -60,7 +60,10 @@ export default fp(async function (app: FastifyInstance) {
             socket.on("error", (error: any) => {
                 logger.error({ error }, "WebSocket error occurred");
             });
-        });
+        };
+
+        fastify.get("/ws", { websocket: true }, handleSocketConnection);
+        fastify.get("/api/ws", { websocket: true }, handleSocketConnection);
 
         // Redis Subscriber setup
         const redisSubscriber = createRedisClient();

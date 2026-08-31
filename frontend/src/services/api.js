@@ -1,8 +1,22 @@
 import { auth } from "../firebaseConfig";
 
 const rawApiUrl = (import.meta.env.VITE_API_URL || "").trim();
+const isLocal = typeof window !== "undefined" && 
+    (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
+
+const getEffectiveApiUrl = () => {
+  if (rawApiUrl) {
+    if (!isLocal && (rawApiUrl.includes("localhost") || rawApiUrl.includes("127.0.0.1"))) {
+      // In production deployment, ignore baked-in localhost URL
+      return "";
+    }
+    return rawApiUrl.replace(/\/api\/?$/, "").replace(/\/+$/, "");
+  }
+  return "";
+};
+
 // Strip trailing /api to avoid /api/api calls
-export const API_URL = rawApiUrl.replace(/\/api\/?$/, "").replace(/\/$/, "");
+export const API_URL = getEffectiveApiUrl();
 
 export function toApiUrl(path) {
   return API_URL ? `${API_URL}${path}` : path;

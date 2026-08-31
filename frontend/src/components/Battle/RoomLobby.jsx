@@ -26,7 +26,7 @@ import {
 import { requestJson } from "../../services/api";
 import { useAuth } from "../../contexts/AuthContext";
 import { useNotification } from "../../contexts/NotificationContext";
-import { WS_URL } from "../../services/socket";
+import { getWsUrl } from "../../services/socket";
 import "./RoomLobby.css";
 
 export default function RoomLobby() {
@@ -93,7 +93,8 @@ export default function RoomLobby() {
     useEffect(() => {
         let ws;
         try {
-            ws = new WebSocket(WS_URL);
+            const resolvedWsUrl = getWsUrl();
+            ws = new WebSocket(resolvedWsUrl);
             socketRef.current = ws;
 
             ws.onopen = () => {

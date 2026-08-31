@@ -1,27 +1,76 @@
 // frontend/src/services/socket.js
 export const getWsUrl = () => {
-  const envWs = import.meta.env.VITE_WS_URL;
+  const envWs = (import.meta.env.VITE_WS_URL || "").trim();
+  const envApi = (import.meta.env.VITE_API_URL || "").trim();
   const isLocal = typeof window !== "undefined" && 
       (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
 
+  // Helper to convert any HTTP/HTTPS or raw hostname to a valid WebSocket (ws:// or wss://) URL
+  const normalizeToWs = (url, isApiPath = false) => {
+    if (!url) return null;
+    let clean = url.trim();
+
+    // Convert http/https schemes to ws/wss
+    if (clean.startsWith("https://")) {
+      clean = clean.replace(/^https:\/\//, "wss://");
+    } else if (clean.startsWith("http://")) {
+      if (typeof window !== "undefined" && window.location.protocol === "https:") {
+        clean = clean.replace(/^http:\/\//, "wss://");
+      } else {
+        clean = clean.replace(/^http:\/\//, "ws://");
+      }
+    } else if (!clean.startsWith("ws://") && !clean.startsWith("wss://")) {
+      const proto = (typeof window !== "undefined" && window.location.protocol === "https:") ? "wss://" : "ws://";
+      clean = `${proto}${clean.replace(/^\/+/, "")}`;
+    }
+
+    // Force WSS on HTTPS deployment to prevent browser mixed-content blockage
+    if (typeof window !== "undefined" && window.location.protocol === "https:" && clean.startsWith("ws://")) {
+      if (!clean.includes("localhost") && !clean.includes("127.0.0.1")) {
+        clean = clean.replace(/^ws:\/\//, "wss://");
+      }
+    }
+
+    // Strip trailing /api and trailing slashes
+    clean = clean.replace(/\/api\/?$/, "").replace(/\/+$/, "");
+
+    // If derived from API server or if path is omitted, append /ws
+    if (isApiPath || clean.endsWith(".onrender.com") || clean.endsWith(".railway.app") || clean.endsWith(".fly.dev")) {
+      if (!clean.endsWith("/ws")) {
+        clean = `${clean}/ws`;
+      }
+    }
+
+    return clean;
+  };
+
+  // 1. Explicit VITE_WS_URL configured in deployment platform
   if (envWs) {
     if (!isLocal && (envWs.includes("localhost") || envWs.includes("127.0.0.1"))) {
-      // Ignore local env var in production
+      // Ignore local localhost WS_URL if bundled into production deployment
     } else {
-      return envWs;
+      const normalized = normalizeToWs(envWs, false);
+      if (normalized) return normalized;
     }
   }
 
-  if (typeof window !== "undefined" && !isLocal) {
-    const apiUrl = import.meta.env.VITE_API_URL || "";
-    if (apiUrl && !apiUrl.includes("localhost") && !apiUrl.includes("127.0.0.1")) {
-      const baseWsUrl = apiUrl.replace(/^http/, "ws");
-      return baseWsUrl.endsWith("/ws") ? baseWsUrl : `${baseWsUrl}/ws`;
+  // 2. Derive automatically from VITE_API_URL if configured
+  if (envApi) {
+    if (!isLocal && (envApi.includes("localhost") || envApi.includes("127.0.0.1"))) {
+      // Ignore local localhost API_URL if bundled into production deployment
+    } else {
+      const normalized = normalizeToWs(envApi, true);
+      if (normalized) return normalized;
     }
-    return window.location.protocol === "https:"
-      ? `wss://${window.location.host}/ws`
-      : `ws://${window.location.host}/ws`;
   }
+
+  // 3. Deployed browser fallback (reverse proxy / same domain)
+  if (typeof window !== "undefined" && !isLocal) {
+    const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
+    return `${proto}//${window.location.host}/ws`;
+  }
+
+  // 4. Default local development URL
   return "ws://127.0.0.1:4001";
 };
 

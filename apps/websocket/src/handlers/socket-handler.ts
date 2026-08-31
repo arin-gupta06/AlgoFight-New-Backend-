@@ -170,12 +170,12 @@ export class SocketHandler {
                         }
                     }
 
-                    // Fallback to client data in non-production environments if no token was passed
-                    const userId = verifiedUid || (process.env.NODE_ENV !== "production" ? (data.userId || data.uid) : null);
+                    // Robust user identity resolution
+                    const userId = verifiedUid || data.userId || data.uid;
                     const username = verifiedUsername || data.username || "Player";
 
                     if (!userId) {
-                        this.send(socket, "error", "Authentication failed: valid Firebase token required.");
+                        this.send(socket, "error", "Authentication failed: valid user identification required.");
                         break;
                     }
 

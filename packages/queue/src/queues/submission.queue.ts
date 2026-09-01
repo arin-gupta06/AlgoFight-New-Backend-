@@ -2,13 +2,10 @@ import {Queue} from "bullmq";
 import {redisConnection} from "../client/redis";
 import { QUEUE_NAMES } from "../constants/queue.constants";
 import { logger } from "@algofight/logger";
-export const submissionQueue = new Queue (
+export const submissionQueue = new Queue(
     QUEUE_NAMES.SUBMISSION,
     {
-        connection: {
-            host: redisConnection.options.host,
-            port: redisConnection.options.port,
-        },
+        connection: redisConnection,
 
         defaultJobOptions: {
             attempts: 3,

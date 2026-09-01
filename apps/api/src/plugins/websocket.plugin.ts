@@ -62,6 +62,7 @@ export default fp(async function (app: FastifyInstance) {
             });
         };
 
+        fastify.get("/", { websocket: true }, handleSocketConnection);
         fastify.get("/ws", { websocket: true }, handleSocketConnection);
         fastify.get("/api/ws", { websocket: true }, handleSocketConnection);
 

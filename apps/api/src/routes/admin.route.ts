@@ -115,13 +115,15 @@ export async function adminRoutes(app: FastifyInstance) {
         const linuxBaseUrl = rawTelemetryUrl.replace(/\/dashboard\/?$/, "").replace(/\/$/, "");
         
         try {
-            const res = await fetch(`${linuxBaseUrl}/healthz`);
+            const res = await fetch(`${linuxBaseUrl}/healthz`, {
+                signal: AbortSignal.timeout(2500),
+            });
             if (res.ok) {
-                return { status: "ONLINE" };
+                return { status: "ONLINE", online: true };
             }
-            return reply.status(502).send({ status: "OFFLINE" });
+            return { status: "OFFLINE", online: false };
         } catch (err) {
-            return reply.status(502).send({ status: "OFFLINE" });
+            return { status: "OFFLINE", online: false };
         }
     });
 }

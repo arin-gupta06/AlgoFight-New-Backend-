@@ -214,6 +214,19 @@ class BrowserSocketClient {
       this.listeners.set(event, new Set());
     }
     this.listeners.get(event).add(callback);
+
+    // If component registers for "connect" and socket is ALREADY connected, immediately notify on next tick
+    if (event === "connect" && this.connected && this.ws?.readyState === WebSocket.OPEN) {
+      setTimeout(() => {
+        try {
+          callback();
+        } catch (e) {
+          console.error("[WebSocket] Connect callback error:", e);
+        }
+      }, 0);
+    }
+
+    return () => this.off(event, callback);
   }
 
   off(event, callback) {
@@ -242,6 +255,11 @@ class BrowserSocketClient {
       };
       if (this.ws) {
         this.ws.addEventListener("open", onOpen);
+      } else {
+        this.connect();
+        if (this.ws) {
+          this.ws.addEventListener("open", onOpen);
+        }
       }
     }
   }

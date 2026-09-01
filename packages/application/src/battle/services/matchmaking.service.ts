@@ -43,16 +43,35 @@ export class MatchmakingService {
             redisClient.on("ready", () => { this.isRedisReady = true; });
             redisClient.on("error", () => { /* fallback gracefully */ });
         } else {
-            const host = process.env.REDIS_HOST || "localhost";
-            const port = Number(process.env.REDIS_PORT) || 6379;
+            const rawUrl =
+                process.env.REDIS_URL ||
+                process.env.REDIS_PRIVATE_URL ||
+                (process.env.REDIS_HOST?.startsWith("redis://") ||
+                process.env.REDIS_HOST?.startsWith("valkey://") ||
+                process.env.REDIS_HOST?.startsWith("rediss://")
+                    ? process.env.REDIS_HOST
+                    : null);
+
+            const isTls = rawUrl ? rawUrl.startsWith("rediss://") : process.env.REDIS_TLS === "true";
+
             try {
-                this.redisClient = new Redis({
-                    host,
-                    port,
-                    lazyConnect: true,
-                    enableOfflineQueue: false,
-                    maxRetriesPerRequest: 1,
-                });
+                this.redisClient = rawUrl
+                    ? new Redis(rawUrl, {
+                          lazyConnect: true,
+                          enableOfflineQueue: false,
+                          tls: isTls ? { rejectUnauthorized: false } : undefined,
+                          maxRetriesPerRequest: 1,
+                      })
+                    : new Redis({
+                          host: process.env.REDIS_HOST || "localhost",
+                          port: Number(process.env.REDIS_PORT) || 6379,
+                          password: process.env.REDIS_PASSWORD || undefined,
+                          tls: isTls ? { rejectUnauthorized: false } : undefined,
+                          lazyConnect: true,
+                          enableOfflineQueue: false,
+                          maxRetriesPerRequest: 1,
+                      });
+
                 this.redisClient.connect()
                     .then(() => { this.isRedisReady = true; })
                     .catch(() => { this.isRedisReady = false; });

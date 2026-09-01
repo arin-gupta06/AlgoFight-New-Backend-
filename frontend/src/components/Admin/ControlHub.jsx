@@ -323,20 +323,26 @@ export default function ControlHub() {
     const linuxTelemetryUrl = `${linuxBaseUrl}/dashboard`;
 
     useEffect(() => {
+        if (!isUnlocked) return;
+
         // Quick health probe to check Linux Telemetry service status
         const checkLinux = async () => {
             try {
                 const res = await fetch(toApiUrl("/api/admin/linux-status"));
-                if (res.ok) setLinuxStatus("ONLINE");
-                else setLinuxStatus("OFFLINE");
+                if (res.ok) {
+                    const data = await res.json().catch(() => ({}));
+                    setLinuxStatus(data.status === "ONLINE" || data.online ? "ONLINE" : "OFFLINE");
+                } else {
+                    setLinuxStatus("OFFLINE");
+                }
             } catch {
                 setLinuxStatus("OFFLINE");
             }
         };
         checkLinux();
-        const interval = setInterval(checkLinux, 10000);
+        const interval = setInterval(checkLinux, 15000);
         return () => clearInterval(interval);
-    }, [linuxBaseUrl]);
+    }, [isUnlocked, linuxBaseUrl]);
 
     // 🔒 Render Security Clearance Gate if locked
     if (!isUnlocked) {

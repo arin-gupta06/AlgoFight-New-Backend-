@@ -282,16 +282,21 @@ export default function LiveBattle() {
       socket = connectSocket(token, user?.uid || null);
       socketRef.current = socket;
 
-      socket.on("connect", () => {
+      const initiateBattleQueue = () => {
         const currentTarget = roomId || initialMatch?.roomId || initialMatch?.roomCode || initialRoomCode;
         if (currentTarget) {
           socket.emit("join_room_channel", { roomCode: currentTarget, userId: user?.uid, username });
         } else if (status !== "matched") {
           setStatus("waiting");
-          notify({ type: "info", title: "Connected", message: "Looking for a 1v1 opponent...", duration: 2600 });
+          notify({ type: "info", title: "Matchmaking", message: "Searching for a 1v1 challenger...", duration: 2600 });
           socket.emit("find_match", { username });
         }
-      });
+      };
+
+      socket.on("connect", initiateBattleQueue);
+      if (socket.connected || socket.ws?.readyState === WebSocket.OPEN) {
+        initiateBattleQueue();
+      }
 
       socket.on("waiting_for_opponent", (data) => {
         if (!roomId && !initialMatch) {

@@ -32,14 +32,15 @@ export class SocketHandler {
     );
     private readonly evaluationService = new EvaluationService();
     private readonly battleService = new BattleService(this.battleRoomRepo, this.battleRoomService);
+    private readonly mockExecutor = new MockExecutor();
+    private readonly redis = createRedisClient();
+    private readonly redisSubscriber = createRedisClient();
     private readonly matchmakingService = new MatchmakingService(
         this.userRepo,
         this.battleRoomService,
         this.problemRepo,
+        this.redis,
     );
-    private readonly mockExecutor = new MockExecutor();
-    private readonly redis = createRedisClient();
-    private readonly redisSubscriber = createRedisClient();
 
     // Map socket -> user session
     private readonly socketUsers = new Map<WebSocket, {

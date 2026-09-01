@@ -1,10 +1,17 @@
 import { FastifyInstance } from "fastify";
 import { NotificationController } from "../controllers/notification.controller";
+import { SystemBroadcastService } from "../services/system-broadcast.service";
 import { requireAuth } from "../plugins/auth.plugin";
 
 const notificationController = new NotificationController();
 
 export async function notificationRoutes(app: FastifyInstance) {
+    // 0. Get active system broadcast announcements (Public/Auth for Flash Banner)
+    app.get("/notifications/active-broadcasts", async () => {
+        const broadcasts = await SystemBroadcastService.getActiveBroadcasts();
+        return { broadcasts };
+    });
+
     // 1. Get notifications for current user (Authenticated)
     app.get("/notifications", { preHandler: [requireAuth] }, async (req) => {
         const query = req.query as { limit?: string; offset?: string };
@@ -34,3 +41,4 @@ export async function notificationRoutes(app: FastifyInstance) {
         return notificationController.clearNotifications(userId);
     });
 }
+

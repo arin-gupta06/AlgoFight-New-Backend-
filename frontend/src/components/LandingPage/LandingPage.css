@@ -82,32 +82,31 @@
 
 /* ================= HERO SECTION ================= */
 .landing-hero-section {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+  gap: 48px;
   align-items: center;
-  justify-content: center;
-  text-align: center;
   width: 100%;
   min-height: calc(100vh - 140px);
   padding: 40px 0 60px 0;
+  text-align: left;
 }
 
-.hero-left-col.centered-hero-col {
-  max-width: 900px;
+.hero-left-col {
+  max-width: 640px;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  text-align: center;
-  margin: 0 auto;
+  align-items: flex-start;
+  text-align: left;
 }
 
-.hero-left-col.centered-hero-col .hero-buttons-row {
-  justify-content: center;
+.hero-left-col .hero-buttons-row {
+  justify-content: flex-start;
 }
 
 /* Official Logo Container */
 .algofight-hero-logo-wrapper {
-  margin-bottom: 32px;
+  margin-bottom: 24px;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -116,21 +115,22 @@
 }
 
 .hero-brand-logo-image {
-  height: 165px;
-  width: 165px;
+  height: 96px;
+  width: 96px;
   object-fit: contain;
   border-radius: 50%;
   transition: transform 0.25s ease;
+  filter: drop-shadow(0 0 16px rgba(0, 229, 255, 0.4));
 }
 
 /* Hero Headline */
 .hero-headline {
   font-family: 'Space Grotesk', sans-serif;
-  font-size: clamp(3.2rem, 6.2vw, 5.2rem);
+  font-size: clamp(2.8rem, 5.4vw, 4.6rem);
   line-height: 0.95;
   font-weight: 900;
   letter-spacing: -0.03em;
-  margin: 0 0 24px;
+  margin: 0 0 22px;
   text-transform: uppercase;
 }
 
@@ -140,11 +140,11 @@
 
 /* Hero Description */
 .hero-description {
-  font-size: 1.12rem;
+  font-size: 1.08rem;
   color: #9ca9bf;
   line-height: 1.65;
-  margin-bottom: 36px;
-  max-width: 580px;
+  margin-bottom: 34px;
+  max-width: 560px;
 }
 
 /* Buttons */

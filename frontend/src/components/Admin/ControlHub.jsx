@@ -1,8 +1,15 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import "./ControlHub.css";
 import { motion } from "framer-motion";
 import { useNotification } from "../../contexts/NotificationContext.jsx";
-import { toApiUrl } from "../../services/api.js";
+import {
+    toApiUrl,
+    fetchAdminBroadcasts,
+    dispatchAdminBroadcast,
+    deleteAdminBroadcast,
+    uploadBroadcastMedia,
+} from "../../services/api.js";
+import SystemBroadcastCard from "../Common/SystemBroadcastCard.jsx";
 
 const SERVICE_NAMES = {
     apiGateway: "API Gateway",
@@ -32,8 +39,29 @@ export default function ControlHub() {
     const [metrics, setMetrics] = useState(null);
     const [users, setUsers] = useState([]);
     const [search, setSearch] = useState("");
-    const [broadcastMsg, setBroadcastMsg] = useState("");
     const { notify } = useNotification();
+
+    // System Broadcast State
+    const [adminBroadcasts, setAdminBroadcasts] = useState([]);
+    const [showPreview, setShowPreview] = useState(false);
+    const [isDispatching, setIsDispatching] = useState(false);
+    const [includeMediaOrAction, setIncludeMediaOrAction] = useState(true);
+
+    const [broadcastForm, setBroadcastForm] = useState({
+        title: "Hey Coders! 👋",
+        message: "AlgoFight is currently in its Alpha Testing Phase until September 10, 2026. If you find a bug, have a suggestion, or want to share feedback, let us know!",
+        type: "FEEDBACK",
+        expiryDate: "2026-09-10",
+        expiryTime: "23:59",
+        flashBanner: true,
+        contentType: "NONE",
+        contentUrl: "",
+        contentName: "",
+        actionType: "EXTERNAL_LINK",
+        actionLabel: "Share Your Feedback",
+        actionTarget: "https://docs.google.com/forms/d/e/1FAIpQLSe-example/viewform",
+    });
+
 
     const handleUnlock = async (e) => {
         e.preventDefault();
@@ -98,31 +126,195 @@ export default function ControlHub() {
         }
     };
 
+    const fetchBroadcasts = useCallback(async () => {
+        if (!adminKey) return;
+        try {
+            const data = await fetchAdminBroadcasts(adminKey);
+            setAdminBroadcasts(data?.broadcasts || []);
+        } catch (err) {
+            console.error("Broadcasts fetch failed", err);
+        }
+    }, [adminKey]);
+
     useEffect(() => {
         if (isUnlocked && adminKey) {
             fetchTelemetry();
             fetchUsers();
-            const timer = setInterval(fetchTelemetry, 4000);
+            fetchBroadcasts();
+            const timer = setInterval(() => {
+                fetchTelemetry();
+                fetchBroadcasts();
+            }, 4000);
             return () => clearInterval(timer);
         }
-    }, [isUnlocked, adminKey]);
+    }, [isUnlocked, adminKey, fetchBroadcasts]);
 
     const handleSearch = (e) => {
         e.preventDefault();
         fetchUsers(search);
     };
 
-    const handleBroadcast = (e) => {
-        e.preventDefault();
-        if (!broadcastMsg.trim()) return;
-
-        notify({
-            type: "warning",
-            title: "SYSTEM BROADCAST DISPATCHED",
-            message: broadcastMsg,
-        });
-        setBroadcastMsg("");
+    const handleApplyPreset = (preset) => {
+        if (preset === "ALPHA") {
+            setIncludeMediaOrAction(true);
+            setBroadcastForm({
+                title: "Hey Coders! 👋",
+                message: "AlgoFight is currently in its Alpha Testing Phase until September 10, 2026. We are actively refining platform telemetry and match performance. If you discover a bug or have suggestions, share your feedback!",
+                type: "FEEDBACK",
+                expiryDate: "2026-09-10",
+                expiryTime: "23:59",
+                flashBanner: true,
+                contentType: "NONE",
+                contentUrl: "",
+                contentName: "",
+                actionType: "EXTERNAL_LINK",
+                actionLabel: "Share Your Feedback",
+                actionTarget: "https://docs.google.com/forms/d/e/1FAIpQLSe-example/viewform",
+            });
+            notify({ type: "info", title: "PRESET LOADED", message: "Alpha Testing 10 Sep 2026 configuration loaded." });
+        } else if (preset === "24H") {
+            const d = new Date(Date.now() + 24 * 60 * 60 * 1000);
+            setBroadcastForm((prev) => ({
+                ...prev,
+                expiryDate: d.toISOString().split("T")[0],
+                expiryTime: d.toTimeString().slice(0, 5),
+            }));
+        } else if (preset === "7D") {
+            const d = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+            setBroadcastForm((prev) => ({
+                ...prev,
+                expiryDate: d.toISOString().split("T")[0],
+                expiryTime: d.toTimeString().slice(0, 5),
+            }));
+        }
     };
+
+    const handleMediaFileUpload = (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        if (file.size > 10 * 1024 * 1024) {
+            notify({ type: "error", title: "FILE TOO LARGE", message: "Media attachments must be under 10MB." });
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+            const base64 = event.target?.result;
+            try {
+                const res = await uploadBroadcastMedia(adminKey, {
+                    name: file.name,
+                    type: "IMAGE",
+                    mimeType: file.type,
+                    size: file.size,
+                    base64,
+                });
+                if (res?.media?.url) {
+                    setBroadcastForm((prev) => ({
+                        ...prev,
+                        contentUrl: res.media.url,
+                        contentName: file.name,
+                    }));
+                    notify({ type: "success", title: "IMAGE UPLOADED", message: `Attached: ${file.name}` });
+                }
+            } catch (err) {
+                notify({ type: "error", title: "UPLOAD FAILED", message: err.message || "Failed to upload image." });
+            }
+        };
+        reader.readAsDataURL(file);
+    };
+
+    const handleDispatchBroadcast = async (e) => {
+        e.preventDefault();
+        if (!broadcastForm.title.trim() || !broadcastForm.message.trim()) {
+            notify({ type: "error", title: "MISSING FIELDS", message: "Title and message are required." });
+            return;
+        }
+
+        const expiryIso = `${broadcastForm.expiryDate}T${broadcastForm.expiryTime}:00`;
+        const expiryTime = new Date(expiryIso).getTime();
+
+        if (isNaN(expiryTime) || expiryTime <= Date.now()) {
+            notify({ type: "error", title: "INVALID EXPIRY", message: "Expiry date/time must be in the future." });
+            return;
+        }
+
+        const payload = {
+            title: broadcastForm.title.trim(),
+            message: broadcastForm.message.trim(),
+            type: broadcastForm.type,
+            expiresAt: expiryIso,
+            flashBanner: broadcastForm.flashBanner,
+            content: includeMediaOrAction && broadcastForm.contentType !== "NONE" && broadcastForm.contentUrl ? {
+                type: broadcastForm.contentType,
+                url: broadcastForm.contentUrl.trim(),
+                name: broadcastForm.contentName || "Attachment",
+            } : null,
+            action: includeMediaOrAction && broadcastForm.actionType !== "NONE" && broadcastForm.actionTarget ? {
+                type: broadcastForm.actionType,
+                label: broadcastForm.actionLabel.trim() || "View Details",
+                target: broadcastForm.actionTarget.trim(),
+            } : null,
+        };
+
+        setIsDispatching(true);
+        try {
+            const res = await dispatchAdminBroadcast(adminKey, payload);
+            if (res.success && res.broadcast) {
+                notify({
+                    type: "success",
+                    title: "BROADCAST DISPATCHED",
+                    message: `Dispatched to all connected combatants. Expires on ${broadcastForm.expiryDate}.`,
+                });
+                fetchBroadcasts();
+                setShowPreview(false);
+            } else {
+                notify({
+                    type: "error",
+                    title: "DISPATCH FAILED",
+                    message: res.message || "Failed to dispatch broadcast.",
+                });
+            }
+        } catch (err) {
+            notify({
+                type: "error",
+                title: "DISPATCH ERROR",
+                message: err.message || "Could not communicate with admin API.",
+            });
+        } finally {
+            setIsDispatching(false);
+        }
+    };
+
+    const handleRevokeBroadcast = async (broadcastId) => {
+        if (!window.confirm("Are you sure you want to revoke this broadcast? It will instantly disappear from all user screens and inboxes.")) {
+            return;
+        }
+
+        try {
+            const res = await deleteAdminBroadcast(adminKey, broadcastId);
+            if (res.success) {
+                notify({ type: "warning", title: "BROADCAST REVOKED", message: "Broadcast purged from active clients." });
+                fetchBroadcasts();
+            }
+        } catch (err) {
+            notify({ type: "error", title: "REVOCATION FAILED", message: err.message || "Failed to revoke." });
+        }
+    };
+
+    const formatRemaining = (expiresAt, status) => {
+        if (status === "REVOKED") return "Revoked";
+        const diff = new Date(expiresAt).getTime() - Date.now();
+        if (diff <= 0) return "Expired";
+        const hours = Math.floor(diff / (1000 * 60 * 60));
+        const days = Math.floor(hours / 24);
+        if (days > 0) return `${days} day${days > 1 ? "s" : ""} left`;
+        if (hours > 0) return `${hours} hr${hours > 1 ? "s" : ""} left`;
+        const mins = Math.floor(diff / (1000 * 60));
+        return `${mins} min${mins > 1 ? "s" : ""} left`;
+    };
+
+
 
     const [activeTab, setActiveTab] = useState("overview"); // "overview" | "linux_telemetry"
     const [linuxStatus, setLinuxStatus] = useState("CHECKING");
@@ -324,20 +516,417 @@ export default function ControlHub() {
                         </div>
                     </div>
 
-                    {/* 4. Global System Broadcast Console */}
-                    <div className="admin-section">
-                        <h3 className="section-title">Global System Broadcast Console</h3>
-                        <form className="broadcast-bar" onSubmit={handleBroadcast}>
-                            <input
-                                type="text"
-                                placeholder="Enter priority announcement banner to dispatch across all connected combatants..."
-                                value={broadcastMsg}
-                                onChange={(e) => setBroadcastMsg(e.target.value)}
-                            />
-                            <button type="submit" className="broadcast-btn">
-                                Dispatch Broadcast
-                            </button>
+                    {/* 4. Global System Broadcast Dispatcher & Management Suite */}
+                    <div className="admin-section broadcast-dispatcher-section">
+                        <div className="dispatcher-header">
+                            <div>
+                                <h3 className="section-title">Global System Broadcast Dispatcher</h3>
+                                <p className="section-subtitle">
+                                    Create, preview, and dispatch temporary time-bound announcements across all connected combatants with interactive CTAs, media attachments, and auto-expiry.
+                                </p>
+                            </div>
+                            <div className="dispatcher-quick-presets">
+                                <span className="preset-label">Quick Presets:</span>
+                                <button
+                                    type="button"
+                                    className="preset-btn preset-alpha"
+                                    onClick={() => handleApplyPreset("ALPHA")}
+                                >
+                                    ⭐ Alpha Testing (10 Sep 2026)
+                                </button>
+                                <button
+                                    type="button"
+                                    className="preset-btn"
+                                    onClick={() => handleApplyPreset("24H")}
+                                >
+                                    +24 Hours
+                                </button>
+                                <button
+                                    type="button"
+                                    className="preset-btn"
+                                    onClick={() => handleApplyPreset("7D")}
+                                >
+                                    +7 Days
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Broadcast Dispatcher Form */}
+                        <form className="broadcast-composer-form" onSubmit={handleDispatchBroadcast}>
+                            {/* Group 1: Core Announcement */}
+                            <div className="composer-card">
+                                <div className="composer-card-header">
+                                    <span className="card-step-badge">01</span>
+                                    <h4>Announcement Message</h4>
+                                </div>
+                                <div className="composer-card-body">
+                                    <div className="composer-row-2">
+                                        <div className="form-group flex-2">
+                                            <label>Broadcast Title *</label>
+                                            <input
+                                                type="text"
+                                                placeholder="e.g. Hey Coders! 👋 / Alpha Testing Notice"
+                                                value={broadcastForm.title}
+                                                onChange={(e) => setBroadcastForm({ ...broadcastForm, title: e.target.value })}
+                                                required
+                                            />
+                                        </div>
+
+                                        <div className="form-group flex-1">
+                                            <label>Category / Type *</label>
+                                            <select
+                                                value={broadcastForm.type}
+                                                onChange={(e) => setBroadcastForm({ ...broadcastForm, type: e.target.value })}
+                                            >
+                                                <option value="INFO">INFO (General Announcement)</option>
+                                                <option value="FEEDBACK">FEEDBACK (Alpha / Survey)</option>
+                                                <option value="UPDATE">UPDATE (New Feature / Changelog)</option>
+                                                <option value="WARNING">WARNING (Critical Notice)</option>
+                                                <option value="MAINTENANCE">MAINTENANCE (Downtime)</option>
+                                                <option value="EVENT">EVENT (Tournament / Contest)</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div className="form-group">
+                                        <label>Announcement Message *</label>
+                                        <textarea
+                                            rows={3}
+                                            placeholder="Enter announcement message body displayed in user notifications and flash banner..."
+                                            value={broadcastForm.message}
+                                            onChange={(e) => setBroadcastForm({ ...broadcastForm, message: e.target.value })}
+                                            required
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Group 2: Schedule, Expiry & Display Targets */}
+                            <div className="composer-card">
+                                <div className="composer-card-header">
+                                    <span className="card-step-badge">02</span>
+                                    <h4>Schedule & Display Configuration</h4>
+                                </div>
+                                <div className="composer-card-body">
+                                    <div className="composer-row-3">
+                                        <div className="form-group">
+                                            <label>Expiry Date *</label>
+                                            <input
+                                                type="date"
+                                                value={broadcastForm.expiryDate}
+                                                onChange={(e) => setBroadcastForm({ ...broadcastForm, expiryDate: e.target.value })}
+                                                required
+                                            />
+                                        </div>
+
+                                        <div className="form-group">
+                                            <label>Expiry Time *</label>
+                                            <input
+                                                type="time"
+                                                value={broadcastForm.expiryTime}
+                                                onChange={(e) => setBroadcastForm({ ...broadcastForm, expiryTime: e.target.value })}
+                                                required
+                                            />
+                                        </div>
+
+                                        <div className="form-group toggle-field-group">
+                                            <label>Flash On-Screen</label>
+                                            <label className="cyber-toggle-label">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={broadcastForm.flashBanner}
+                                                    onChange={(e) => setBroadcastForm({ ...broadcastForm, flashBanner: e.target.checked })}
+                                                />
+                                                <span className="cyber-toggle-slider" />
+                                                <span className="toggle-text">
+                                                    {broadcastForm.flashBanner ? "⚡ Flash Banner Active" : "Inbox Only"}
+                                                </span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Group 3: Optional Media & Interactive Action */}
+                            <div className={`composer-card optional-card ${!includeMediaOrAction ? 'is-collapsed' : ''}`}>
+                                <div className="composer-card-header has-toggle">
+                                    <div className="card-header-main">
+                                        <span className="card-step-badge">03</span>
+                                        <h4>Interactive Action & Media Attachment <small>(Optional)</small></h4>
+                                    </div>
+
+                                    {/* Master Enable/Disable Toggle */}
+                                    <label className="cyber-toggle-label mini-toggle" title="Toggle to attach media resources or actionable links">
+                                        <input
+                                            type="checkbox"
+                                            checked={includeMediaOrAction}
+                                            onChange={(e) => {
+                                                const enabled = e.target.checked;
+                                                setIncludeMediaOrAction(enabled);
+                                                if (!enabled) {
+                                                    setBroadcastForm(prev => ({
+                                                        ...prev,
+                                                        contentType: "NONE",
+                                                        contentUrl: "",
+                                                        contentName: "",
+                                                        actionType: "NONE",
+                                                        actionLabel: "",
+                                                        actionTarget: "",
+                                                    }));
+                                                } else if (broadcastForm.actionType === "NONE" && broadcastForm.contentType === "NONE") {
+                                                    setBroadcastForm(prev => ({
+                                                        ...prev,
+                                                        actionType: "EXTERNAL_LINK",
+                                                        actionLabel: "Share Your Feedback",
+                                                        actionTarget: "",
+                                                    }));
+                                                }
+                                            }}
+                                        />
+                                        <span className="cyber-toggle-slider" />
+                                        <span className="toggle-text">
+                                            {includeMediaOrAction ? "Attach Media / Link: ON" : "Attach Media / Link: OFF"}
+                                        </span>
+                                    </label>
+                                </div>
+
+                                {includeMediaOrAction ? (
+                                    <div className="composer-card-body">
+                                        <div className="composer-subgrid-2">
+                                            {/* Content Sub-Panel */}
+                                            <div className="sub-panel">
+                                                <div className="sub-panel-title">Media Content</div>
+                                                <div className="form-group">
+                                                    <label>Content Type</label>
+                                                    <select
+                                                        value={broadcastForm.contentType}
+                                                        onChange={(e) => setBroadcastForm({ ...broadcastForm, contentType: e.target.value })}
+                                                    >
+                                                        <option value="NONE">None (No Media)</option>
+                                                        <option value="IMAGE">Image (URL or Upload)</option>
+                                                        <option value="VIDEO">Video (Direct Stream URL)</option>
+                                                        <option value="DOCUMENT">Document (PDF / Doc Link)</option>
+                                                    </select>
+                                                </div>
+
+                                                {broadcastForm.contentType !== "NONE" && (
+                                                    <div className="form-group">
+                                                        <label>{broadcastForm.contentType} Resource URL</label>
+                                                        <div className="media-input-row">
+                                                            <input
+                                                                type="url"
+                                                                placeholder={`https://example.com/asset.${broadcastForm.contentType === "IMAGE" ? "png" : broadcastForm.contentType === "VIDEO" ? "mp4" : "pdf"}`}
+                                                                value={broadcastForm.contentUrl}
+                                                                onChange={(e) => setBroadcastForm({ ...broadcastForm, contentUrl: e.target.value })}
+                                                            />
+                                                            {broadcastForm.contentType === "IMAGE" && (
+                                                                <label className="file-upload-btn">
+                                                                    <span>Upload</span>
+                                                                    <input
+                                                                        type="file"
+                                                                        accept="image/*"
+                                                                        style={{ display: "none" }}
+                                                                        onChange={handleMediaFileUpload}
+                                                                    />
+                                                                </label>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Action Sub-Panel */}
+                                            <div className="sub-panel">
+                                                <div className="sub-panel-title">Interactive Action (CTA)</div>
+                                                <div className="form-group">
+                                                    <label>Action Destination</label>
+                                                    <select
+                                                        value={broadcastForm.actionType}
+                                                        onChange={(e) => setBroadcastForm({ ...broadcastForm, actionType: e.target.value })}
+                                                    >
+                                                        <option value="NONE">None (No Button)</option>
+                                                        <option value="EXTERNAL_LINK">External Link (Google Form, Survey, Website)</option>
+                                                        <option value="INTERNAL_LINK">Internal Route (e.g. /battle, /practice)</option>
+                                                    </select>
+                                                </div>
+
+                                                {broadcastForm.actionType !== "NONE" && (
+                                                    <div className="composer-row-2">
+                                                        <div className="form-group flex-1">
+                                                            <label>Button Label *</label>
+                                                            <input
+                                                                type="text"
+                                                                placeholder="e.g. Share Your Feedback"
+                                                                value={broadcastForm.actionLabel}
+                                                                onChange={(e) => setBroadcastForm({ ...broadcastForm, actionLabel: e.target.value })}
+                                                                required
+                                                            />
+                                                        </div>
+                                                        <div className="form-group flex-2">
+                                                            <label>{broadcastForm.actionType === "EXTERNAL_LINK" ? "Target URL *" : "Internal Route *"}</label>
+                                                            <input
+                                                                type="text"
+                                                                placeholder={broadcastForm.actionType === "EXTERNAL_LINK" ? "https://forms.gle/..." : "/battle"}
+                                                                value={broadcastForm.actionTarget}
+                                                                onChange={(e) => setBroadcastForm({ ...broadcastForm, actionTarget: e.target.value })}
+                                                                required
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="composer-card-collapsed-hint">
+                                        <span className="hint-icon">💬</span>
+                                        <span>Text-only broadcast. Switch the toggle above <strong>ON</strong> to attach images, videos, documents, or actionable CTA links.</span>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Live Preview Box */}
+                            {showPreview && (
+                                <div className="broadcast-live-preview-box">
+                                    <div className="preview-label">
+                                        <span>LIVE BROADCAST PREVIEW</span>
+                                        <small>(Simulated User Inbox & Flash Banner Rendering)</small>
+                                    </div>
+                                    <div className="preview-card-container">
+                                        <SystemBroadcastCard
+                                            isPreview={true}
+                                            broadcast={{
+                                                title: broadcastForm.title || "Preview Announcement Title",
+                                                message: broadcastForm.message || "Your announcement message body will appear here.",
+                                                type: broadcastForm.type,
+                                                createdAt: new Date().toISOString(),
+                                                expiresAt: `${broadcastForm.expiryDate}T${broadcastForm.expiryTime}:00`,
+                                                content: includeMediaOrAction && broadcastForm.contentType !== "NONE" && broadcastForm.contentUrl ? {
+                                                    type: broadcastForm.contentType,
+                                                    url: broadcastForm.contentUrl,
+                                                    name: broadcastForm.contentName || "Attachment",
+                                                } : null,
+                                                action: includeMediaOrAction && broadcastForm.actionType !== "NONE" && broadcastForm.actionTarget ? {
+                                                    type: broadcastForm.actionType,
+                                                    label: broadcastForm.actionLabel || "Action",
+                                                    target: broadcastForm.actionTarget,
+                                                } : null,
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Action Buttons */}
+                            <div className="composer-action-bar">
+                                <button
+                                    type="button"
+                                    className={`preview-toggle-btn ${showPreview ? "active" : ""}`}
+                                    onClick={() => setShowPreview(!showPreview)}
+                                >
+                                    {showPreview ? "👁️ Hide Preview" : "👁️ Show Live Preview"}
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="broadcast-dispatch-btn"
+                                    disabled={isDispatching}
+                                >
+                                    {isDispatching ? "⚡ Broadcasting..." : "🚀 Dispatch Global Broadcast"}
+                                </button>
+                            </div>
                         </form>
+
+                        {/* Active Broadcasts Registry Table */}
+                        <div className="active-broadcasts-management">
+                            <div className="active-broadcasts-header">
+                                <h4>Active & Historical Broadcasts ({adminBroadcasts.length})</h4>
+                                <button
+                                    type="button"
+                                    className="refresh-btn"
+                                    onClick={fetchBroadcasts}
+                                >
+                                    Refresh
+                                </button>
+                            </div>
+
+                            {adminBroadcasts.length === 0 ? (
+                                <div className="no-broadcasts-notice">
+                                    No broadcasts dispatched yet. Create one above to broadcast across the arena.
+                                </div>
+                            ) : (
+                                <div className="broadcasts-table-wrapper">
+                                    <table className="broadcasts-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Title & Type</th>
+                                                <th>Message</th>
+                                                <th>Content / Action</th>
+                                                <th>Flash</th>
+                                                <th>Expiry Date</th>
+                                                <th>Remaining</th>
+                                                <th>Status</th>
+                                                <th>Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {adminBroadcasts.map((b) => (
+                                                <tr key={b.id}>
+                                                    <td>
+                                                        <div className="b-title-cell">
+                                                            <strong>{b.title}</strong>
+                                                            <span className={`b-type-tag type-${(b.type || "INFO").toLowerCase()}`}>
+                                                                {b.type}
+                                                            </span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="b-msg-cell">{b.message}</td>
+                                                    <td>
+                                                        <div className="b-meta-chips">
+                                                            {b.content?.type && <span className="meta-chip chip-content">{b.content.type}</span>}
+                                                            {b.action?.type && <span className="meta-chip chip-action">{b.action.type === "EXTERNAL_LINK" ? "EXT LINK" : "INT ROUTE"}</span>}
+                                                            {!b.content?.type && !b.action?.type && <span className="meta-chip-none">—</span>}
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <span className={`flash-indicator ${b.flashBanner ? "flash-on" : "flash-off"}`}>
+                                                            {b.flashBanner ? "ON" : "OFF"}
+                                                        </span>
+                                                    </td>
+                                                    <td className="expiry-cell">
+                                                        {new Date(b.expiresAt).toLocaleDateString("en-US", {
+                                                            month: "short",
+                                                            day: "numeric",
+                                                            year: "numeric",
+                                                            hour: "2-digit",
+                                                            minute: "2-digit",
+                                                        })}
+                                                    </td>
+                                                    <td className="remaining-cell">
+                                                        {formatRemaining(b.expiresAt, b.status)}
+                                                    </td>
+                                                    <td>
+                                                        <span className={`status-pill pill-${b.status?.toLowerCase() || "active"}`}>
+                                                            {b.status === "ACTIVE" ? "🟢 ACTIVE" : b.status === "EXPIRED" ? "🔴 EXPIRED" : "⚪ REVOKED"}
+                                                        </span>
+                                                    </td>
+                                                    <td>
+                                                        {b.status === "ACTIVE" && (
+                                                            <button
+                                                                type="button"
+                                                                className="revoke-btn"
+                                                                onClick={() => handleRevokeBroadcast(b.id)}
+                                                            >
+                                                                Revoke
+                                                            </button>
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </div>
                     </div>
 
                     {/* 5. User & Institutional Code Registry Search */}

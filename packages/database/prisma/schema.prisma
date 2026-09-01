@@ -191,3 +191,24 @@ model BattleParticipant {
   @@index([userId])
 }
 
+model SystemBroadcast {
+  id          String    @id @default(uuid())
+  title       String
+  message     String
+  type        String    @default("INFO") // INFO, WARNING, UPDATE, FEEDBACK, MAINTENANCE, EVENT
+  flashBanner Boolean   @default(true)
+  expiresAt   DateTime
+  createdAt   DateTime  @default(now())
+  createdBy   String    @default("SuperAdmin")
+  revokedAt   DateTime?
+
+  // Optional JSON metadata for content (media) & action (links)
+  content     Json?
+  action      Json?
+
+  @@index([expiresAt])
+  @@index([revokedAt])
+  @@index([createdAt])
+}
+
+

@@ -1,0 +1,298 @@
+/* ==========================================================================
+   DYNAMIC HERO CODE EDITOR (ALGOFIGHT CYBERPUNK HUD)
+   ========================================================================== */
+
+.hero-code-editor-card {
+  width: 100%;
+  max-width: 580px;
+  background: rgba(4, 9, 18, 0.92);
+  border: 1px solid rgba(0, 229, 255, 0.28);
+  border-radius: 14px;
+  box-shadow: 
+    0 24px 60px rgba(0, 0, 0, 0.92),
+    0 0 35px rgba(0, 229, 255, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(20px);
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.hero-code-editor-card:hover {
+  border-color: rgba(0, 229, 255, 0.48);
+  box-shadow: 
+    0 30px 70px rgba(0, 0, 0, 0.95),
+    0 0 45px rgba(0, 229, 255, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+/* Corner Glow Effect */
+.hero-editor-corner-glow {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 180px;
+  height: 180px;
+  background: radial-gradient(circle, rgba(0, 229, 255, 0.16) 0%, rgba(138, 43, 226, 0.08) 50%, transparent 75%);
+  filter: blur(25px);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Editor Header Bar */
+.hero-editor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 18px;
+  background: rgba(2, 5, 12, 0.85);
+  border-bottom: 1px solid rgba(0, 229, 255, 0.14);
+  position: relative;
+  z-index: 2;
+}
+
+.hero-editor-controls {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.editor-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.dot-close { background-color: #ff5f56; opacity: 0.85; }
+.dot-min { background-color: #ffbd2e; opacity: 0.85; }
+.dot-max { background-color: #27c93f; opacity: 0.85; }
+
+.hero-editor-tab-active {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(0, 229, 255, 0.08);
+  border: 1px solid rgba(0, 229, 255, 0.22);
+  padding: 4px 12px;
+  border-radius: 6px;
+}
+
+.tab-code-icon {
+  color: #00e5ff;
+  font-size: 0.75rem;
+}
+
+.tab-title {
+  font-family: 'Fira Code', monospace;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.tab-lang-badge {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #00e5ff;
+  background: rgba(0, 229, 255, 0.15);
+  padding: 1px 5px;
+  border-radius: 3px;
+  letter-spacing: 0.04em;
+}
+
+.hero-editor-telemetry {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.telemetry-live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: #00ff88;
+  box-shadow: 0 0 10px #00ff88;
+  animation: telemetryBlink 1.4s infinite ease-in-out alternate;
+}
+
+@keyframes telemetryBlink {
+  0% { opacity: 0.4; transform: scale(0.85); }
+  100% { opacity: 1; transform: scale(1.15); }
+}
+
+.telemetry-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.7);
+  text-transform: uppercase;
+}
+
+/* Editor Body */
+.hero-editor-body {
+  padding: 18px 20px;
+  font-family: 'Fira Code', 'Share Tech Mono', monospace;
+  font-size: 0.88rem;
+  line-height: 1.6;
+  background: rgba(1, 3, 8, 0.7);
+  min-height: 310px;
+  position: relative;
+  z-index: 2;
+}
+
+.hero-code-line {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  min-height: 24px;
+}
+
+.hero-line-number {
+  color: rgba(0, 229, 255, 0.3);
+  font-size: 0.78rem;
+  user-select: none;
+  width: 18px;
+  text-align: right;
+}
+
+.hero-line-code {
+  color: #ffffff;
+  flex-grow: 1;
+}
+
+.hero-editor-cursor {
+  display: inline-block;
+  color: #00e5ff;
+  font-weight: 700;
+  margin-left: 2px;
+  animation: heroCursorBlink 0.6s infinite alternate;
+}
+
+@keyframes heroCursorBlink {
+  0% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* Syntax Tokens */
+.syn-keyword { color: #f63256; font-weight: 600; }
+.syn-class { color: #00e5ff; font-weight: 600; text-shadow: 0 0 10px rgba(0, 229, 255, 0.4); }
+.syn-fn { color: #38bdf8; font-weight: 600; }
+.syn-punct { color: rgba(255, 255, 255, 0.6); }
+.syn-type { color: #c084fc; }
+.syn-var { color: #f1f5f9; }
+.syn-num { color: #fbbf24; }
+.syn-builtin { color: #00e5ff; }
+.syn-comment { color: #00ff88; font-style: italic; opacity: 0.9; }
+
+/* Editor Footer Status Bar */
+.hero-editor-footer {
+  padding: 10px 18px;
+  background: rgba(2, 5, 12, 0.9);
+  border-top: 1px solid rgba(0, 229, 255, 0.12);
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  position: relative;
+  z-index: 2;
+}
+
+.hero-exec-status {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  font-size: 0.8rem;
+  font-family: 'Inter', sans-serif;
+}
+
+.hero-exec-status.idle {
+  color: rgba(255, 255, 255, 0.5);
+  gap: 8px;
+}
+
+.exec-idle-icon {
+  color: rgba(0, 229, 255, 0.6);
+}
+
+.hero-exec-status.executing {
+  color: #00e5ff;
+  gap: 8px;
+}
+
+.exec-icon-spin {
+  animation: pulseSpin 1s linear infinite;
+}
+
+@keyframes pulseSpin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.hero-exec-status.passed {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.exec-passed-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.exec-check-icon {
+  color: #00ff88;
+  font-size: 0.95rem;
+}
+
+.exec-verdict {
+  color: #00ff88;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.exec-metric {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.75rem;
+}
+
+.exec-passed-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.exec-speed-tag {
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.exec-elo-gain {
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.12);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+/* Responsive */
+@media (max-width: 992px) {
+  .hero-code-editor-card {
+    max-width: 100%;
+  }
+
+  .hero-editor-body {
+    font-size: 0.8rem;
+    min-height: 270px;
+    padding: 14px 16px;
+  }
+}

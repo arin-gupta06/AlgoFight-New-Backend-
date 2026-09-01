@@ -41,17 +41,16 @@ export class MatchmakingController {
     }
 
     async cancelQueue(userId: string) {
-        const cancelled =
-            this.matchmakingService.cancelQueue(userId);
+        const cancelled = await this.matchmakingService.cancelQueue(userId);
         return {
             status: cancelled ? "CANCELLED" : "NOT_IN_QUEUE",
         };
     }
 
     async getStatus(userId: string) {
-        const isQueued = this.matchmakingService.isQueued(userId);
+        const isQueued = await this.matchmakingService.isQueued(userId);
         return {
             isQueued,
-        }
+        };
     }
 }

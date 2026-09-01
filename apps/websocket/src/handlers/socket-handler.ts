@@ -121,6 +121,10 @@ export class SocketHandler {
             if (err) logger.error({ err }, "Failed to subscribe to execution streams");
         });
 
+        this.redisSubscriber.subscribe("matchmaking:matched", (err) => {
+            if (err) logger.error({ err }, "Failed to subscribe to matchmaking:matched");
+        });
+
         this.redisSubscriber.on("pmessage", (pattern, channel, message) => {
             try {
                 const userId = channel.split(":")[2];
@@ -130,9 +134,92 @@ export class SocketHandler {
                     this.send(socket, parsed.event, parsed.data);
                 }
             } catch (err) {
-                logger.error({ err }, "Error processing pubsub message");
+                logger.error({ err }, "Error processing pubsub pmessage");
             }
         });
+
+        this.redisSubscriber.on("message", async (channel, message) => {
+            if (channel === "matchmaking:matched") {
+                try {
+                    const match = JSON.parse(message);
+                    await this.handleCrossInstanceMatch(match);
+                } catch (err) {
+                    logger.error({ err }, "Error processing matchmaking:matched pubsub message");
+                }
+            }
+        });
+    }
+
+    private async handleCrossInstanceMatch(match: {
+        roomId: string;
+        roomCode: string;
+        player1Id: string;
+        player1Username: string;
+        player1Rating: number;
+        player2Id: string;
+        player2Username: string;
+        player2Rating: number;
+    }) {
+        const player1Socket = this.connectionManager.userSockets.get(match.player1Id);
+        const player2Socket = this.connectionManager.userSockets.get(match.player2Id);
+
+        // If neither player is locally connected to this node, ignore
+        if (!player1Socket && !player2Socket) {
+            return;
+        }
+
+        if (player1Socket) {
+            this.connectionManager.joinRoom(match.roomId, player1Socket);
+            const session = this.socketUsers.get(player1Socket);
+            if (session) session.roomId = match.roomId;
+            this.connectionManager.updatePresenceStatus(match.player1Id, "IN_BATTLE", match.roomId);
+        }
+
+        if (player2Socket) {
+            this.connectionManager.joinRoom(match.roomId, player2Socket);
+            const session = this.socketUsers.get(player2Socket);
+            if (session) session.roomId = match.roomId;
+            this.connectionManager.updatePresenceStatus(match.player2Id, "IN_BATTLE", match.roomId);
+        }
+
+        const roomWithProblems = await this.battleRoomRepo.getRoomById(match.roomId);
+        const problems = roomWithProblems?.problems || [];
+        const timeLimitSeconds = (roomWithProblems?.timeLimitMinutes || 15) * 60;
+
+        const matchPayload = {
+            roomId: match.roomId,
+            roomCode: match.roomCode,
+            problems: problems,
+            timeLimitSeconds,
+            players: [match.player1Username, match.player2Username],
+            playerDetails: [
+                { userId: match.player1Id, username: match.player1Username, rating: match.player1Rating },
+                { userId: match.player2Id, username: match.player2Username, rating: match.player2Rating },
+            ]
+        };
+
+        const battleState = {
+            roomId: match.roomId,
+            status: "RUNNING",
+            timeLimitSeconds,
+            startTime: Date.now(),
+            totalQuestions: problems.length,
+            players: [
+                { userId: match.player1Id, username: match.player1Username, points: 0, solvedProblems: [], solvedCount: 0 },
+                { userId: match.player2Id, username: match.player2Username, points: 0, solvedProblems: [], solvedCount: 0 }
+            ]
+        };
+
+        await this.redis.set(`battle_state:${match.roomId}`, JSON.stringify(battleState), "EX", timeLimitSeconds + 300);
+
+        if (player1Socket) {
+            this.send(player1Socket, "match_found", matchPayload);
+            this.send(player1Socket, "battle_state_sync", battleState);
+        }
+        if (player2Socket) {
+            this.send(player2Socket, "match_found", matchPayload);
+            this.send(player2Socket, "battle_state_sync", battleState);
+        }
     }
 
     private formatTime(seconds: number) {
@@ -315,34 +402,9 @@ export class SocketHandler {
                     }
 
                     try {
-                        await this.userRepo.upsertUser({
-                            id: "bot",
-                            username: "AlgoBot",
-                            email: "bot@algofight.local",
-                            userType: "INDIVIDUAL",
-                        });
-
-                        const botRoom = await this.battleRoomService.createRoom({
-                            hostId: activeUserId,
-                            maxPlayers: 2,
-                            timeLimitMinutes: 15,
-                            difficulty: "MIX",
-                            questionCount: 3
-                        });
-
-                        await this.battleRoomService.joinRoom(botRoom.id, "bot");
-                        await this.battleRoomService.setPlayerReady(botRoom.id, activeUserId, true);
-                        await this.battleRoomService.setPlayerReady(botRoom.id, "bot", true);
-
-                        const botMatch = {
-                            roomId: botRoom.id,
-                            roomCode: botRoom.roomCode,
-                            player1Id: activeUserId,
-                            player2Id: "bot",
-                        };
-
-                        this.connectionManager.updatePresenceStatus(activeUserId, "IN_BATTLE", botRoom.id);
-                        await this.dispatchMatch(botMatch, activeUsername, socket, "AlgoBot (1200)");
+                        const botMatch = await this.matchmakingService.createBotMatch(activeUserId, activeUsername);
+                        this.connectionManager.updatePresenceStatus(activeUserId, "IN_BATTLE", botMatch.roomId);
+                        await this.dispatchMatch(botMatch);
                     } catch (err: any) {
                         logger.error({ err, userId: activeUserId }, "Failed to start bot battle");
                         this.send(socket, "error", "Failed to start bot battle");
@@ -494,7 +556,8 @@ export class SocketHandler {
                     break;
                 }
 
-                case "find_match": {
+                case "find_match":
+                case "matchmake": {
                     const session = this.socketUsers.get(socket);
                     const identifier = session?.userId || currentUserId.value || data.username || "Player";
 
@@ -508,17 +571,8 @@ export class SocketHandler {
                         });
                     }
 
-                    let activeUserId = user.id;
-                    let activeUsername = user.username;
-                    if (this.matchmakingService.isQueued(user.id)) {
-                        const guestSuffix = Math.floor(1000 + Math.random() * 9000);
-                        const secondUser = await this.userRepo.upsertUser({
-                            username: `${user.username}_${guestSuffix}`,
-                            email: `${user.username.toLowerCase()}_${guestSuffix}@algofight.local`,
-                        });
-                        activeUserId = secondUser.id;
-                        activeUsername = secondUser.username;
-                    }
+                    const activeUserId = user.id;
+                    const activeUsername = data.username || session?.username || user.username;
 
                     currentUserId.value = activeUserId;
                     this.connectionManager.registerUser(activeUserId, socket, {
@@ -534,53 +588,84 @@ export class SocketHandler {
                         platformCode: user.platformCode || undefined,
                     });
 
-                    const match = await this.matchmakingService.joinQueue(activeUserId);
+                    // Join distributed Redis queue
+                    const match = await this.matchmakingService.joinQueue(activeUserId, activeUsername);
 
                     if (match) {
                         this.connectionManager.updatePresenceStatus(activeUserId, "IN_BATTLE", match.roomId);
-                        await this.dispatchMatch(match, activeUsername, socket);
+                        await this.dispatchMatch(match);
                     } else {
-                        this.send(socket, "waiting_for_opponent", { status: "queued" });
+                        this.send(socket, "waiting_for_opponent", {
+                            status: "queued",
+                            queuedAt: Date.now(),
+                            searchWindow: "±50 ELO",
+                            timeoutSeconds: 25,
+                        });
+
+                        // Progressive search window expansion notifications
+                        setTimeout(async () => {
+                            if (await this.matchmakingService.isQueued(activeUserId)) {
+                                this.send(socket, "matchmaking_status", {
+                                    status: "expanding_search",
+                                    searchWindow: "±150 ELO",
+                                });
+                            }
+                        }, 5000);
 
                         setTimeout(async () => {
+                            if (await this.matchmakingService.isQueued(activeUserId)) {
+                                this.send(socket, "matchmaking_status", {
+                                    status: "expanding_search",
+                                    searchWindow: "±300 ELO",
+                                });
+                            }
+                        }, 12000);
+
+                        // 25s Timeout Fallback to Bot
+                        setTimeout(async () => {
                             try {
-                                if (this.matchmakingService.isQueued(activeUserId)) {
-                                    this.matchmakingService.cancelQueue(activeUserId);
-
-                                    await this.userRepo.upsertUser({
-                                        id: "bot",
-                                        username: "AlgoBot",
-                                        email: "bot@algofight.local",
-                                        userType: "INDIVIDUAL",
-                                    });
-
-                                    const botRoom = await this.battleRoomService.createRoom({
-                                        hostId: activeUserId,
-                                        maxPlayers: 2,
-                                        timeLimitMinutes: 15,
-                                        difficulty: "MIX",
-                                        questionCount: 3
-                                    });
-
-                                    await this.battleRoomService.joinRoom(botRoom.id, "bot");
-                                    await this.battleRoomService.setPlayerReady(botRoom.id, activeUserId, true);
-                                    await this.battleRoomService.setPlayerReady(botRoom.id, "bot", true);
-
-                                    const botMatch = {
-                                        roomId: botRoom.id,
-                                        roomCode: botRoom.roomCode,
-                                        player1Id: activeUserId,
-                                        player2Id: "bot",
-                                    };
-
-                                    this.connectionManager.updatePresenceStatus(activeUserId, "IN_BATTLE", botRoom.id);
-                                    await this.dispatchMatch(botMatch, activeUsername, socket, "AlgoBot (1200)");
+                                if (await this.matchmakingService.isQueued(activeUserId)) {
+                                    logger.info({ userId: activeUserId }, "Matchmaking timed out (25s) -> Fallback to AlgoBot");
+                                    const botMatch = await this.matchmakingService.createBotMatch(activeUserId, activeUsername);
+                                    this.connectionManager.updatePresenceStatus(activeUserId, "IN_BATTLE", botMatch.roomId);
+                                    await this.dispatchMatch(botMatch);
                                 }
                             } catch (err: any) {
                                 logger.error({ err, userId: activeUserId }, "Failed to dispatch bot match");
                                 this.send(socket, "error", "Matchmaking error occurred");
                             }
-                        }, 2000);
+                        }, 25000);
+                    }
+                    break;
+                }
+
+                case "matchmake_vs_bot":
+                case "play_vs_bot": {
+                    const session = this.socketUsers.get(socket);
+                    const activeUserId = session?.userId || currentUserId.value;
+                    const activeUsername = session?.username || data.username || "Player";
+                    if (!activeUserId) {
+                        this.send(socket, "error", "Must identify before finding match");
+                        break;
+                    }
+                    try {
+                        const botMatch = await this.matchmakingService.createBotMatch(activeUserId, activeUsername);
+                        this.connectionManager.updatePresenceStatus(activeUserId, "IN_BATTLE", botMatch.roomId);
+                        await this.dispatchMatch(botMatch);
+                    } catch (err: any) {
+                        logger.error({ err, userId: activeUserId }, "Failed to start bot battle");
+                        this.send(socket, "error", "Failed to start bot battle");
+                    }
+                    break;
+                }
+
+                case "cancel_matchmake":
+                case "cancel_queue": {
+                    const session = this.socketUsers.get(socket);
+                    const activeUserId = session?.userId || currentUserId.value;
+                    if (activeUserId) {
+                        await this.matchmakingService.cancelQueue(activeUserId);
+                        this.send(socket, "matchmaking_cancelled", { status: "cancelled" });
                     }
                     break;
                 }
@@ -1074,40 +1159,65 @@ export class SocketHandler {
     }
 
     private async dispatchMatch(
-        match: { roomId: string; roomCode: string; player1Id: string; player2Id: string },
-        currentUsername: string,
-        currentSocket: WebSocket,
-        opponentName?: string,
+        match: {
+            roomId: string;
+            roomCode: string;
+            player1Id: string;
+            player1Username?: string;
+            player1Rating?: number;
+            player2Id: string;
+            player2Username?: string;
+            player2Rating?: number;
+        }
     ): Promise<void> {
         await this.battleRoomService.startBattle(match.roomId, match.player1Id);
         const roomWithProblems = await this.battleRoomRepo.getRoomById(match.roomId);
         const problems = roomWithProblems?.problems || [];
-
-        this.connectionManager.joinRoom(match.roomId, currentSocket);
-        const player1Socket = this.connectionManager.userSockets.get(match.player1Id);
-        if (player1Socket && player1Socket !== currentSocket) {
-            this.connectionManager.joinRoom(match.roomId, player1Socket);
-        }
-
-        const session = this.socketUsers.get(currentSocket);
-        if (session) {
-            session.roomId = match.roomId;
-        }
-
-        let oppName = opponentName;
-        if (!oppName && match.player2Id) {
-            const oppUser = await this.userRepo.getUserById(match.player2Id);
-            oppName = oppUser?.username;
-        }
-        const opp = oppName || "Opponent";
         const timeLimitSeconds = (roomWithProblems?.timeLimitMinutes || 15) * 60;
+
+        let p1Name = match.player1Username;
+        let p1Rating = match.player1Rating || 1200;
+        if (!p1Name) {
+            const p1User = await this.userRepo.getUserById(match.player1Id);
+            p1Name = p1User?.username || "Player 1";
+            p1Rating = p1User?.rating || 1200;
+        }
+
+        let p2Name = match.player2Username;
+        let p2Rating = match.player2Rating || 1200;
+        if (!p2Name) {
+            const p2User = await this.userRepo.getUserById(match.player2Id);
+            p2Name = p2User?.username || "Player 2";
+            p2Rating = p2User?.rating || 1200;
+        }
+
+        const player1Socket = this.connectionManager.userSockets.get(match.player1Id);
+        const player2Socket = this.connectionManager.userSockets.get(match.player2Id);
+
+        if (player1Socket) {
+            this.connectionManager.joinRoom(match.roomId, player1Socket);
+            const session = this.socketUsers.get(player1Socket);
+            if (session) session.roomId = match.roomId;
+            this.connectionManager.updatePresenceStatus(match.player1Id, "IN_BATTLE", match.roomId);
+        }
+
+        if (player2Socket) {
+            this.connectionManager.joinRoom(match.roomId, player2Socket);
+            const session = this.socketUsers.get(player2Socket);
+            if (session) session.roomId = match.roomId;
+            this.connectionManager.updatePresenceStatus(match.player2Id, "IN_BATTLE", match.roomId);
+        }
 
         const matchPayload = {
             roomId: match.roomId,
             roomCode: match.roomCode,
             problems: problems,
             timeLimitSeconds,
-            players: [currentUsername, opp],
+            players: [p1Name, p2Name],
+            playerDetails: [
+                { userId: match.player1Id, username: p1Name, rating: p1Rating },
+                { userId: match.player2Id, username: p2Name, rating: p2Rating },
+            ]
         };
 
         const battleState = {
@@ -1117,8 +1227,8 @@ export class SocketHandler {
             startTime: Date.now(),
             totalQuestions: problems.length,
             players: [
-                { userId: match.player1Id, username: currentUsername, points: 0, solvedProblems: [], solvedCount: 0 },
-                { userId: match.player2Id, username: opp, points: 0, solvedProblems: [], solvedCount: 0 }
+                { userId: match.player1Id, username: p1Name, points: 0, solvedProblems: [], solvedCount: 0 },
+                { userId: match.player2Id, username: p2Name, points: 0, solvedProblems: [], solvedCount: 0 }
             ]
         };
         await this.redis.set(`battle_state:${match.roomId}`, JSON.stringify(battleState), "EX", timeLimitSeconds + 300);

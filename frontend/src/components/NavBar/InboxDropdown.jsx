@@ -11,9 +11,11 @@ import {
     faTrash,
     faTrophy,
     faInfoCircle,
+    faBullhorn,
 } from '@fortawesome/free-solid-svg-icons';
 import { getSocket } from '../../services/socket';
 import { useNotificationInbox } from '../../contexts/NotificationInboxContext';
+import SystemBroadcastCard from '../Common/SystemBroadcastCard.jsx';
 import './InboxDropdown.css';
 
 function formatTimeAgo(timestamp) {
@@ -30,6 +32,8 @@ function formatTimeAgo(timestamp) {
 
 function getNotificationIcon(type) {
     switch (type) {
+        case 'SYSTEM':
+            return faBullhorn;
         case 'CHALLENGE':
             return faCrosshairs;
         case 'CHALLENGE_ACCEPTED':
@@ -46,6 +50,8 @@ function getNotificationIcon(type) {
 
 function getNotificationTone(type) {
     switch (type) {
+        case 'SYSTEM':
+            return 'tone-cyan';
         case 'CHALLENGE':
             return 'tone-cyan';
         case 'CHALLENGE_ACCEPTED':
@@ -87,6 +93,7 @@ export default function InboxDropdown({ isOpen, onClose }) {
 
     const filteredNotifications = notifications.filter((item) => {
         if (filter === 'UNREAD') return !item.read;
+        if (filter === 'SYSTEM') return item.type === 'SYSTEM' || item.metadata?.isBroadcast;
         if (filter === 'CHALLENGES') return item.type && item.type.startsWith('CHALLENGE');
         if (filter === 'BATTLES') return item.type && item.type.startsWith('BATTLE');
         return true;
@@ -152,6 +159,12 @@ export default function InboxDropdown({ isOpen, onClose }) {
                             Unread ({unreadCount})
                         </button>
                         <button
+                            className={`inbox-filter-chip ${filter === 'SYSTEM' ? 'active' : ''}`}
+                            onClick={() => setFilter('SYSTEM')}
+                        >
+                            System
+                        </button>
+                        <button
                             className={`inbox-filter-chip ${filter === 'CHALLENGES' ? 'active' : ''}`}
                             onClick={() => setFilter('CHALLENGES')}
                         >
@@ -173,44 +186,75 @@ export default function InboxDropdown({ isOpen, onClose }) {
                                 <span>Your persistent inbox is up to date!</span>
                             </div>
                         ) : (
-                            filteredNotifications.map((item) => (
-                                <article
-                                    key={item.id}
-                                    className={`inbox-item-card ${!item.read ? 'is-unread' : ''}`}
-                                    onClick={() => markAsRead(item.id)}
-                                >
-                                    <div className={`inbox-item-icon ${getNotificationTone(item.type)}`}>
-                                        <FontAwesomeIcon icon={getNotificationIcon(item.type)} />
-                                    </div>
+                            filteredNotifications.map((item) => {
+                                const isBroadcast = item.type === 'SYSTEM' || item.metadata?.isBroadcast;
 
-                                    <div className="inbox-item-content">
-                                        <div className="inbox-item-row">
-                                            <h4>{item.title}</h4>
-                                            <span className="inbox-item-time">{formatTimeAgo(item.createdAt)}</span>
+                                if (isBroadcast) {
+                                    return (
+                                        <div
+                                            key={item.id}
+                                            className={`inbox-broadcast-wrapper ${!item.read ? 'is-unread' : ''}`}
+                                            onClick={() => markAsRead(item.id)}
+                                        >
+                                            <SystemBroadcastCard
+                                                broadcast={{
+                                                    id: item.id,
+                                                    title: item.title,
+                                                    message: item.message,
+                                                    type: item.metadata?.broadcastType || 'INFO',
+                                                    createdAt: item.createdAt,
+                                                    expiresAt: item.metadata?.expiresAt,
+                                                    content: item.metadata?.content,
+                                                    action: item.metadata?.action,
+                                                }}
+                                                onActionClick={() => {
+                                                    markAsRead(item.id);
+                                                    onClose();
+                                                }}
+                                            />
                                         </div>
-                                        <p>{item.message}</p>
-                                        
-                                        {item.type === 'CHALLENGE' && !item.read && item.metadata?.challengeId && (
-                                            <div className="inbox-challenge-actions">
-                                                <button
-                                                    className="inbox-action-btn tone-green"
-                                                    onClick={(e) => handleAcceptChallenge(e, item.metadata.challengeId, item.id)}
-                                                >
-                                                    <FontAwesomeIcon icon={faBolt} /> Accept
-                                                </button>
-                                                <button
-                                                    className="inbox-action-btn tone-danger"
-                                                    onClick={(e) => handleDeclineChallenge(e, item.metadata.challengeId, item.id)}
-                                                >
-                                                    <FontAwesomeIcon icon={faTimes} /> Decline
-                                                </button>
-                                            </div>
-                                        )}
-                                    </div>
+                                    );
+                                }
 
-                                    {!item.read && <span className="inbox-unread-dot" title="Unread notification" />}
-                                </article>
-                            ))
+                                return (
+                                    <article
+                                        key={item.id}
+                                        className={`inbox-item-card ${!item.read ? 'is-unread' : ''}`}
+                                        onClick={() => markAsRead(item.id)}
+                                    >
+                                        <div className={`inbox-item-icon ${getNotificationTone(item.type)}`}>
+                                            <FontAwesomeIcon icon={getNotificationIcon(item.type)} />
+                                        </div>
+
+                                        <div className="inbox-item-content">
+                                            <div className="inbox-item-row">
+                                                <h4>{item.title}</h4>
+                                                <span className="inbox-item-time">{formatTimeAgo(item.createdAt)}</span>
+                                            </div>
+                                            <p>{item.message}</p>
+                                            
+                                            {item.type === 'CHALLENGE' && !item.read && item.metadata?.challengeId && (
+                                                <div className="inbox-challenge-actions">
+                                                    <button
+                                                        className="inbox-action-btn tone-green"
+                                                        onClick={(e) => handleAcceptChallenge(e, item.metadata.challengeId, item.id)}
+                                                    >
+                                                        <FontAwesomeIcon icon={faBolt} /> Accept
+                                                    </button>
+                                                    <button
+                                                        className="inbox-action-btn tone-danger"
+                                                        onClick={(e) => handleDeclineChallenge(e, item.metadata.challengeId, item.id)}
+                                                    >
+                                                        <FontAwesomeIcon icon={faTimes} /> Decline
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {!item.read && <span className="inbox-unread-dot" title="Unread notification" />}
+                                    </article>
+                                );
+                            })
                         )}
                     </div>
                 </motion.div>
@@ -218,3 +262,4 @@ export default function InboxDropdown({ isOpen, onClose }) {
         </AnimatePresence>
     );
 }
+

@@ -1,0 +1,384 @@
+/* ==========================================================================
+   ALGOFIGHT BRAND INTRO ANIMATION (CODE → EXECUTE → ZOOM OUT → LOGO REVEAL)
+   ========================================================================== */
+
+.brand-intro-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 999999;
+  background-color: #000000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  user-select: none;
+  cursor: pointer;
+}
+
+/* Subtle Cyber Background Grid */
+.brand-intro-bg-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle at center, rgba(0, 229, 255, 0.12) 1px, transparent 1px),
+    linear-gradient(rgba(0, 229, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 229, 255, 0.05) 1px, transparent 1px);
+  background-size: 40px 40px, 80px 80px, 80px 80px;
+  background-position: center center;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Ambient Radial Glow */
+.brand-intro-ambient-glow {
+  position: absolute;
+  width: 700px;
+  height: 700px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(0, 229, 255, 0.09) 0%, rgba(138, 43, 226, 0.04) 45%, transparent 70%);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  filter: blur(50px);
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* ================= SCENE 1 & 2: CODE EDITOR CAMERA RIG ================= */
+.brand-intro-camera-rig {
+  position: absolute;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  will-change: transform, opacity;
+  transform-origin: center center;
+  width: 90%;
+  max-width: 530px;
+}
+
+.brand-intro-editor-card {
+  width: 100%;
+  background: rgba(6, 12, 20, 0.94);
+  border: 1px solid rgba(0, 229, 255, 0.32);
+  border-radius: 12px;
+  box-shadow: 
+    0 20px 50px rgba(0, 0, 0, 0.9),
+    0 0 28px rgba(0, 229, 255, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.09);
+  backdrop-filter: blur(16px);
+  overflow: hidden;
+}
+
+/* Editor Window Header */
+.brand-intro-editor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 11px 18px;
+  background: rgba(0, 0, 0, 0.65);
+  border-bottom: 1px solid rgba(0, 229, 255, 0.15);
+}
+
+.editor-window-controls {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.window-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.dot-red { background-color: #ff5f56; opacity: 0.85; }
+.dot-yellow { background-color: #ffbd2e; opacity: 0.85; }
+.dot-green { background-color: #27c93f; opacity: 0.85; }
+
+.editor-tab-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Fira Code', monospace;
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.editor-file-icon {
+  color: #00e5ff;
+  font-weight: 700;
+  font-size: 0.78rem;
+}
+
+.editor-file-name {
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 500;
+}
+
+.editor-header-status {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.7rem;
+  color: rgba(0, 229, 255, 0.65);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* Editor Code Body */
+.brand-intro-editor-body {
+  padding: 20px 22px;
+  font-family: 'Fira Code', 'Share Tech Mono', monospace;
+  font-size: 0.98rem;
+  line-height: 1.55;
+  background: rgba(2, 6, 12, 0.75);
+}
+
+.code-line {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.line-num {
+  color: rgba(0, 229, 255, 0.35);
+  font-size: 0.85rem;
+  user-select: none;
+  width: 14px;
+}
+
+.code-content {
+  color: #ffffff;
+}
+
+.token-fn {
+  color: #00e5ff;
+  font-weight: 600;
+}
+
+.token-paren {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.token-string {
+  color: #00ff88;
+}
+
+.typing-cursor {
+  display: inline-block;
+  color: #00e5ff;
+  font-weight: 700;
+  margin-left: 2px;
+  animation: intro-cursor-blink 0.7s infinite alternate;
+}
+
+@keyframes intro-cursor-blink {
+  0% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* Execution Terminal Output */
+.editor-stdout-container {
+  margin-top: 15px;
+  overflow: hidden;
+}
+
+.stdout-divider {
+  height: 1px;
+  background: linear-gradient(90deg, rgba(0, 229, 255, 0.35) 0%, rgba(0, 229, 255, 0.05) 100%);
+  margin-bottom: 12px;
+}
+
+.stdout-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.9rem;
+}
+
+.stdout-prompt {
+  color: #00e5ff;
+  font-weight: 700;
+}
+
+.stdout-output {
+  color: #ffffff;
+  font-weight: 500;
+}
+
+.stdout-status-badge {
+  margin-left: auto;
+  font-size: 0.68rem;
+  font-family: 'Inter', sans-serif;
+  letter-spacing: 0.06em;
+  color: #00ff88;
+  background: rgba(0, 255, 136, 0.1);
+  border: 1px solid rgba(0, 255, 136, 0.25);
+  padding: 2px 7px;
+  border-radius: 4px;
+}
+
+/* ================= SCENE 3, 4, 5: STAGE CENTER (WORDMARK & LOGO SPOTLIGHT) ================= */
+.brand-intro-stage-center {
+  position: absolute;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* Wordmark Wrapper (scales big -> small, then slides left and disappears) */
+.brand-intro-wordmark-wrapper {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  will-change: transform, opacity;
+}
+
+.brand-intro-wordmark-text {
+  font-family: 'Space Grotesk', 'Orbitron', sans-serif;
+  font-size: clamp(3rem, 6.5vw, 5.5rem);
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  margin: 0;
+  text-transform: uppercase;
+  color: #ffffff;
+  text-shadow: 0 0 35px rgba(0, 229, 255, 0.35);
+}
+
+.brand-word-algo {
+  color: #ffffff;
+}
+
+.brand-word-fight {
+  color: #00e5ff;
+  margin-left: 3px;
+}
+
+.brand-intro-tagline {
+  font-family: 'Inter', sans-serif;
+  font-size: clamp(0.7rem, 1.3vw, 0.9rem);
+  font-weight: 600;
+  letter-spacing: 0.3em;
+  color: rgba(255, 255, 255, 0.7);
+  margin-top: 10px;
+  text-transform: uppercase;
+}
+
+/* Centered Logo Spotlight (appears in center as wordmark slides left) */
+.brand-intro-logo-spotlight {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  will-change: transform, opacity;
+}
+
+.brand-intro-logo-glow-ring {
+  position: absolute;
+  width: clamp(300px, 34vw, 440px);
+  height: clamp(300px, 34vw, 440px);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(0, 229, 255, 0.28) 0%, rgba(0, 229, 255, 0.08) 55%, transparent 72%);
+  filter: blur(20px);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.brand-intro-centered-logo-img {
+  width: clamp(230px, 25vw, 340px);
+  height: clamp(230px, 25vw, 340px);
+  object-fit: contain;
+  border-radius: 50%;
+  position: relative;
+  z-index: 2;
+  filter: drop-shadow(0 0 28px rgba(0, 229, 255, 0.5));
+}
+
+.brand-intro-logo-subtitle {
+  font-family: 'Space Grotesk', 'Inter', sans-serif;
+  font-size: clamp(0.92rem, 1.6vw, 1.22rem);
+  font-weight: 700;
+  letter-spacing: 0.32em;
+  color: #00e5ff;
+  margin-top: 24px;
+  text-transform: uppercase;
+  text-shadow: 0 0 14px rgba(0, 229, 255, 0.6);
+  position: relative;
+  z-index: 2;
+}
+
+/* Skip hint */
+.brand-intro-skip-hint {
+  position: absolute;
+  bottom: 24px;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.3);
+  letter-spacing: 0.08em;
+  z-index: 30;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+/* ================= RESPONSIVE DESIGN ================= */
+@media (max-width: 640px) {
+  .brand-intro-camera-rig {
+    width: 92%;
+  }
+
+  .brand-intro-editor-body {
+    padding: 15px 16px;
+    font-size: 0.88rem;
+  }
+
+  .brand-intro-wordmark-text {
+    font-size: clamp(2.2rem, 9vw, 3rem);
+  }
+
+  .brand-intro-tagline {
+    font-size: 0.62rem;
+    letter-spacing: 0.2em;
+  }
+
+  .brand-intro-centered-logo-img {
+    width: clamp(170px, 52vw, 240px);
+    height: clamp(170px, 52vw, 240px);
+  }
+
+  .brand-intro-logo-glow-ring {
+    width: clamp(210px, 64vw, 300px);
+    height: clamp(210px, 64vw, 300px);
+  }
+
+  .brand-intro-logo-subtitle {
+    font-size: 0.82rem;
+    letter-spacing: 0.24em;
+    margin-top: 18px;
+  }
+}
+
+/* ================= REDUCED MOTION ================= */
+@media (prefers-reduced-motion: reduce) {
+  .brand-intro-camera-rig {
+    display: none !important;
+  }
+
+  .brand-intro-bg-grid,
+  .brand-intro-ambient-glow {
+    animation: none !important;
+  }
+
+  .typing-cursor {
+    animation: none !important;
+  }
+}

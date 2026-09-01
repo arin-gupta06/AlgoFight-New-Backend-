@@ -1,4 +1,5 @@
 import { redisConnection } from "@algofight/queue/src/client/redis";
+import { SystemBroadcastService } from "./system-broadcast.service";
 
 export interface InboxNotification {
     id: string;
@@ -16,6 +17,10 @@ export class InboxNotificationService {
 
     private static getKey(userId: string): string {
         return `user:notifications:${userId}`;
+    }
+
+    private static getReadBroadcastsKey(userId: string): string {
+        return `user:broadcasts:read:${userId}`;
     }
 
     /**
@@ -50,7 +55,7 @@ export class InboxNotificationService {
     }
 
     /**
-     * Retrieve notifications for a user
+     * Retrieve notifications for a user (combining persistent notifications + active system broadcasts)
      */
     static async getNotifications(userId: string, limit = 50, offset = 0): Promise<{
         notifications: InboxNotification[];
@@ -60,25 +65,59 @@ export class InboxNotificationService {
         const key = this.getKey(userId);
         const rawItems = await redisConnection.lrange(key, offset, offset + limit - 1);
 
-        const notifications: InboxNotification[] = [];
+        const userNotifications: InboxNotification[] = [];
         let unreadCount = 0;
 
         for (const raw of rawItems) {
             try {
                 const item: InboxNotification = JSON.parse(raw);
-                notifications.push(item);
+                userNotifications.push(item);
                 if (!item.read) unreadCount++;
             } catch (e) {
                 // Ignore parse errors
             }
         }
 
-        const total = await redisConnection.llen(key);
+        // Dynamically fetch and merge active, non-expired system broadcasts
+        let systemInboxItems: InboxNotification[] = [];
+        try {
+            const activeBroadcasts = await SystemBroadcastService.getActiveBroadcasts();
+            const readKey = this.getReadBroadcastsKey(userId);
+            const readIds = new Set(await redisConnection.smembers(readKey));
+
+            systemInboxItems = activeBroadcasts.map((b) => {
+                const isRead = readIds.has(b.id);
+                if (!isRead) unreadCount++;
+
+                return {
+                    id: b.id,
+                    userId,
+                    type: "SYSTEM",
+                    title: b.title,
+                    message: b.message,
+                    read: isRead,
+                    createdAt: new Date(b.createdAt).getTime(),
+                    metadata: {
+                        isBroadcast: true,
+                        broadcastType: b.type,
+                        flashBanner: b.flashBanner,
+                        expiresAt: b.expiresAt,
+                        content: b.content,
+                        action: b.action,
+                    },
+                };
+            });
+        } catch (bErr) {
+            // Non-fatal if broadcast service fails
+        }
+
+        const totalUserNotifs = await redisConnection.llen(key);
+        const mergedNotifications = [...systemInboxItems, ...userNotifications];
 
         return {
-            notifications,
+            notifications: mergedNotifications,
             unreadCount,
-            total,
+            total: totalUserNotifs + systemInboxItems.length,
         };
     }
 
@@ -86,6 +125,10 @@ export class InboxNotificationService {
      * Mark a specific notification as read
      */
     static async markAsRead(userId: string, notificationId: string): Promise<boolean> {
+        // Check if this is a system broadcast ID
+        const readKey = this.getReadBroadcastsKey(userId);
+        await redisConnection.sadd(readKey, notificationId);
+
         const key = this.getKey(userId);
         const rawItems = await redisConnection.lrange(key, 0, -1);
 
@@ -112,13 +155,22 @@ export class InboxNotificationService {
             }
         }
 
-        return updated;
+        return true;
     }
 
     /**
      * Mark all notifications for a user as read
      */
     static async markAllAsRead(userId: string): Promise<number> {
+        // Mark all active broadcasts as read for this user
+        try {
+            const activeBroadcasts = await SystemBroadcastService.getActiveBroadcasts();
+            if (activeBroadcasts.length > 0) {
+                const readKey = this.getReadBroadcastsKey(userId);
+                await redisConnection.sadd(readKey, ...activeBroadcasts.map((b) => b.id));
+            }
+        } catch (bErr) {}
+
         const key = this.getKey(userId);
         const rawItems = await redisConnection.lrange(key, 0, -1);
 
@@ -156,3 +208,4 @@ export class InboxNotificationService {
         await redisConnection.del(key);
     }
 }
+

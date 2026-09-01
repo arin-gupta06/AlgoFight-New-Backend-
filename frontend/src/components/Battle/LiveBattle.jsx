@@ -158,9 +158,27 @@ export default function LiveBattle() {
   const [executionTests, setExecutionTests] = useState([]);
   const [showDetailedAnalysis, setShowDetailedAnalysis] = useState(false);
   const [isSubmitPanelOpen, setIsSubmitPanelOpen] = useState(true);
+  const [searchElapsed, setSearchElapsed] = useState(0);
+  const [searchWindow, setSearchWindow] = useState("±50 ELO");
 
   // Anti-Cheat Hook
   const { isBlurred, violations } = useAntiCheat(status === "matched");
+
+  // Search Timer Interval when queued
+  useEffect(() => {
+    let interval = null;
+    if (status === "waiting") {
+      setSearchElapsed(0);
+      interval = setInterval(() => {
+        setSearchElapsed((prev) => prev + 1);
+      }, 1000);
+    } else {
+      setSearchElapsed(0);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [status]);
 
   useEffect(() => {
     if (violations >= 3 && status !== "finished") {
@@ -202,7 +220,7 @@ export default function LiveBattle() {
     return () => {
       active = false;
     };
-  }, [roomId, initialRoomCode]);
+  }, [roomId, initialMatch, initialRoomCode]);
 
   useEffect(() => {
     if (problem && problem.starterCode && typeof problem.starterCode === "object") {
@@ -239,6 +257,20 @@ export default function LiveBattle() {
     return `${m}:${s}`;
   };
 
+  const handlePlayVsBot = () => {
+    if (socketRef.current) {
+      socketRef.current.emit("play_vs_bot", { username, userId: user?.uid });
+      notify({ type: "info", title: "Solo Mode", message: "Spawning AlgoBot (1200) duel..." });
+    }
+  };
+
+  const handleCancelQueue = () => {
+    if (socketRef.current) {
+      socketRef.current.emit("cancel_queue", { userId: user?.uid });
+    }
+    navigate("/battle");
+  };
+
   useEffect(() => {
     let cancelled = false;
     let socket = null;
@@ -256,14 +288,21 @@ export default function LiveBattle() {
           socket.emit("join_room_channel", { roomCode: currentTarget, userId: user?.uid, username });
         } else if (status !== "matched") {
           setStatus("waiting");
-          notify({ type: "info", title: "Connected", message: "Connected to battle server. Looking for an opponent...", duration: 2600 });
+          notify({ type: "info", title: "Connected", message: "Looking for a 1v1 opponent...", duration: 2600 });
           socket.emit("find_match", { username });
         }
       });
 
-      socket.on("waiting_for_opponent", () => {
+      socket.on("waiting_for_opponent", (data) => {
         if (!roomId && !initialMatch) {
           setStatus("waiting");
+          if (data?.searchWindow) setSearchWindow(data.searchWindow);
+        }
+      });
+
+      socket.on("matchmaking_status", (data) => {
+        if (data?.searchWindow) {
+          setSearchWindow(data.searchWindow);
         }
       });
 
@@ -494,30 +533,90 @@ export default function LiveBattle() {
       <div className="livebattle-page">
         <section className="livebattle-header-card">
           <div className="livebattle-header-copy">
-            <div className="livebattle-pre">LIVE BATTLE</div>
-            <h1>{status === "connecting" ? "Connecting to server" : "Finding your opponent"}</h1>
-            <p>Matchmaking uses your rating and recent performance to find a fair challenge.</p>
+            <div className="livebattle-pre">1V1 RANKED ARENA</div>
+            <h1>{status === "connecting" ? "Connecting to Battle Grid" : "Scanning For Challenger"}</h1>
+            <p>Distributed matchmaking connects combatants across all active nodes based on skill and rating tier.</p>
           </div>
-          <button className="livebattle-leave-btn" onClick={() => navigate("/battle")}>Cancel</button>
+          <button className="livebattle-leave-btn" onClick={handleCancelQueue}>
+            Cancel Queue
+          </button>
         </section>
 
         <section className="livebattle-wait-panel">
-          <div className="livebattle-loader">Searching for an opponent...</div>
+          <div className="livebattle-loader">
+            {status === "connecting" ? "Establishing Secure Uplink..." : `Finding Opponent (${formatTime(searchElapsed)} / 00:25)`}
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '12px', flexWrap: 'wrap', margin: '4px 0 16px' }}>
+            <span className="livebattle-chip" style={{ borderColor: 'rgba(0, 229, 255, 0.4)', color: '#00e5ff', background: 'rgba(0, 229, 255, 0.08)' }}>
+              🎯 Bracket: {searchWindow}
+            </span>
+            <span className="livebattle-chip" style={{ borderColor: 'rgba(124, 255, 193, 0.3)', color: '#7cffc1' }}>
+              ⚡ Global Redis Pool Active
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', margin: '10px 0 20px', flexWrap: 'wrap' }}>
+            <button
+              onClick={handlePlayVsBot}
+              style={{
+                background: 'linear-gradient(135deg, rgba(255, 170, 0, 0.22), rgba(255, 102, 0, 0.12))',
+                border: '1px solid rgba(255, 170, 0, 0.5)',
+                color: '#ffbe3b',
+                fontWeight: 700,
+                fontSize: '0.85rem',
+                letterSpacing: '0.04em',
+                padding: '9px 18px',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                transition: 'all 0.2s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'linear-gradient(135deg, rgba(255, 170, 0, 0.36), rgba(255, 102, 0, 0.24))';
+                e.currentTarget.style.boxShadow = '0 0 14px rgba(255, 170, 0, 0.35)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'linear-gradient(135deg, rgba(255, 170, 0, 0.22), rgba(255, 102, 0, 0.12))';
+                e.currentTarget.style.boxShadow = 'none';
+              }}
+            >
+              <span>⚡ Play vs AlgoBot Now (Skip Wait)</span>
+            </button>
+            <button
+              onClick={handleCancelQueue}
+              style={{
+                background: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid rgba(255, 255, 255, 0.18)',
+                color: '#d0dded',
+                fontSize: '0.82rem',
+                fontWeight: 600,
+                padding: '9px 16px',
+                borderRadius: '8px',
+                cursor: 'pointer',
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+
           <div className="livebattle-wait-steps">
             <article>
               <FontAwesomeIcon icon={faUsers} />
-              <h3>Queue</h3>
-              <p>Scanning available coders near your rating.</p>
+              <h3>Distributed Queue</h3>
+              <p>Scanning active nodes. Expanding search window every 5 seconds.</p>
             </article>
             <article>
               <FontAwesomeIcon icon={faShieldHalved} />
               <h3>Match Integrity</h3>
-              <p>Verifying battle room and fair-play checks.</p>
+              <p>Verifying low latency, sandbox isolation, and fair-play rating bracket.</p>
             </article>
             <article>
               <FontAwesomeIcon icon={faCode} />
-              <h3>Problem Setup</h3>
-              <p>Preparing starter code and evaluation suite.</p>
+              <h3>Problem Suite</h3>
+              <p>Auto-generating algorithm challenge set & evaluation test vectors.</p>
             </article>
           </div>
         </section>

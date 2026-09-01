@@ -60,9 +60,9 @@ redisSubscriber.on("error", (err) => {
     logger.warn({ error: err.message }, "Non-fatal Redis subscriber error in WebSocket server");
 });
 
-redisSubscriber.subscribe("battle-events", (err, count) => {
-    if (err) logger.error({ err }, "Failed to subscribe to battle-events channel");
-    else logger.info({ count }, "Subscribed to battle-events channel");
+redisSubscriber.subscribe("battle-events", "system-announcements", (err, count) => {
+    if (err) logger.error({ err }, "Failed to subscribe to redis channels");
+    else logger.info({ count }, "Subscribed to battle-events and system-announcements channels");
 });
 
 redisSubscriber.on("message", (channel, message) => {
@@ -94,6 +94,40 @@ redisSubscriber.on("message", (channel, message) => {
             }
         } catch (error) {
             logger.error({ error }, "Error parsing battle-events message");
+        }
+    }
+
+    if (channel === "system-announcements") {
+        try {
+            const payload = JSON.parse(message);
+
+            if (payload.event === "BROADCAST_CREATED" && payload.broadcast) {
+                connectionManager.broadcastToAll("system_broadcast_announcement", payload.broadcast);
+                connectionManager.broadcastToAll("inbox_notification", {
+                    id: payload.broadcast.id,
+                    type: "SYSTEM",
+                    title: payload.broadcast.title,
+                    message: payload.broadcast.message,
+                    read: false,
+                    createdAt: Date.now(),
+                    metadata: {
+                        isBroadcast: true,
+                        broadcastType: payload.broadcast.type,
+                        flashBanner: payload.broadcast.flashBanner,
+                        expiresAt: payload.broadcast.expiresAt,
+                        content: payload.broadcast.content,
+                        action: payload.broadcast.action,
+                    },
+                });
+            }
+
+            if (payload.event === "BROADCAST_REVOKED") {
+                connectionManager.broadcastToAll("system_broadcast_revoked", {
+                    broadcastId: payload.broadcastId,
+                });
+            }
+        } catch (error) {
+            logger.error({ error }, "Error parsing system-announcements message");
         }
     }
 });

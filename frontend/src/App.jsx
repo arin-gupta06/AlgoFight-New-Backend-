@@ -6,6 +6,7 @@ import Login from './components/Login/Login.jsx';
 import NavBar from './components/NavBar/NavBar.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import AdminRoute from './components/AdminRoute.jsx';
+import SystemBroadcastBanner from './components/Common/SystemBroadcastBanner.jsx';
 
 // 🚀 Code-split secondary route components with React.lazy
 const LandingPage = lazy(() => import('./components/LandingPage/LandingPage.jsx'));
@@ -73,14 +74,16 @@ function App() {
   const location = useLocation();
 
   return (
-    <AnimatePresence mode="wait">
-      <Routes location={location} key={location.pathname}>
-        {/* ================= Landing & Auth Routes ================= */}
-        <Route element={<AuthLayout />}>
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
-        </Route>
+    <>
+      <SystemBroadcastBanner />
+      <AnimatePresence mode="wait">
+        <Routes location={location} key={location.pathname}>
+          {/* ================= Landing & Auth Routes ================= */}
+          <Route element={<AuthLayout />}>
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
+          </Route>
 
         {/* ================= Main App Routes ================= */}
         <Route element={<MainLayout />}>
@@ -113,6 +116,7 @@ function App() {
         </Route>
       </Routes>
     </AnimatePresence>
+    </>
   );
 }
 

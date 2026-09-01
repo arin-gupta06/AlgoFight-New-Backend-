@@ -28,8 +28,22 @@ export function NotificationInboxProvider({ children }) {
         setIsLoading(true);
         try {
             const data = await fetchUserNotifications(userId);
-            setNotifications(data?.notifications || []);
-            setUnreadCount(data?.unreadCount || 0);
+            const rawList = data?.notifications || [];
+            const now = Date.now();
+
+            // Filter out any expired broadcast items
+            const activeList = rawList.filter((n) => {
+                if (n.metadata?.expiresAt) {
+                    return new Date(n.metadata.expiresAt).getTime() > now;
+                }
+                return true;
+            });
+
+            // Calculate active unread count
+            const validUnread = activeList.filter((n) => !n.read).length;
+
+            setNotifications(activeList);
+            setUnreadCount(validUnread);
         } catch (err) {
             console.error("Failed to load notification inbox:", err);
         } finally {
@@ -41,6 +55,28 @@ export function NotificationInboxProvider({ children }) {
     useEffect(() => {
         fetchInbox();
     }, [fetchInbox]);
+
+    // Periodic 10s auto-expiry pruning timer for client-side instant cleanup
+    useEffect(() => {
+        const timer = setInterval(() => {
+            const now = Date.now();
+            setNotifications((prev) => {
+                const filtered = prev.filter((n) => {
+                    if (n.metadata?.expiresAt) {
+                        return new Date(n.metadata.expiresAt).getTime() > now;
+                    }
+                    return true;
+                });
+                if (filtered.length !== prev.length) {
+                    setUnreadCount(filtered.filter((n) => !n.read).length);
+                    return filtered;
+                }
+                return prev;
+            });
+        }, 10000);
+
+        return () => clearInterval(timer);
+    }, []);
 
     // Live WebSocket inbox event sync
     useEffect(() => {
@@ -57,14 +93,59 @@ export function NotificationInboxProvider({ children }) {
             const socket = connectSocket(token, currentUserId, currentUsername);
 
             const handleInboxNotification = (newNotif) => {
+                const now = Date.now();
+                if (newNotif.metadata?.expiresAt && new Date(newNotif.metadata.expiresAt).getTime() <= now) {
+                    return; // Ignore expired
+                }
+
                 setNotifications((prev) => [newNotif, ...prev.filter((n) => n.id !== newNotif.id)]);
                 setUnreadCount((prev) => prev + 1);
             };
 
+            const handleBroadcastAnnouncement = (broadcast) => {
+                const now = Date.now();
+                if (broadcast.expiresAt && new Date(broadcast.expiresAt).getTime() <= now) {
+                    return;
+                }
+
+                const notifItem = {
+                    id: broadcast.id,
+                    userId: currentUserId,
+                    type: "SYSTEM",
+                    title: broadcast.title,
+                    message: broadcast.message,
+                    read: false,
+                    createdAt: Date.now(),
+                    metadata: {
+                        isBroadcast: true,
+                        broadcastType: broadcast.type,
+                        flashBanner: broadcast.flashBanner,
+                        expiresAt: broadcast.expiresAt,
+                        content: broadcast.content,
+                        action: broadcast.action,
+                    },
+                };
+
+                setNotifications((prev) => [notifItem, ...prev.filter((n) => n.id !== broadcast.id)]);
+                setUnreadCount((prev) => prev + 1);
+            };
+
+            const handleBroadcastRevoked = ({ broadcastId }) => {
+                setNotifications((prev) => {
+                    const filtered = prev.filter((n) => n.id !== broadcastId);
+                    setUnreadCount(filtered.filter((n) => !n.read).length);
+                    return filtered;
+                });
+            };
+
             socket.on("inbox_notification", handleInboxNotification);
+            socket.on("system_broadcast_announcement", handleBroadcastAnnouncement);
+            socket.on("system_broadcast_revoked", handleBroadcastRevoked);
 
             return () => {
                 socket.off("inbox_notification", handleInboxNotification);
+                socket.off("system_broadcast_announcement", handleBroadcastAnnouncement);
+                socket.off("system_broadcast_revoked", handleBroadcastRevoked);
             };
         };
 

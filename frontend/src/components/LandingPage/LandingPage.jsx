@@ -27,7 +27,8 @@ import {
 } from '@fortawesome/free-brands-svg-icons';
 import BackgroundPaths from '../BackgroundPaths/BackgroundPaths';
 import logoIcon from '../../assets/algofight-logo.png';
-import LiquidWhitePaintMask from '../ui/LiquidWhitePaintMask';
+import BrandIntro from '../BrandIntro/BrandIntro';
+import HeroCodeEditor from './HeroCodeEditor';
 import CircularTestimonials from '../ui/circular-testimonials';
 import PublicInfoModal from '../Common/PublicInfoModal';
 import './LandingPage.css';
@@ -69,6 +70,12 @@ export default function LandingPage() {
   const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeModalTab, setActiveModalTab] = useState('about');
+  const [showIntro, setShowIntro] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return !sessionStorage.getItem('af_brand_intro_played');
+    }
+    return false;
+  });
 
   const handleOpenModal = (tabKey) => {
     setActiveModalTab(tabKey);
@@ -77,8 +84,8 @@ export default function LandingPage() {
 
   return (
     <BackgroundPaths>
-      {/* Full-Page Liquid White Paint Mask Reveal */}
-      <LiquidWhitePaintMask />
+      {/* Brand First-Load Reveal Animation */}
+      {showIntro && <BrandIntro onComplete={() => setShowIntro(false)} />}
 
       {/* Floating decorative code symbol */}
       <motion.div 
@@ -99,8 +106,9 @@ export default function LandingPage() {
       <div className="landing-container">
         
         {/* ================= HERO SECTION ================= */}
-        <section className="landing-hero-section centered-hero-section">
-          <div className="hero-left-col centered-hero-col">
+        <section className="landing-hero-section">
+          {/* Left Column: Brand Hero Identity */}
+          <div className="hero-left-col">
             {/* Logo with gentle floating levitation */}
             <motion.div 
               className="algofight-hero-logo-wrapper"
@@ -182,6 +190,11 @@ export default function LandingPage() {
                 <span>Login / Signup</span>
               </motion.button>
             </motion.div>
+          </div>
+
+          {/* Right Column: Dynamic Interactive Code Editor */}
+          <div className="hero-right-col">
+            <HeroCodeEditor />
           </div>
         </section>
 

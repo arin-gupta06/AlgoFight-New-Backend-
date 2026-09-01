@@ -1,5 +1,6 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { AdminController } from "../controllers/admin.controller";
+import { SystemBroadcastService } from "../services/system-broadcast.service";
 import { config } from "@algofight/config";
 
 const controller = new AdminController();
@@ -39,7 +40,76 @@ export async function adminRoutes(app: FastifyInstance) {
             limit: query.limit ? parseInt(query.limit, 10) : 50,
         });
     });
-    // 4. Proxy for Linux Telemetry Health (Bypasses Ad-Blockers)
+
+    // 4. System Broadcast Dispatcher Endpoints
+    // 4a. Dispatch new time-bound broadcast
+    app.post("/admin/broadcast", { preHandler: [verifyAdminAccess] }, async (request, reply) => {
+        try {
+            const body = (request.body as any) || {};
+            const broadcast = await SystemBroadcastService.createBroadcast({
+                title: body.title,
+                message: body.message,
+                type: body.type,
+                expiresAt: body.expiresAt,
+                flashBanner: body.flashBanner !== false,
+                createdBy: "SuperAdmin",
+                content: body.content,
+                action: body.action,
+            });
+            return { success: true, broadcast };
+        } catch (err: any) {
+            return reply.status(400).send({
+                error: "INVALID_BROADCAST",
+                message: err.message || "Failed to create system broadcast.",
+            });
+        }
+    });
+
+    // 4b. List all broadcasts (Active, Expired, Revoked) for Control Hub management
+    app.get("/admin/broadcasts", { preHandler: [verifyAdminAccess] }, async () => {
+        const broadcasts = await SystemBroadcastService.getAllAdminBroadcasts();
+        return { broadcasts };
+    });
+
+    // 4c. Revoke / delete a broadcast
+    app.delete("/admin/broadcast/:id", { preHandler: [verifyAdminAccess] }, async (request, reply) => {
+        const { id } = request.params as { id: string };
+        if (!id) {
+            return reply.status(400).send({ error: "MISSING_ID", message: "Broadcast ID is required." });
+        }
+        const success = await SystemBroadcastService.revokeBroadcast(id);
+        return { success, message: "Broadcast revoked and purged from active clients." };
+    });
+
+    // 4d. Upload broadcast media (Images, Videos, Documents)
+    app.post("/admin/media", { preHandler: [verifyAdminAccess] }, async (request, reply) => {
+        try {
+            const body = (request.body as any) || {};
+            const { url, name, type, mimeType, size, base64 } = body;
+
+            if (!url && !base64) {
+                return reply.status(400).send({ error: "MISSING_MEDIA", message: "Media URL or Base64 is required." });
+            }
+
+            const mediaUrl = url || base64; // In production this maps to storage/CDN
+            const mediaType = (type || "IMAGE").toUpperCase();
+
+            return {
+                success: true,
+                media: {
+                    type: mediaType,
+                    url: mediaUrl,
+                    name: name || `media_${Date.now()}`,
+                    mimeType: mimeType || (mediaType === "IMAGE" ? "image/png" : "application/octet-stream"),
+                    size: size || 0,
+                },
+            };
+        } catch (err: any) {
+            return reply.status(400).send({ error: "MEDIA_UPLOAD_FAILED", message: err.message });
+        }
+    });
+
+    // 5. Proxy for Linux Telemetry Health (Bypasses Ad-Blockers)
     app.get("/admin/linux-status", async (request, reply) => {
         const rawTelemetryUrl = process.env.LINUX_TELEMETRY_URL || "http://localhost:8000";
         const linuxBaseUrl = rawTelemetryUrl.replace(/\/dashboard\/?$/, "").replace(/\/$/, "");
@@ -55,3 +125,4 @@ export async function adminRoutes(app: FastifyInstance) {
         }
     });
 }
+

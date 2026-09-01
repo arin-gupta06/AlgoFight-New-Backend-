@@ -222,3 +222,47 @@ export async function clearUserNotifications(userId) {
   });
 }
 
+export async function fetchActiveSystemAnnouncements() {
+  return requestJson(`/api/notifications/active-broadcasts`);
+}
+
+export async function dispatchAdminBroadcast(adminKey, broadcastData) {
+  return requestJson(`/api/admin/broadcast`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-admin-key": adminKey,
+    },
+    body: JSON.stringify(broadcastData),
+  });
+}
+
+export async function fetchAdminBroadcasts(adminKey) {
+  return requestJson(`/api/admin/broadcasts`, {
+    headers: {
+      "x-admin-key": adminKey,
+    },
+  });
+}
+
+export async function deleteAdminBroadcast(adminKey, broadcastId) {
+  return requestJson(`/api/admin/broadcast/${encodeURIComponent(broadcastId)}`, {
+    method: "DELETE",
+    headers: {
+      "x-admin-key": adminKey,
+    },
+  });
+}
+
+export async function uploadBroadcastMedia(adminKey, mediaPayload) {
+  return requestJson(`/api/admin/media`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-admin-key": adminKey,
+    },
+    body: JSON.stringify(mediaPayload),
+  });
+}
+
+

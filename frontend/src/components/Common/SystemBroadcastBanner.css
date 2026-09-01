@@ -1,0 +1,178 @@
+/* ==========================================================================
+   SYSTEM BROADCAST FLASH BANNER (ALGOFIGHT TOP FLASH HUD)
+   ========================================================================== */
+
+.system-flash-banner-wrapper {
+  position: relative;
+  z-index: 99999;
+  width: 100%;
+  background: rgba(3, 8, 16, 0.95);
+  border-bottom: 1px solid rgba(0, 229, 255, 0.35);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.7), 0 0 15px rgba(0, 229, 255, 0.12);
+  backdrop-filter: blur(14px);
+  padding: 8px 16px;
+  overflow: hidden;
+}
+
+.system-flash-banner-wrapper.type-warning {
+  border-bottom-color: rgba(255, 95, 86, 0.5);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.7), 0 0 15px rgba(255, 95, 86, 0.15);
+}
+
+.system-flash-banner-wrapper.type-feedback {
+  border-bottom-color: rgba(56, 189, 248, 0.55);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.7), 0 0 15px rgba(56, 189, 248, 0.2);
+}
+
+.flash-banner-inner {
+  max-width: 1300px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 28px;
+}
+
+.flash-banner-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #00e5ff;
+  background: rgba(0, 229, 255, 0.14);
+  border: 1px solid rgba(0, 229, 255, 0.35);
+  padding: 2px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.type-warning .flash-banner-badge {
+  color: #ff5f56;
+  background: rgba(255, 95, 86, 0.15);
+  border-color: rgba(255, 95, 86, 0.4);
+}
+
+.type-feedback .flash-banner-badge {
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.15);
+  border-color: rgba(56, 189, 248, 0.4);
+}
+
+.banner-icon-pulse {
+  animation: bannerIconPulse 1.8s infinite ease-in-out alternate;
+}
+
+@keyframes bannerIconPulse {
+  0% { transform: scale(0.9); opacity: 0.8; }
+  100% { transform: scale(1.15); opacity: 1; }
+}
+
+.flash-banner-text-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.82rem;
+  color: #e2e8f0;
+  flex-grow: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.flash-banner-title {
+  color: #ffffff;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.flash-banner-message {
+  color: #94a3b8;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Action button inside banner */
+.flash-banner-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border-radius: 4px;
+  cursor: pointer;
+  border: none;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.flash-banner-action-btn.btn-ext {
+  background: linear-gradient(90deg, #0099ff 0%, #00e5ff 100%);
+  color: #000000;
+  box-shadow: 0 2px 10px rgba(0, 229, 255, 0.3);
+}
+
+.flash-banner-action-btn.btn-ext:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(0, 229, 255, 0.5);
+}
+
+.flash-banner-action-btn.btn-int {
+  background: linear-gradient(90deg, #b50d4d 0%, #f63256 100%);
+  color: #ffffff;
+  box-shadow: 0 2px 10px rgba(246, 50, 86, 0.3);
+}
+
+.flash-banner-action-btn.btn-int:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(246, 50, 86, 0.5);
+}
+
+.btn-icon-tiny {
+  font-size: 0.68rem;
+}
+
+/* Dismiss */
+.flash-banner-close-btn {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.95rem;
+  cursor: pointer;
+  padding: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s ease, transform 0.15s ease;
+  flex-shrink: 0;
+}
+
+.flash-banner-close-btn:hover {
+  color: #ffffff;
+  transform: scale(1.15);
+}
+
+@media (max-width: 768px) {
+  .flash-banner-inner {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .flash-banner-text-content {
+    white-space: normal;
+    font-size: 0.78rem;
+  }
+
+  .flash-banner-message {
+    white-space: normal;
+  }
+}

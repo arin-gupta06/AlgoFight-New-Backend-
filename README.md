@@ -207,8 +207,7 @@ node apps/api/test_mm.js
 
 ## 👥 Authors & Contributors
 
-- **Vivek Kushwaha**
-- **Krish Gupta**
+- **Vivek Chaurasiya**
 - **Arin Gupta**
 
 ---

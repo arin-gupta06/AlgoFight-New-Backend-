@@ -16,7 +16,32 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import './SystemBroadcastCard.css';
 
-export default function SystemBroadcastCard({ broadcast, isPreview = false, onActionClick }) {
+function getEmbedVideoUrl(url) {
+  if (!url || typeof url !== 'string') return null;
+  const trimmed = url.trim();
+
+  // YouTube match
+  const ytMatch = trimmed.match(/(?:youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|v\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/i);
+  if (ytMatch && ytMatch[1]) {
+    return `https://www.youtube-nocookie.com/embed/${ytMatch[1]}`;
+  }
+
+  // Vimeo match
+  const vimeoMatch = trimmed.match(/vimeo\.com\/(?:video\/)?([0-9]+)/i);
+  if (vimeoMatch && vimeoMatch[1]) {
+    return `https://player.vimeo.com/video/${vimeoMatch[1]}`;
+  }
+
+  // Loom match
+  const loomMatch = trimmed.match(/loom\.com\/(?:share|embed)\/([a-zA-Z0-9]+)/i);
+  if (loomMatch && loomMatch[1]) {
+    return `https://www.loom.com/embed/${loomMatch[1]}`;
+  }
+
+  return null;
+}
+
+export default function SystemBroadcastCard({ broadcast, isPreview = false, isUnread = false, onActionClick }) {
   const navigate = useNavigate();
 
   if (!broadcast) return null;
@@ -83,12 +108,15 @@ export default function SystemBroadcastCard({ broadcast, isPreview = false, onAc
   };
 
   return (
-    <div className={`system-broadcast-card type-${(type || 'INFO').toLowerCase()}`}>
+    <div className={`system-broadcast-card type-${(type || 'INFO').toLowerCase()} ${isUnread ? 'card-unread' : ''}`}>
       {/* Top Header Bar */}
       <div className="broadcast-card-header">
-        <div className={`broadcast-type-pill ${badgeInfo.className}`}>
-          <FontAwesomeIcon icon={badgeInfo.icon} className="badge-icon" />
-          <span>{badgeInfo.label}</span>
+        <div className="broadcast-header-left">
+          <div className={`broadcast-type-pill ${badgeInfo.className}`}>
+            <FontAwesomeIcon icon={badgeInfo.icon} className="badge-icon" />
+            <span>{badgeInfo.label}</span>
+          </div>
+          {isUnread && <span className="broadcast-new-pill">NEW</span>}
         </div>
         <div className="broadcast-verified-tag">
           <FontAwesomeIcon icon={faShieldHalved} className="verified-icon" />
@@ -112,18 +140,39 @@ export default function SystemBroadcastCard({ broadcast, isPreview = false, onAc
                 alt={content.name || 'Broadcast Attachment'}
                 className="broadcast-image-element"
                 loading="lazy"
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                }}
               />
             </div>
           )}
 
           {content.type === 'VIDEO' && (
             <div className="broadcast-video-wrapper">
-              <video
-                src={content.url}
-                controls
-                preload="metadata"
-                className="broadcast-video-element"
-              />
+              {(() => {
+                const embed = getEmbedVideoUrl(content.url);
+                if (embed) {
+                  return (
+                    <iframe
+                      src={embed}
+                      title={content.name || 'Broadcast Video Stream'}
+                      className="broadcast-video-iframe"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
+                  );
+                }
+                return (
+                  <video
+                    src={content.url}
+                    controls
+                    preload="metadata"
+                    className="broadcast-video-element"
+                  >
+                    Your browser does not support HTML5 video streaming.
+                  </video>
+                );
+              })()}
             </div>
           )}
 
@@ -132,16 +181,19 @@ export default function SystemBroadcastCard({ broadcast, isPreview = false, onAc
               href={content.url}
               target="_blank"
               rel="noopener noreferrer"
+              download={content.url.startsWith('data:') ? (content.name || 'document') : undefined}
               className="broadcast-doc-link"
             >
               <FontAwesomeIcon icon={faFileLines} className="doc-icon" />
               <div className="doc-meta">
-                <span className="doc-name">{content.name || 'System Document'}</span>
+                <span className="doc-name">{content.name || 'System Document Attachment'}</span>
                 {content.size && (
                   <span className="doc-size">({(content.size / 1024).toFixed(1)} KB)</span>
                 )}
               </div>
-              <span className="doc-action-text">View Document</span>
+              <span className="doc-action-text">
+                {content.url.startsWith('data:') ? 'Download Document' : 'View Document'}
+              </span>
             </a>
           )}
         </div>

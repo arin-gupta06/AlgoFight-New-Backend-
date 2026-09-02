@@ -402,7 +402,7 @@ export default function LandingPage() {
 
           <div className="footer-bottom-line" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
             <span>© {new Date().getFullYear()} AlgoFight. All rights reserved.</span>
-            <div className="footer-dev-avatars" style={{ display: 'flex', gap: '10px' }}>
+            <div className="footer-dev-avatars">
               <a href="/developer" className="dev-avatar-circle dev-a" title="Arin Gupta">A</a>
               <a href="/developer" className="dev-avatar-circle dev-v" title="Vivek Chaurasiya">V</a>
               <a href="/developer" className="dev-avatar-circle dev-k" title="Krish Dargar">K</a>

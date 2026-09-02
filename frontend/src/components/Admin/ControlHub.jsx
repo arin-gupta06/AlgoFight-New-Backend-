@@ -193,8 +193,10 @@ export default function ControlHub() {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        if (file.size > 10 * 1024 * 1024) {
-            notify({ type: "error", title: "FILE TOO LARGE", message: "Media attachments must be under 10MB." });
+        e.target.value = "";
+
+        if (file.size > 15 * 1024 * 1024) {
+            notify({ type: "error", title: "FILE TOO LARGE", message: "Media attachments must be under 15MB." });
             return;
         }
 
@@ -204,7 +206,7 @@ export default function ControlHub() {
             try {
                 const res = await uploadBroadcastMedia(adminKey, {
                     name: file.name,
-                    type: "IMAGE",
+                    type: broadcastForm.contentType,
                     mimeType: file.type,
                     size: file.size,
                     base64,
@@ -215,10 +217,10 @@ export default function ControlHub() {
                         contentUrl: res.media.url,
                         contentName: file.name,
                     }));
-                    notify({ type: "success", title: "IMAGE UPLOADED", message: `Attached: ${file.name}` });
+                    notify({ type: "success", title: "MEDIA ATTACHED", message: `Attached: ${file.name}` });
                 }
             } catch (err) {
-                notify({ type: "error", title: "UPLOAD FAILED", message: err.message || "Failed to upload image." });
+                notify({ type: "error", title: "UPLOAD FAILED", message: err.message || "Failed to upload media." });
             }
         };
         reader.readAsDataURL(file);
@@ -717,26 +719,53 @@ export default function ControlHub() {
 
                                                 {broadcastForm.contentType !== "NONE" && (
                                                     <div className="form-group">
-                                                        <label>{broadcastForm.contentType} Resource URL</label>
+                                                        <label>
+                                                            {broadcastForm.contentType === "IMAGE" && "Image (URL or Upload)"}
+                                                            {broadcastForm.contentType === "VIDEO" && "Video (Direct .mp4, YouTube, Vimeo, or Upload)"}
+                                                            {broadcastForm.contentType === "DOCUMENT" && "Document (PDF, Link, or File Upload)"}
+                                                        </label>
                                                         <div className="media-input-row">
                                                             <input
-                                                                type="url"
-                                                                placeholder={`https://example.com/asset.${broadcastForm.contentType === "IMAGE" ? "png" : broadcastForm.contentType === "VIDEO" ? "mp4" : "pdf"}`}
+                                                                type="text"
+                                                                placeholder={
+                                                                    broadcastForm.contentType === "IMAGE"
+                                                                        ? "https://example.com/asset.png or upload image"
+                                                                        : broadcastForm.contentType === "VIDEO"
+                                                                            ? "Direct .mp4/.webm URL, YouTube / Vimeo link, or upload video"
+                                                                            : "https://example.com/document.pdf, Doc link, or upload document"
+                                                                }
                                                                 value={broadcastForm.contentUrl}
                                                                 onChange={(e) => setBroadcastForm({ ...broadcastForm, contentUrl: e.target.value })}
                                                             />
-                                                            {broadcastForm.contentType === "IMAGE" && (
-                                                                <label className="file-upload-btn">
-                                                                    <span>Upload</span>
-                                                                    <input
-                                                                        type="file"
-                                                                        accept="image/*"
-                                                                        style={{ display: "none" }}
-                                                                        onChange={handleMediaFileUpload}
-                                                                    />
-                                                                </label>
-                                                            )}
+                                                            <label className="file-upload-btn" title={`Upload ${broadcastForm.contentType} File`}>
+                                                                <span>Upload</span>
+                                                                <input
+                                                                    type="file"
+                                                                    accept={
+                                                                        broadcastForm.contentType === "IMAGE"
+                                                                            ? "image/*"
+                                                                            : broadcastForm.contentType === "VIDEO"
+                                                                                ? "video/mp4,video/webm,video/ogg"
+                                                                                : "application/pdf,.doc,.docx,.txt"
+                                                                    }
+                                                                    style={{ display: "none" }}
+                                                                    onChange={handleMediaFileUpload}
+                                                                />
+                                                            </label>
                                                         </div>
+                                                        {broadcastForm.contentUrl && (
+                                                            <div className="media-attached-pill">
+                                                                <span>📎 {broadcastForm.contentName || (broadcastForm.contentUrl.startsWith("data:") ? "Uploaded File" : "Resource Attached")}</span>
+                                                                <button
+                                                                    type="button"
+                                                                    className="media-clear-btn"
+                                                                    title="Clear attachment"
+                                                                    onClick={() => setBroadcastForm((prev) => ({ ...prev, contentUrl: "", contentName: "" }))}
+                                                                >
+                                                                    ✕
+                                                                </button>
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 )}
                                             </div>

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { useAuth } from './AuthContext';
+import { useNotification } from './NotificationContext';
 import {
     fetchUserNotifications,
     markNotificationAsRead,
@@ -12,6 +13,7 @@ const NotificationInboxContext = createContext();
 
 export function NotificationInboxProvider({ children }) {
     const { user } = useAuth();
+    const { notify } = useNotification();
     const [notifications, setNotifications] = useState([]);
     const [unreadCount, setUnreadCount] = useState(0);
     const [isLoading, setIsLoading] = useState(false);
@@ -93,16 +95,31 @@ export function NotificationInboxProvider({ children }) {
             const socket = connectSocket(token, currentUserId, currentUsername);
 
             const handleInboxNotification = (newNotif) => {
+                if (!newNotif) return;
                 const now = Date.now();
                 if (newNotif.metadata?.expiresAt && new Date(newNotif.metadata.expiresAt).getTime() <= now) {
                     return; // Ignore expired
                 }
 
-                setNotifications((prev) => [newNotif, ...prev.filter((n) => n.id !== newNotif.id)]);
-                setUnreadCount((prev) => prev + 1);
+                setNotifications((prev) => {
+                    const exists = prev.some((n) => n.id === newNotif.id);
+                    if (exists) return prev;
+
+                    // Flash on screen using the app's custom notification system
+                    notify({
+                        title: newNotif.title || "NEW NOTIFICATION",
+                        message: newNotif.message || "You have a new update in your inbox.",
+                        type: newNotif.type === "WARNING" ? "warning" : newNotif.type === "BATTLE_START" || newNotif.type === "CHALLENGE_ACCEPTED" ? "success" : "info",
+                        duration: 5000,
+                    });
+
+                    setUnreadCount((c) => c + 1);
+                    return [newNotif, ...prev];
+                });
             };
 
             const handleBroadcastAnnouncement = (broadcast) => {
+                if (!broadcast) return;
                 const now = Date.now();
                 if (broadcast.expiresAt && new Date(broadcast.expiresAt).getTime() <= now) {
                     return;
@@ -118,6 +135,7 @@ export function NotificationInboxProvider({ children }) {
                     createdAt: Date.now(),
                     metadata: {
                         isBroadcast: true,
+                        broadcastId: broadcast.id,
                         broadcastType: broadcast.type,
                         flashBanner: broadcast.flashBanner,
                         expiresAt: broadcast.expiresAt,
@@ -126,16 +144,53 @@ export function NotificationInboxProvider({ children }) {
                     },
                 };
 
-                setNotifications((prev) => [notifItem, ...prev.filter((n) => n.id !== broadcast.id)]);
-                setUnreadCount((prev) => prev + 1);
+                setNotifications((prev) => {
+                    const exists = prev.some(
+                        (n) => n.id === broadcast.id || n.metadata?.broadcastId === broadcast.id
+                    );
+                    if (exists) return prev;
+
+                    // Flash announcement using the custom notification system
+                    notify({
+                        title: `📢 ${broadcast.title || "SYSTEM ANNOUNCEMENT"}`,
+                        message: broadcast.message,
+                        type: broadcast.type === "WARNING" ? "warning" : "info",
+                        duration: 6000,
+                    });
+
+                    setUnreadCount((c) => c + 1);
+                    return [notifItem, ...prev];
+                });
             };
 
             const handleBroadcastRevoked = ({ broadcastId }) => {
+                if (!broadcastId) return;
+
                 setNotifications((prev) => {
-                    const filtered = prev.filter((n) => n.id !== broadcastId);
+                    const hadItem = prev.some(
+                        (n) => n.id === broadcastId || n.metadata?.broadcastId === broadcastId || n.metadata?.id === broadcastId
+                    );
+                    if (!hadItem) return prev;
+
+                    const filtered = prev.filter(
+                        (n) => n.id !== broadcastId && n.metadata?.broadcastId !== broadcastId && n.metadata?.id !== broadcastId
+                    );
                     setUnreadCount(filtered.filter((n) => !n.read).length);
+
+                    // Flash notice that broadcast has been revoked (never native alert)
+                    notify({
+                        title: "NOTICE WITHDRAWN",
+                        message: "A system broadcast has been revoked by administrators.",
+                        type: "info",
+                        duration: 3500,
+                    });
+
                     return filtered;
                 });
+
+                try {
+                    sessionStorage.removeItem(`af_dismissed_broadcast_${broadcastId}`);
+                } catch {}
             };
 
             socket.on("inbox_notification", handleInboxNotification);

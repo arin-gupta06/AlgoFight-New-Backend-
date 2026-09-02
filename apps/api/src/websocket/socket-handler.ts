@@ -1110,6 +1110,9 @@ export class SocketHandler {
                     const username = session?.username || data.username || "A player";
                     if (!roomId || !userId) break;
 
+                    // Immediately mark leaving player as AVAILABLE in presence
+                    this.connectionManager.updatePresenceStatus(userId, "AVAILABLE");
+
                     const rawState = await this.redis.get(`battle_state:${roomId}`);
                     if (rawState) {
                         const state = JSON.parse(rawState);
@@ -1130,9 +1133,15 @@ export class SocketHandler {
                             totalPlayers: state.players?.length || 0,
                         });
 
-                        if (activePlayers.length <= 1 && state.status === "RUNNING") {
+                        if (activePlayers.length <= 1) {
                             const winner = activePlayers[0];
+                            if (winner?.userId) {
+                                this.connectionManager.updatePresenceStatus(winner.userId, "AVAILABLE");
+                            }
+
+                            state.status = "FINISHED";
                             await this.battleService.finishBattle(roomId, "OPPONENT_FORFEIT", winner?.userId, userId);
+
                             this.connectionManager.broadcastToRoom(roomId, "battle_over", {
                                 roomId,
                                 winner: winner?.username || "Opponent",
@@ -1152,6 +1161,14 @@ export class SocketHandler {
                             reason: `${username} left the battle arena.`,
                         });
                     }
+
+                    // Broadcast room and presence update to all clients
+                    this.connectionManager.broadcastToAll("room_updated", {
+                        roomCode: roomId,
+                        roomId,
+                        action: "player_left_battle",
+                        userId,
+                    });
 
                     this.connectionManager.leaveRoom(roomId, socket);
                     if (session) delete session.roomId;
@@ -1279,6 +1296,11 @@ export class SocketHandler {
                                 
                                 if (active.length <= 1) {
                                     const winner = active[0] || opponent;
+                                    if (winner?.userId) {
+                                        this.connectionManager.updatePresenceStatus(winner.userId, "AVAILABLE");
+                                    }
+                                    this.connectionManager.updatePresenceStatus(session.userId!, "AVAILABLE");
+
                                     await this.battleService.finishBattle(session.roomId!, "OPPONENT_FORFEIT", winner?.userId, session.userId);
                                     this.connectionManager.broadcastToRoom(session.roomId!, "battle_over", {
                                         roomId: session.roomId,

@@ -207,6 +207,7 @@ export default function InboxDropdown({ isOpen, onClose }) {
                                                     content: item.metadata?.content,
                                                     action: item.metadata?.action,
                                                 }}
+                                                isUnread={!item.read}
                                                 onActionClick={() => {
                                                     markAsRead(item.id);
                                                     onClose();

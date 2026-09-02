@@ -91,10 +91,23 @@ export class SystemBroadcastService {
 
         if (
             lowerUrl.startsWith("javascript:") ||
-            lowerUrl.startsWith("data:") ||
             lowerUrl.startsWith("file:")
         ) {
             throw new Error("Invalid content URL: Scheme not permitted.");
+        }
+
+        if (lowerUrl.startsWith("data:")) {
+            const isAllowedData =
+                lowerUrl.startsWith("data:image/") ||
+                lowerUrl.startsWith("data:video/") ||
+                lowerUrl.startsWith("data:application/pdf") ||
+                lowerUrl.startsWith("data:application/msword") ||
+                lowerUrl.startsWith("data:application/vnd.") ||
+                lowerUrl.startsWith("data:application/octet-stream") ||
+                lowerUrl.startsWith("data:text/");
+            if (!isAllowedData) {
+                throw new Error("Invalid content URL: Scheme not permitted.");
+            }
         }
 
         return {

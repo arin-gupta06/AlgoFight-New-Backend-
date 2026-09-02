@@ -230,9 +230,9 @@ function Rewards() {
 
                 <article className="rewards-kpi-card">
                     <div className="kpi-label">Current Rank</div>
-                    <div className="kpi-value" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <RankEmblem rating={stats.rating} size={28} glow={false} />
-                        <span>{currentTier.label}</span>
+                    <div className="kpi-value kpi-rank-value">
+                        <RankEmblem rating={stats.rating} size={26} glow={false} />
+                        <span className="kpi-rank-title">{currentTier.label}</span>
                     </div>
                     <div className="kpi-footnote">
                         {ratingToNextTier > 0

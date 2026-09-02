@@ -1265,6 +1265,41 @@
     color: #ffffff;
 }
 
+.media-attached-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+    padding: 4px 10px;
+    background: rgba(0, 229, 255, 0.1);
+    border: 1px solid rgba(0, 229, 255, 0.3);
+    border-radius: 6px;
+    font-size: 0.76rem;
+    color: #38bdf8;
+    max-width: 100%;
+}
+
+.media-attached-pill span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.media-clear-btn {
+    background: transparent;
+    border: none;
+    color: #ff5f56;
+    font-weight: 800;
+    cursor: pointer;
+    padding: 0 4px;
+    font-size: 0.85rem;
+    line-height: 1;
+}
+
+.media-clear-btn:hover {
+    color: #ffffff;
+}
+
 /* Live Preview */
 .broadcast-live-preview-box {
     background: rgba(1, 4, 10, 0.85);

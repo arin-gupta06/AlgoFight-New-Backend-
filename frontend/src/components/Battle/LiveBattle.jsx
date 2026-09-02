@@ -272,6 +272,53 @@ export default function LiveBattle() {
     navigate("/battle");
   };
 
+  const handleLeaveBattle = () => {
+    if (status === "finished") {
+      navigate("/battle");
+      return;
+    }
+
+    const targetId = roomId || initialMatch?.roomId || initialMatch?.roomCode || initialRoomCode;
+    if (socketRef.current && targetId) {
+      socketRef.current.emit("leave_battle", {
+        roomId: targetId,
+        userId: user?.uid,
+        username,
+      });
+    }
+
+    notify({
+      type: "info",
+      title: "Battle Forfeited",
+      message: "You have left the battle arena.",
+      duration: 3500,
+    });
+
+    navigate("/battle");
+  };
+
+  const goBack = () => {
+    navigate("/battle");
+  };
+
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      const targetId = roomId || initialMatch?.roomId || initialMatch?.roomCode || initialRoomCode;
+      if (socketRef.current && targetId && status !== "finished") {
+        socketRef.current.emit("leave_battle", {
+          roomId: targetId,
+          userId: user?.uid,
+          username,
+        });
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [roomId, initialMatch, initialRoomCode, status, user?.uid, username]);
+
   useEffect(() => {
     let cancelled = false;
     let socket = null;
@@ -438,6 +485,15 @@ export default function LiveBattle() {
         }
         setStatus("finished");
         setShowSummary(true);
+
+        if (data.reason === "OPPONENT_FORFEIT") {
+          notify({
+            type: youWin ? "success" : "info",
+            title: youWin ? "🏆 Victory by Forfeit!" : "Match Concluded",
+            message,
+            duration: 6000,
+          });
+        }
       });
 
       socket.on("player_left_battle", (data) => {
@@ -447,6 +503,19 @@ export default function LiveBattle() {
           title: "Combatant Left Battle",
           message: `${departed} has departed from the battle arena.${data?.remainingActiveCount !== undefined ? ` (${data.remainingActiveCount} remaining)` : ""}`,
           duration: 5000,
+        });
+
+        // Instantly update liveState to show [LEFT] badge
+        setLiveState((prev) => {
+          if (!prev || !Array.isArray(prev.players)) return prev;
+          return {
+            ...prev,
+            players: prev.players.map((p) =>
+              p.userId === data?.userId || p.username === departed
+                ? { ...p, status: "LEFT", forfeited: true }
+                : p
+            ),
+          };
         });
       });
 
@@ -488,6 +557,15 @@ export default function LiveBattle() {
 
     return () => {
       cancelled = true;
+      const targetId = roomId || initialMatch?.roomId || initialMatch?.roomCode || initialRoomCode;
+      if (socketRef.current && targetId && status !== "finished") {
+        socketRef.current.emit("leave_battle", {
+          roomId: targetId,
+          userId: user?.uid,
+          username,
+        });
+      }
+
       if (socketRef.current) {
         socketRef.current.off("connect");
         socketRef.current.off("waiting_for_opponent");
@@ -504,7 +582,7 @@ export default function LiveBattle() {
         socketRef.current.off("rating_updates");
       }
     };
-  }, [notify, user?.uid, username]);
+  }, [notify, user?.uid, username, roomId, initialMatch, initialRoomCode, status]);
 
   const onTestCode = () => {
     if (!roomId || !socketRef.current) return;
@@ -524,19 +602,6 @@ export default function LiveBattle() {
     setExecutionTests([]);
     setOutput("Testing against hidden and edge cases...");
     socketRef.current.emit("submit_code", { code, language, roomId, problemId: problem.id });
-  };
-
-  const handleLeaveBattle = () => {
-    if (status === "matched") {
-      if (window.confirm("Are you sure you want to leave this battle? Leaving will count as a forfeit.")) {
-        if (socketRef.current) {
-          socketRef.current.emit("leave_battle", { roomId, username, userId: user?.uid });
-        }
-        navigate("/battle");
-      }
-    } else {
-      navigate("/battle", { state: battleResult ? { result: battleResult } : undefined });
-    }
   };
 
   if (status === "connecting" || status === "waiting") {

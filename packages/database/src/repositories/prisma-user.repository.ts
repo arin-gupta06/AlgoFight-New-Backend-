@@ -136,6 +136,57 @@ export class PrismaUserRepository implements UserRepository {
         });
     }
 
+    async updateRatingWithAudit(input: {
+        userId: string;
+        battleRoomId?: string;
+        ratingBefore: number;
+        ratingAfter: number;
+        ratingDelta: number;
+        performanceScore: number;
+        ewmaBefore: number;
+        ewmaAfter: number;
+        isWin?: boolean;
+        highestRank?: string;
+        metadata?: Record<string, any>;
+    }): Promise<UserEntity> {
+        return prisma.$transaction(async (tx) => {
+            const currentUser = await tx.user.findUnique({
+                where: { id: input.userId },
+                select: { highestRating: true, highestRank: true },
+            });
+
+            const newHighestRating = Math.max(currentUser?.highestRating ?? 0, input.ratingAfter);
+
+            const updatedUser = await tx.user.update({
+                where: { id: input.userId },
+                data: {
+                    rating: input.ratingAfter,
+                    ewma: input.ewmaAfter,
+                    highestRating: newHighestRating,
+                    highestRank: input.highestRank || currentUser?.highestRank || "ROOKIE",
+                    wins: input.isWin === true ? { increment: 1 } : undefined,
+                    losses: input.isWin === false ? { increment: 1 } : undefined,
+                },
+            });
+
+            await tx.ratingHistory.create({
+                data: {
+                    userId: input.userId,
+                    battleRoomId: input.battleRoomId || null,
+                    ratingBefore: input.ratingBefore,
+                    ratingAfter: input.ratingAfter,
+                    ratingDelta: input.ratingDelta,
+                    performanceScore: input.performanceScore,
+                    ewmaBefore: input.ewmaBefore,
+                    ewmaAfter: input.ewmaAfter,
+                    metadata: input.metadata || {},
+                },
+            });
+
+            return updatedUser;
+        });
+    }
+
     async getAvailablePlayers(excludeUserId?: string, limit = 50, search?: string): Promise<UserEntity[]> {
         const whereClause: any = {};
         const conditions: any[] = [];

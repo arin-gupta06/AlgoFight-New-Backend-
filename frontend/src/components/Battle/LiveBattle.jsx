@@ -8,6 +8,7 @@ import { requestJson } from "../../services/api";
 import { useAntiCheat } from "../../hooks/useAntiCheat";
 import ProblemStatement from "../Common/ProblemStatement.jsx";
 import DetailedAnalysisModal from "../Common/DetailedAnalysisModal.jsx";
+import RankEmblem from "../Common/RankEmblem";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faClock,
@@ -24,6 +25,11 @@ import {
   faChevronLeft,
   faChevronRight
 } from "@fortawesome/free-solid-svg-icons";
+import {
+  SUPPORTED_LANGUAGES,
+  getStarterCodeForLanguage,
+  getLanguageLabel,
+} from "../../constants/languages";
 import "./LiveBattle.css";
 
 const PostBattleSummaryModal = ({ battleResult, liveState, problems, ratingUpdates, onClose }) => {
@@ -65,17 +71,18 @@ const PostBattleSummaryModal = ({ battleResult, liveState, problems, ratingUpdat
                 
                 return (
                   <React.Fragment key={p.userId}>
-                    <div className="lb-cell">
-                      {i === 0 && <FontAwesomeIcon icon={faTrophy} style={{ color: "gold", marginRight: "8px" }} />}
-                      {p.username}
+                    <div className="lb-cell" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      {i === 0 && <FontAwesomeIcon icon={faTrophy} style={{ color: "gold" }} />}
+                      <RankEmblem rating={newRating || p.rating || 0} size={22} glow={false} />
+                      <span>{p.username}</span>
                     </div>
                     <div className="lb-cell">{p.points}</div>
                     <div className="lb-cell">{p.solvedCount === problems.length ? "Completed" : "Incomplete"}</div>
                     <div className="lb-cell">
-                      {newRating ? (
+                      {newRating !== undefined ? (
                         <span>
                           {newRating} 
-                          <span style={{ color: ratingChange > 0 ? '#4ade80' : '#ef4444', marginLeft: '6px', fontSize: '0.85em' }}>
+                          <span style={{ color: ratingChange > 0 ? '#4ade80' : ratingChange < 0 ? '#ef4444' : '#94a3b8', marginLeft: '6px', fontSize: '0.85em', fontWeight: 'bold' }}>
                             ({ratingChange > 0 ? '+' : ''}{ratingChange})
                           </span>
                         </span>
@@ -223,14 +230,8 @@ export default function LiveBattle() {
   }, [roomId, initialMatch, initialRoomCode]);
 
   useEffect(() => {
-    if (problem && problem.starterCode && typeof problem.starterCode === "object") {
-      const isDefaultCode = !code || Object.values(problem.starterCode).includes(code) || code === "// write your solution here";
-      if (isDefaultCode) {
-         setCode(problem.starterCode[language] || "// write your solution here");
-      }
-    } else if (problem && typeof problem.starterCode === "string") {
-       if (!code || code === "// write your solution here") setCode(problem.starterCode);
-    }
+    if (!problem) return;
+    setCode(getStarterCodeForLanguage(problem, language));
   }, [language, problem, activeProblemIndex]);
 
   const [output, setOutput] = useState("");
@@ -260,7 +261,7 @@ export default function LiveBattle() {
   const handlePlayVsBot = () => {
     if (socketRef.current) {
       socketRef.current.emit("play_vs_bot", { username, userId: user?.uid });
-      notify({ type: "info", title: "Solo Mode", message: "Spawning AlgoBot (1200) duel..." });
+      notify({ type: "info", title: "Solo Mode", message: "Spawning AlgoBot duel..." });
     }
   };
 
@@ -279,7 +280,7 @@ export default function LiveBattle() {
       const token = user ? await user.getIdToken().catch(() => null) : null;
       if (cancelled) return;
 
-      socket = connectSocket(token, user?.uid || null);
+      socket = connectSocket(token, user?.uid || null, username);
       socketRef.current = socket;
 
       const initiateBattleQueue = () => {
@@ -289,7 +290,12 @@ export default function LiveBattle() {
         } else if (status !== "matched") {
           setStatus("waiting");
           notify({ type: "info", title: "Matchmaking", message: "Searching for a 1v1 challenger...", duration: 2600 });
-          socket.emit("find_match", { username });
+          socket.emit("find_match", {
+            userId: user?.uid,
+            username,
+            email: user?.email,
+            token,
+          });
         }
       };
 
@@ -682,8 +688,13 @@ export default function LiveBattle() {
         </div>
 
         <div className="livebattle-header-right">
-          <div className={`livebattle-timer flashing`} style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#ff4d4d', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <FontAwesomeIcon icon={faClock} /> {formatTime(timeLeft)}
+          <div
+            className={`livebattle-timer calm-timer ${timeLeft <= 60 && timeLeft > 0 ? "timer-warning" : ""}`}
+            aria-label={`Time remaining: ${formatTime(timeLeft)}`}
+            title="Time remaining"
+          >
+            <FontAwesomeIcon icon={faClock} className="timer-icon" />
+            <span className="timer-digits">{formatTime(timeLeft)}</span>
           </div>
           <button className="livebattle-leave-btn" onClick={handleLeaveBattle}>
             {status === "finished" ? "Back to Arena" : "Leave Battle"}
@@ -726,17 +737,21 @@ export default function LiveBattle() {
           <section className="livebattle-panel livebattle-editor-panel">
           <div className="livebattle-panel-head">
             <h3>Solution</h3>
-            <select 
-              value={language}
-              onChange={(e) => setLanguage(e.target.value)}
-              className="livebattle-chip"
-              style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', cursor: 'pointer', outline: 'none' }}
-              disabled={status === "finished" || running}
-            >
-              <option value="javascript" style={{ background: '#111' }}>JavaScript</option>
-              <option value="cpp" style={{ background: '#111' }}>C++</option>
-              <option value="python" style={{ background: '#111' }}>Python</option>
-            </select>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}>
+              <span className="livebattle-chip">{getLanguageLabel(language)}</span>
+              <select 
+                value={language}
+                onChange={(e) => setLanguage(e.target.value)}
+                className="livebattle-language-select"
+                disabled={status === "finished" || running}
+              >
+                {SUPPORTED_LANGUAGES.map((langOption) => (
+                  <option key={langOption.value} value={langOption.value}>
+                    {langOption.label}
+                  </option>
+                ))}
+              </select>
+            </div>
             {!isSubmitPanelOpen && (
               <button
                 className="livebattle-action-btn"

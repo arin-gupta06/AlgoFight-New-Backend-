@@ -23,16 +23,8 @@ import { fetchAvailablePlayers } from "../../services/api";
 import { connectSocket, getSocket } from "../../services/socket";
 import { useAuth } from "../../contexts/AuthContext";
 import { useNotification } from "../../contexts/NotificationContext";
+import RankEmblem from "../Common/RankEmblem";
 import "./AvailablePlayers.css";
-
-function getRankTier(rating = 1200) {
-    if (rating >= 2000) return { name: "Grandmaster", className: "grandmaster" };
-    if (rating >= 1700) return { name: "Master", className: "master" };
-    if (rating >= 1500) return { name: "Diamond", className: "diamond" };
-    if (rating >= 1300) return { name: "Platinum", className: "platinum" };
-    if (rating >= 1100) return { name: "Gold", className: "gold" };
-    return { name: "Silver", className: "silver" };
-}
 
 export default function AvailablePlayers({ onPlayerCountChange }) {
     const { user } = useAuth();
@@ -242,7 +234,7 @@ export default function AvailablePlayers({ onPlayerCountChange }) {
                 platformCode: p.platformCode || "",
                 institutionName: p.institutionName || "",
                 userType: p.userType || "INDIVIDUAL",
-                rating: p.rating || 1200,
+                rating: p.rating ?? 0,
                 matchesWon: p.matchesWon ?? p.wins ?? 0,
                 matchesPlayed: p.matchesPlayed ?? ((p.wins || 0) + (p.losses || 0)),
                 winRate: p.winRate ?? (p.wins && (p.wins + p.losses) > 0 ? Math.round((p.wins / (p.wins + p.losses)) * 100) : 0),
@@ -260,7 +252,7 @@ export default function AvailablePlayers({ onPlayerCountChange }) {
                     ...existing,
                     username: pres.username || existing.username,
                     platformCode: pres.platformCode || existing.platformCode,
-                    rating: pres.rating || existing.rating,
+                    rating: pres.rating ?? existing.rating ?? 0,
                     status: pres.status || "AVAILABLE",
                     isMe,
                 });
@@ -271,7 +263,7 @@ export default function AvailablePlayers({ onPlayerCountChange }) {
                     platformCode: pres.platformCode || "",
                     institutionName: pres.institutionName || "",
                     userType: pres.userType || "INDIVIDUAL",
-                    rating: pres.rating || 1200,
+                    rating: pres.rating ?? 0,
                     matchesWon: 0,
                     matchesPlayed: 0,
                     winRate: 0,
@@ -550,13 +542,11 @@ export default function AvailablePlayers({ onPlayerCountChange }) {
                             <div className="ap-card-body">
                                 <div className="ap-rating-tier-row">
                                     <div className="ap-rating-box">
-                                        <span className="ap-rating-value">{player.rating || 1200}</span>
-                                        <span className="ap-rating-label">ELO</span>
+                                        <span className="ap-rating-value">{player.rating ?? 0}</span>
+                                        <span className="ap-rating-label">Rating</span>
                                     </div>
 
-                                    <span className={`ap-tier-badge ${tier.className}`}>
-                                        <FontAwesomeIcon icon={faTrophy} /> {tier.name}
-                                    </span>
+                                    <RankEmblem rating={player.rating ?? 0} size={26} showBadge={true} glow={false} />
                                 </div>
 
                                 <div className="ap-winrate-bar-wrap">
@@ -685,7 +675,7 @@ export default function AvailablePlayers({ onPlayerCountChange }) {
                             </div>
                             <h3 className="ap-modal-title">Incoming 1v1 Challenge!</h3>
                             <p className="ap-modal-desc">
-                                <span className="ap-modal-target-name">{incomingChallenge.fromUsername}</span> (Rating: {incomingChallenge.fromRating || 1200}) has challenged you to an instant battle duel!
+                                <span className="ap-modal-target-name">{incomingChallenge.fromUsername}</span> (Rating: {incomingChallenge.fromRating ?? 0}) has challenged you to an instant battle duel!
                             </p>
 
                             <div className="ap-modal-timer-bar">

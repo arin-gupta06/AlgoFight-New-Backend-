@@ -7,9 +7,11 @@ import {
   faCircle,
   faChevronLeft,
   faChevronRight,
+  faBookOpen,
 } from "@fortawesome/free-solid-svg-icons";
 import { fetchPracticeProblems, fetchUserProfile, toApiUrl } from "../../services/api";
 import { useAuth } from "../../contexts/AuthContext.jsx";
+import ProblemReadPanel from "./ProblemReadPanel.jsx";
 import "./Practice.css";
 
 const DIFFICULTY_OPTIONS = ["all", "easy", "medium", "hard"];
@@ -82,6 +84,7 @@ export default function Practice() {
   const [selectedTag, setSelectedTag] = useState("all");
   const [availableTags, setAvailableTags] = useState(["all"]);
   const [problems, setProblems] = useState([]);
+  const [readingProblemId, setReadingProblemId] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalProblems, setTotalProblems] = useState(0);
@@ -247,7 +250,6 @@ export default function Practice() {
       .catch(() => { });
   }, []);
 
-
   return (
     <div className="archive-root">
       <div className="archive-header">
@@ -301,6 +303,7 @@ export default function Practice() {
           <div>Tags</div>
           <div>Acceptance</div>
           <div>Difficulty</div>
+          <div>Action</div>
         </div>
 
         <div className="archive-list">
@@ -378,6 +381,22 @@ export default function Practice() {
                       {difficultyLabel.charAt(0).toUpperCase() + difficultyLabel.slice(1)}
                     </span>
                   </div>
+
+                  <div className="col-action">
+                    <button
+                      type="button"
+                      className="read-problem-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setReadingProblemId(problemId);
+                      }}
+                      aria-label={`Read problem ${problem.title}`}
+                      title={`Read ${problem.title}`}
+                    >
+                      <FontAwesomeIcon icon={faBookOpen} />
+                      <span>Read</span>
+                    </button>
+                  </div>
                 </div>
               );
             })}
@@ -416,6 +435,13 @@ export default function Practice() {
           </button>
         </div>
       </div>
+
+      {/* Reusable Notion-Style Read Problem Drawer */}
+      <ProblemReadPanel
+        problemId={readingProblemId}
+        onClose={() => setReadingProblemId(null)}
+        initialProblem={problems.find((p) => (p.id || p._id) === readingProblemId)}
+      />
     </div>
   );
 }

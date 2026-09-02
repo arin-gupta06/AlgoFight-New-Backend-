@@ -23,7 +23,10 @@ model User {
   department      String?
   batchYear       String?
   platformCode    String?      @unique // e.g. "AF-STU-74921" or "AF-FAC-10293"
-  rating          Int          @default(1200) // Base ELO rating
+  rating          Int          @default(0) // Base ELO rating (starts at 0)
+  ewma            Float        @default(0.50) // Exponentially Weighted Moving Average of recent performance
+  highestRating   Int          @default(0)
+  highestRank     String       @default("ROOKIE")
   wins            Int          @default(0)
   losses          Int          @default(0)
   createdAt       DateTime     @default(now())
@@ -31,6 +34,7 @@ model User {
   submissions     Submission[]
   participants    BattleParticipant[]
   hostedRooms     BattleRoom[] @relation("HostedRooms")
+  ratingHistories RatingHistory[]
   githubUrl       String?
   linkedinUrl     String?
   // Track high-level counts
@@ -165,6 +169,7 @@ model BattleRoom {
   createdAt        DateTime         @default(now())
   participants     BattleParticipant[]
   submissions      Submission[] 
+  ratingHistories  RatingHistory[]
   
   @@index([hostId])
   @@index([status])
@@ -189,6 +194,26 @@ model BattleParticipant {
   
   @@id([roomId, userId])
   @@index([userId])
+}
+
+model RatingHistory {
+  id               String      @id @default(uuid())
+  userId           String
+  user             User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  battleRoomId     String?
+  battleRoom       BattleRoom? @relation(fields: [battleRoomId], references: [id], onDelete: SetNull)
+  ratingBefore     Int
+  ratingAfter      Int
+  ratingDelta      Int
+  performanceScore Float
+  ewmaBefore       Float
+  ewmaAfter        Float
+  metadata         Json?
+  createdAt        DateTime    @default(now())
+
+  @@index([userId])
+  @@index([battleRoomId])
+  @@index([createdAt])
 }
 
 model SystemBroadcast {

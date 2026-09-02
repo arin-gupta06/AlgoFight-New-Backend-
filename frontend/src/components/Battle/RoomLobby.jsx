@@ -27,6 +27,7 @@ import { requestJson } from "../../services/api";
 import { useAuth } from "../../contexts/AuthContext";
 import { useNotification } from "../../contexts/NotificationContext";
 import { getWsUrl } from "../../services/socket";
+import RankEmblem from "../Common/RankEmblem";
 import "./RoomLobby.css";
 
 export default function RoomLobby() {
@@ -613,7 +614,10 @@ export default function RoomLobby() {
                                             </div>
                                             <div className="req-meta">
                                                 <div className="req-name">{req.username || "Anonymous"}</div>
-                                                <div className="req-rating">Combat Rating: {req.rating || 1200}</div>
+                                                <div className="req-rating" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                    <RankEmblem rating={req.rating ?? 0} size={18} glow={false} />
+                                                    <span>Rating: {req.rating ?? 0}</span>
+                                                </div>
                                             </div>
                                         </div>
 
@@ -711,8 +715,9 @@ export default function RoomLobby() {
                                             {isMe && <span className="me-badge">YOU</span>}
                                             {isPlayerHost && <span className="host-badge"><FontAwesomeIcon icon={faCrown} /> HOST</span>}
                                         </div>
-                                        <div className="participant-rating">
-                                            Rating: {player.user?.rating || 1200}
+                                        <div className="participant-rating" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                            <RankEmblem rating={player.user?.rating ?? 0} size={18} glow={false} />
+                                            <span>Rating: {player.user?.rating ?? 0}</span>
                                         </div>
                                     </div>
 

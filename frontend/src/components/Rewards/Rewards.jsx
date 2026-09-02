@@ -26,6 +26,7 @@ import {
     RANK_TIERS,
     UNIVERSAL_EFFICIENCY_RULES,
 } from '../../utils/playerMetrics';
+import RankEmblem from '../Common/RankEmblem';
 import './Rewards.css';
 
 const rewardCatalog = [
@@ -229,7 +230,10 @@ function Rewards() {
 
                 <article className="rewards-kpi-card">
                     <div className="kpi-label">Current Rank</div>
-                    <div className="kpi-value">{currentTier.label}</div>
+                    <div className="kpi-value" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <RankEmblem rating={stats.rating} size={28} glow={false} />
+                        <span>{currentTier.label}</span>
+                    </div>
                     <div className="kpi-footnote">
                         {ratingToNextTier > 0
                             ? `${ratingToNextTier} rating to ${nextTier.label}`
@@ -346,8 +350,9 @@ function Rewards() {
                                 return (
                                     <li key={tier.label} className={isCurrent ? 'tier-current' : ''}>
                                         <div className="tier-left">
-                                            <FontAwesomeIcon icon={isComplete ? faCheckCircle : faMedal} />
+                                            <RankEmblem rating={tier.minRating} size={20} glow={false} />
                                             <span>{tier.label}</span>
+                                            {isComplete && <FontAwesomeIcon icon={faCheckCircle} style={{ color: '#4ade80', fontSize: '0.8rem' }} />}
                                         </div>
                                         <span className="tier-points">{numberFormatter.format(tier.minRating)} rating</span>
                                     </li>

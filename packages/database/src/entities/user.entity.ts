@@ -12,6 +12,9 @@ export interface UserEntity {
     githubUrl?: string | null;
     linkedinUrl?: string | null;
     rating: number;
+    ewma: number;
+    highestRating: number;
+    highestRank: string;
     wins: number;
     losses: number;
     createdAt: Date;

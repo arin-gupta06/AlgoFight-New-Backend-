@@ -92,3 +92,94 @@ export interface SubmissionPayload {
 export interface EvaluationServiceContract {
     evaluateSubmission(payload: SubmissionPayload, onProgress?: any, mode?: "SAMPLE" | "SUBMIT"): Promise<EvaluationResult>;
 }
+
+export type RankTierKey = "ROOKIE" | "EXPERT" | "MASTER" | "GRANDMASTER" | "LEGEND" | "SUPREME";
+
+export interface RankTierDefinition {
+    key: RankTierKey;
+    name: string;
+    minRating: number;
+    maxRating: number;
+    color: string;
+    gradient: string;
+    glowColor: string;
+    description: string;
+}
+
+export const RANK_TIERS: RankTierDefinition[] = [
+    {
+        key: "ROOKIE",
+        name: "Rookie",
+        minRating: 0,
+        maxRating: 399,
+        color: "#94a3b8",
+        gradient: "linear-gradient(135deg, #64748b 0%, #94a3b8 100%)",
+        glowColor: "rgba(148, 163, 184, 0.4)",
+        description: "Initiate fighting in the algorithmic proving grounds.",
+    },
+    {
+        key: "EXPERT",
+        name: "Expert",
+        minRating: 400,
+        maxRating: 799,
+        color: "#06b6d4",
+        gradient: "linear-gradient(135deg, #0891b2 0%, #22d3ee 100%)",
+        glowColor: "rgba(6, 182, 212, 0.4)",
+        description: "Proven competitor with sharp execution and solid algorithmic grasp.",
+    },
+    {
+        key: "MASTER",
+        name: "Master",
+        minRating: 800,
+        maxRating: 1199,
+        color: "#a855f7",
+        gradient: "linear-gradient(135deg, #7e22ce 0%, #c084fc 100%)",
+        glowColor: "rgba(168, 85, 247, 0.4)",
+        description: "Advanced tactician capable of resolving complex systems under pressure.",
+    },
+    {
+        key: "GRANDMASTER",
+        name: "Grandmaster",
+        minRating: 1200,
+        maxRating: 1599,
+        color: "#ef4444",
+        gradient: "linear-gradient(135deg, #b91c1c 0%, #f87171 100%)",
+        glowColor: "rgba(239, 68, 68, 0.45)",
+        description: "Elite problem solver dominating high-tier ranked lobbies.",
+    },
+    {
+        key: "LEGEND",
+        name: "Legend",
+        minRating: 1600,
+        maxRating: 1999,
+        color: "#f59e0b",
+        gradient: "linear-gradient(135deg, #d97706 0%, #fbbf24 100%)",
+        glowColor: "rgba(245, 158, 11, 0.5)",
+        description: "Champion of the arena whose mastery commands universal respect.",
+    },
+    {
+        key: "SUPREME",
+        name: "Supreme",
+        minRating: 2000,
+        maxRating: Infinity,
+        color: "#ec4899",
+        gradient: "linear-gradient(135deg, #ec4899 0%, #8b5cf6 50%, #38bdf8 100%)",
+        glowColor: "rgba(236, 72, 153, 0.6)",
+        description: "Peak competitive supremacy. The pinnacle of AlgoFight mastery.",
+    },
+];
+
+export function getRankTierFromRating(rating: number): RankTierDefinition {
+    const r = Math.max(0, Number(rating) || 0);
+    for (let i = RANK_TIERS.length - 1; i >= 0; i--) {
+        if (r >= RANK_TIERS[i].minRating) {
+            return RANK_TIERS[i];
+        }
+    }
+    return RANK_TIERS[0];
+}
+
+export function getRankKeyFromRating(rating: number): RankTierKey {
+    return getRankTierFromRating(rating).key;
+}
+

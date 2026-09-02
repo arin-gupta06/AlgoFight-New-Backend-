@@ -278,7 +278,7 @@ export class SocketHandler {
                         }).catch(() => null);
                     }
 
-                    const userRating = user?.rating || 1200;
+                    const userRating = user?.rating ?? 0;
                     const platformCode = user?.platformCode || "";
                     const userType = user?.userType || "INDIVIDUAL";
                     const institutionName = user?.institutionName || undefined;
@@ -340,7 +340,7 @@ export class SocketHandler {
                         break;
                     }
 
-                    const fromRating = session?.rating || 1200;
+                    const fromRating = session?.rating ?? 0;
 
                     if (!targetUserId) {
                         this.send(socket, "error", "Invalid target player for duel challenge.");
@@ -559,11 +559,19 @@ export class SocketHandler {
 
                 case "find_match":
                 case "matchmake": {
+                    const explicitUserId = data.userId || data.uid;
                     const session = this.socketUsers.get(socket);
-                    const identifier = session?.userId || currentUserId.value || data.username || "Player";
+                    const identifier = explicitUserId || session?.userId || currentUserId.value;
 
-                    let user = await this.userRepo.getUserById(identifier);
-                    if (!user) {
+                    let user = identifier ? await this.userRepo.getUserById(identifier).catch(() => null) : null;
+                    if (!user && explicitUserId) {
+                        const fallbackName = data.username || session?.username || `Player_${Math.floor(1000 + Math.random() * 9000)}`;
+                        user = await this.userRepo.upsertUser({
+                            id: explicitUserId,
+                            username: fallbackName,
+                            email: data.email || `${fallbackName.toLowerCase().replace(/\s+/g, "_")}@algofight.local`,
+                        });
+                    } else if (!user) {
                         const randomSuffix = Math.floor(1000 + Math.random() * 9000);
                         const fallbackName = data.username || `Player_${randomSuffix}`;
                         user = await this.userRepo.upsertUser({
@@ -807,7 +815,7 @@ export class SocketHandler {
                                 roomCode,
                                 userId,
                                 username: username || "A player",
-                                rating: rating || 1200,
+                                rating: rating ?? 0,
                             });
                         }
                     }
@@ -1177,19 +1185,19 @@ export class SocketHandler {
         const timeLimitSeconds = (roomWithProblems?.timeLimitMinutes || 15) * 60;
 
         let p1Name = match.player1Username;
-        let p1Rating = match.player1Rating || 1200;
+        let p1Rating = match.player1Rating ?? 0;
         if (!p1Name) {
             const p1User = await this.userRepo.getUserById(match.player1Id);
             p1Name = p1User?.username || "Player 1";
-            p1Rating = p1User?.rating || 1200;
+            p1Rating = p1User?.rating ?? 0;
         }
 
         let p2Name = match.player2Username;
-        let p2Rating = match.player2Rating || 1200;
+        let p2Rating = match.player2Rating ?? 0;
         if (!p2Name) {
             const p2User = await this.userRepo.getUserById(match.player2Id);
             p2Name = p2User?.username || "Player 2";
-            p2Rating = p2User?.rating || 1200;
+            p2Rating = p2User?.rating ?? 0;
         }
 
         const player1Socket = this.connectionManager.userSockets.get(match.player1Id);

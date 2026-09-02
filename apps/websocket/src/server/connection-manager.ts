@@ -50,7 +50,7 @@ export class ConnectionManager {
         const presence: UserPresence = {
             userId,
             username: metadata?.username || existing?.username || "Player",
-            rating: metadata?.rating ?? existing?.rating ?? 1200,
+            rating: metadata?.rating ?? existing?.rating ?? 0,
             platformCode: metadata?.platformCode || existing?.platformCode || "",
             userType: metadata?.userType || existing?.userType || "INDIVIDUAL",
             institutionName: metadata?.institutionName || existing?.institutionName,
@@ -241,7 +241,7 @@ export class ConnectionManager {
             challengeId,
             fromUserId,
             fromUsername,
-            fromRating: fromRating || 1200,
+            fromRating: fromRating ?? 0,
             targetUserId: actualTargetUserId,
             targetUsername,
             createdAt: now,

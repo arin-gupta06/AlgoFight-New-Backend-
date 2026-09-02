@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { useNavigate, useParams } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -7,14 +7,9 @@ import {
   faFlask,
   faForward,
   faChartBar,
-  faTimes,
-  faCheckCircle,
-  faExclamationCircle,
-  faBolt,
-  faShieldHalved,
-  faBrain,
   faChevronRight,
-  faChevronLeft
+  faChevronLeft,
+  faShieldHalved,
 } from "@fortawesome/free-solid-svg-icons";
 import { evaluatePracticeCode, fetchProblemById, recordPracticeProgress } from "../../services/api";
 import { useNotification } from "../../contexts/NotificationContext.jsx";
@@ -22,48 +17,12 @@ import { useAuth } from "../../contexts/AuthContext.jsx";
 import { useAntiCheat } from "../../hooks/useAntiCheat";
 import ProblemStatement from "../Common/ProblemStatement.jsx";
 import DetailedAnalysisModal from "../Common/DetailedAnalysisModal.jsx";
+import {
+  SUPPORTED_LANGUAGES,
+  getStarterCodeForLanguage,
+  getLanguageLabel,
+} from "../../constants/languages";
 import "../Battle/LiveBattle.css";
-
-const LANGUAGE_OPTIONS = [
-  { value: "javascript", label: "JavaScript" },
-  { value: "cpp", label: "C++" },
-];
-
-const JS_FALLBACK_STARTER = [
-  "function solution(input) {",
-  "  // TODO: implement solution",
-  "  return input;",
-  "}",
-].join("\n");
-
-const CPP_FALLBACK_STARTER = [
-  "#include <bits/stdc++.h>",
-  "using namespace std;",
-  "",
-  "int main() {",
-  "    // TODO: implement solution",
-  "    return 0;",
-  "}",
-].join("\n");
-
-function getStarterCodeForLanguage(problem, language) {
-  const starterCodeByLanguage =
-    problem && typeof problem.starterCode === "object" ? problem.starterCode : {};
-
-  const rawStarter =
-    starterCodeByLanguage?.[language] ||
-    (language === "cpp" ? CPP_FALLBACK_STARTER : JS_FALLBACK_STARTER);
-
-  const normalizedStarter = String(rawStarter || "");
-  if (language !== "javascript") {
-    return normalizedStarter;
-  }
-
-  return normalizedStarter.replace(
-    /\n?\s*module\.exports\s*=\s*\{?\s*solution\s*\}?\s*;?\s*$/m,
-    ""
-  );
-}
 
 export default function PracticeWorkspace() {
   const navigate = useNavigate();
@@ -167,10 +126,11 @@ export default function PracticeWorkspace() {
 
     setRunning(true);
     setRunMode(mode);
+    const langLabel = getLanguageLabel(selectedLanguage);
     setOutput(
       mode === "test"
-        ? `Testing ${selectedLanguage === "cpp" ? "C++" : "JavaScript"} against sample cases...`
-        : `Submitting ${selectedLanguage === "cpp" ? "C++" : "JavaScript"} to balanced practice suite...`
+        ? `Testing ${langLabel} against sample cases...`
+        : `Submitting ${langLabel} to balanced practice suite...`
     );
 
     try {
@@ -317,9 +277,10 @@ export default function PracticeWorkspace() {
           </p>
         </div>
 
-        <div className="livebattle-header-right" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <div className="livebattle-timer flashing" style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#4ade80', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <FontAwesomeIcon icon={faClock} /> {formatTime(elapsedTime)}
+        <div className="livebattle-header-right" style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+          <div className="livebattle-timer calm-timer" aria-label={`Elapsed time: ${formatTime(elapsedTime)}`} title="Elapsed time">
+            <FontAwesomeIcon icon={faClock} className="timer-icon" />
+            <span className="timer-digits">{formatTime(elapsedTime)}</span>
           </div>
           <span className="livebattle-status active">Practice Mode</span>
           <button className="livebattle-leave-btn" onClick={() => navigate("/practice")}>
@@ -346,14 +307,14 @@ export default function PracticeWorkspace() {
           <div className="livebattle-panel-head">
             <h3>Solution</h3>
             <div style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}>
-              <span className="livebattle-chip">{selectedLanguage === "cpp" ? "C++" : "JavaScript"}</span>
+              <span className="livebattle-chip">{getLanguageLabel(selectedLanguage)}</span>
               <select
                 className="livebattle-language-select"
                 value={selectedLanguage}
                 onChange={(event) => setSelectedLanguage(event.target.value)}
                 disabled={running}
               >
-                {LANGUAGE_OPTIONS.map((languageOption) => (
+                {SUPPORTED_LANGUAGES.map((languageOption) => (
                   <option key={languageOption.value} value={languageOption.value}>
                     {languageOption.label}
                   </option>

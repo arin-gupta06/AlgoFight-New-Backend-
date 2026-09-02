@@ -24,7 +24,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import { fetchUserProfile } from '../../services/api';
 import { connectSocket, getSocket } from '../../services/socket';
-import { calculateArenaPointBreakdown, normalizeUserStats } from '../../utils/playerMetrics';
+import { calculateArenaPointBreakdown, normalizeUserStats, getRankProgressByRating } from '../../utils/playerMetrics';
+import RankEmblem from '../Common/RankEmblem';
 
 function Profile() {
     const { userId } = useParams();
@@ -255,7 +256,7 @@ function Profile() {
     });
     const arenaPoints = pointBreakdown.total;
 
-    const ratingProgress = Math.min(100, Math.round((rating / 2400) * 100));
+    const rankProgress = getRankProgressByRating(rating);
     const activityProgress = Math.min(100, Math.round(((matchesPlayed + practiceSolved) / 120) * 100));
     const practiceProgress = Math.min(100, Math.round((practiceSolved / 100) * 100));
     const consistencyProgress = Math.min(100, Math.round((winRate / 100) * 100));
@@ -444,7 +445,7 @@ function Profile() {
                                     <FontAwesomeIcon icon={faBolt} /> Invite to Friendly Battle
                                 </button>
                             )}
-                            <div className="profile-rank-chip">{rank}</div>
+                            <RankEmblem rank={rank} rating={rating} size={48} showBadge={true} glow={true} />
                         </div>
                     </div>
 
@@ -477,11 +478,23 @@ function Profile() {
                     <div className="profile-progress-list">
                         <div className="profile-progress-item">
                             <div className="profile-progress-head">
-                                <span>Rating Progress</span>
-                                <strong>{rating} / 2400</strong>
+                                <span>
+                                    {rankProgress.isMaxTier 
+                                        ? "Peak Tier (Supreme)" 
+                                        : `${rankProgress.ratingToNextTier} rating to ${rankProgress.nextTier.name}`}
+                                </span>
+                                <strong>
+                                    {rating} / {rankProgress.isMaxTier ? "2000+" : rankProgress.nextTier.minRating}
+                                </strong>
                             </div>
                             <div className="profile-progress-track">
-                                <div className="profile-progress-fill tone-cyan" style={{ width: `${ratingProgress}%` }} />
+                                <div 
+                                    className="profile-progress-fill" 
+                                    style={{ 
+                                        width: `${rankProgress.progressWithinTier}%`,
+                                        background: rankProgress.currentTier.gradient || "linear-gradient(90deg, #38bdf8, #818cf8)"
+                                    }} 
+                                />
                             </div>
                         </div>
 
@@ -604,7 +617,7 @@ function Profile() {
                             </div>
                             <h3 className="ap-modal-title">Incoming 1v1 Challenge!</h3>
                             <p className="ap-modal-desc">
-                                <span className="ap-modal-target-name">{incomingChallenge.fromUsername}</span> (Rating: {incomingChallenge.fromRating || 1200}) has challenged you to an instant battle duel!
+                                <span className="ap-modal-target-name">{incomingChallenge.fromUsername}</span> (Rating: {incomingChallenge.fromRating ?? 0}) has challenged you to an instant battle duel!
                             </p>
 
                             <div className="ap-modal-timer-bar">
@@ -649,7 +662,7 @@ function Profile() {
                             <p className="ap-modal-desc">
                                 <span className="ap-modal-target-name">{offlineChallengeTarget.targetUsername}</span> is not logged into the battle server right now.
                                 <br />
-                                Open another browser tab to test live 1v1 challenges, or battle <strong>AlgoBot (1200 ELO)</strong> right now!
+                                Open another browser tab to test live 1v1 challenges, or battle <strong>AlgoBot</strong> right now!
                             </p>
 
                             <div className="ap-incoming-actions" style={{ marginTop: '16px' }}>

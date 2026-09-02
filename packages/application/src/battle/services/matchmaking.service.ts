@@ -31,6 +31,18 @@ export class MatchmakingService {
     public readonly REDIS_TICKETS_KEY = "matchmaking:tickets";
     public readonly REDIS_PUB_CHANNEL = "matchmaking:matched";
 
+    private readonly LUA_CLAIM_MATCH = `
+        local claimed = redis.call('ZREM', KEYS[1], ARGV[1])
+        if claimed == 1 then
+            redis.call('HDEL', KEYS[2], ARGV[1])
+            redis.call('ZREM', KEYS[1], ARGV[2])
+            redis.call('HDEL', KEYS[2], ARGV[2])
+            return 1
+        else
+            return 0
+        end
+    `;
+
     constructor(
         private readonly userRepository: UserRepository,
         private readonly battleRoomService: BattleRoomService,
@@ -98,7 +110,7 @@ export class MatchmakingService {
         }
 
         const username = customUsername || user.username || "Combatant";
-        const rating = user.rating || 1200;
+        const rating = user.rating ?? 0;
 
         const newTicket: MatchmakingTicket = {
             userId,
@@ -213,10 +225,10 @@ export class MatchmakingService {
             roomCode: botRoom.roomCode,
             player1Id: userId,
             player1Username: customUsername || user.username || "Combatant",
-            player1Rating: user.rating || 1200,
+            player1Rating: user.rating ?? 0,
             player2Id: "bot",
-            player2Username: "AlgoBot (1200)",
-            player2Rating: 1200,
+            player2Username: "AlgoBot",
+            player2Rating: 200,
         };
     }
 
@@ -240,16 +252,13 @@ export class MatchmakingService {
         for (const candidateId of candidateIds) {
             if (candidateId === newTicket.userId) continue;
 
-            const rawTicket = await this.redisClient.hget(this.REDIS_TICKETS_KEY, candidateId);
-            if (!rawTicket) continue;
+            const candidateRaw = await this.redisClient.hget(
+                this.REDIS_TICKETS_KEY,
+                candidateId
+            );
+            if (!candidateRaw) continue;
 
-            let candidateTicket: MatchmakingTicket;
-            try {
-                candidateTicket = JSON.parse(rawTicket);
-            } catch {
-                continue;
-            }
-
+            const candidateTicket: MatchmakingTicket = JSON.parse(candidateRaw);
             const candidateWaitSeconds = (now - candidateTicket.queuedAt) / 1000;
             // Progressive rating window expansion (+50 ELO every 5 seconds)
             const candidateWindow = candidateTicket.range + Math.floor(candidateWaitSeconds / 5) * 50;
@@ -257,20 +266,8 @@ export class MatchmakingService {
 
             if (ratingDiff <= candidateWindow) {
                 // ATOMIC PAIRING LUA SCRIPT: Exclusively claim candidate from Redis
-                const luaScript = `
-                    local claimed = redis.call('ZREM', KEYS[1], ARGV[1])
-                    if claimed == 1 then
-                        redis.call('HDEL', KEYS[2], ARGV[1])
-                        redis.call('ZREM', KEYS[1], ARGV[2])
-                        redis.call('HDEL', KEYS[2], ARGV[2])
-                        return 1
-                    else
-                        return 0
-                    end
-                `;
-
-                const result = await this.redisClient.eval(
-                    luaScript,
+                const claimSuccess = await this.redisClient.eval(
+                    this.LUA_CLAIM_MATCH,
                     2,
                     this.REDIS_QUEUE_KEY,
                     this.REDIS_TICKETS_KEY,
@@ -278,7 +275,7 @@ export class MatchmakingService {
                     newTicket.userId
                 );
 
-                if (result === 1) {
+                if (claimSuccess === 1) {
                     // Successfully and atomically acquired both players!
                     const room = await this.battleRoomService.createRoom({
                         hostId: candidateTicket.userId,
@@ -295,10 +292,10 @@ export class MatchmakingService {
                         roomCode: room.roomCode,
                         player1Id: candidateTicket.userId,
                         player1Username: candidateTicket.username || "Combatant 1",
-                        player1Rating: candidateTicket.rating || 1200,
+                        player1Rating: candidateTicket.rating ?? 0,
                         player2Id: newTicket.userId,
                         player2Username: newTicket.username || "Combatant 2",
-                        player2Rating: newTicket.rating || 1200,
+                        player2Rating: newTicket.rating ?? 0,
                     };
 
                     // Broadcast cross-instance match notification over Redis Pub/Sub
@@ -347,10 +344,10 @@ export class MatchmakingService {
                     roomCode: room.roomCode,
                     player1Id: candidateId,
                     player1Username: candidateTicket.username || "Combatant 1",
-                    player1Rating: candidateTicket.rating || 1200,
+                    player1Rating: candidateTicket.rating ?? 0,
                     player2Id: newTicket.userId,
                     player2Username: newTicket.username || "Combatant 2",
-                    player2Rating: newTicket.rating || 1200,
+                    player2Rating: newTicket.rating ?? 0,
                 };
             }
         }

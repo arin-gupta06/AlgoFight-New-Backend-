@@ -18,11 +18,12 @@ import {
     faMicrochip,
     faLock
 } from "@fortawesome/free-solid-svg-icons";
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import BackgroundPaths from '../BackgroundPaths/BackgroundPaths';
 import '../BackgroundPaths/BackgroundPaths.css';
 import { fetchPracticeProblems } from '../../services/api';
-import PublicInfoModal from '../Common/PublicInfoModal';
+import { useAuth } from '../../contexts/AuthContext';
+import logoIcon from '../../assets/algofight-logo.png';
 
 const featureCards = [
     {
@@ -52,21 +53,15 @@ const featureCards = [
     },
     {
         title: 'Global Rank & Leaderboard',
-        copy: 'Climb through competitive tiers from Bronze to Grandmaster with live match analytics.',
+        copy: 'Climb through competitive tiers from Rookie to Supreme with live match analytics.',
         icon: faTrophy,
     },
 ];
 
 function Home() {
+    const { user } = useAuth();
     const navigate = useNavigate();
     const [featuredProblems, setFeaturedProblems] = useState([]);
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [activeModalTab, setActiveModalTab] = useState('about');
-
-    const handleOpenModal = (tabKey) => {
-        setActiveModalTab(tabKey);
-        setIsModalOpen(true);
-    };
 
     useEffect(() => {
         const getProblems = async () => {
@@ -193,7 +188,15 @@ function Home() {
                         <h2 className="cta-heading">Ready to <span className="text-purple">Level Up?</span></h2>
                         <p className="cta-description">Join thousands of developers sharpening their algorithmic instincts and climbing the ranks in real time.</p>
                         <div className="cta-buttons">
-                            <button className="btn-primary" onClick={() => navigate('/signup')}>Create Free Account <FontAwesomeIcon icon={faArrowRight} style={{ marginLeft: "8px" }} /></button>
+                            {user ? (
+                                <button className="btn-primary" onClick={() => navigate('/developer')}>
+                                    Meet our developers <FontAwesomeIcon icon={faArrowRight} style={{ marginLeft: "8px" }} />
+                                </button>
+                            ) : (
+                                <button className="btn-primary" onClick={() => navigate('/signup')}>
+                                    Create Free Account <FontAwesomeIcon icon={faArrowRight} style={{ marginLeft: "8px" }} />
+                                </button>
+                            )}
                             <button className="btn-dark" onClick={() => navigate('/practice')}>Explore Problems</button>
                         </div>
                         <p className="cta-subtext">Instant access. Start solving and dueling in seconds.</p>
@@ -206,53 +209,48 @@ function Home() {
             <footer className="footer-home">
                 <div className="footer-content">
                     <div className="footer-brand">
-                        <h2>{'<'}/{'>'} AlgoFight</h2>
+                        <div className="footer-brand-header">
+                            <img src={logoIcon} alt="AlgoFight Logo" className="footer-logo-img" />
+                            <h2>AlgoFight</h2>
+                        </div>
                         <p>The ultimate real-time platform for competitive programming, institutional arenas, and technical duels.</p>
                     </div>
                     <div className="footer-links">
                         <div className="link-col">
                             <h4>Platform</h4>
-                            <a href="/practice">Problems</a>
-                            <a href="/battle">1v1 Arenas</a>
-                            <a href="/leaderboard">Leaderboard</a>
+                            <Link to="/practice">Problems</Link>
+                            <Link to="/battle">1v1 Arenas</Link>
+                            <Link to="/leaderboard">Leaderboard</Link>
                         </div>
                         <div className="link-col">
                             <h4>Architecture</h4>
-                            <a onClick={() => handleOpenModal('about')} style={{ cursor: 'pointer' }}>About System</a>
-                            <a href="/developer">Architects</a>
-                            <a href="/admin">Control Hub</a>
+                            <Link to="/about">About System</Link>
+                            <Link to="/developer">Architects</Link>
+                            <Link to="/admin">Control Hub</Link>
                         </div>
                         <div className="link-col">
                             <h4>Support</h4>
-                            <a onClick={() => handleOpenModal('help')} style={{ cursor: 'pointer' }}>Help Center</a>
-                            <a onClick={() => handleOpenModal('contact')} style={{ cursor: 'pointer' }}>Contact Us</a>
-                            <a onClick={() => handleOpenModal('blog')} style={{ cursor: 'pointer' }}>DevLog</a>
+                            <Link to="/help">Help Center</Link>
+                            <Link to="/contact">Contact Us</Link>
+                            <Link to="/blog">DevLog</Link>
                         </div>
                         <div className="link-col">
                             <h4>Legal</h4>
-                            <a onClick={() => handleOpenModal('terms')} style={{ cursor: 'pointer' }}>Terms</a>
-                            <a onClick={() => handleOpenModal('privacy')} style={{ cursor: 'pointer' }}>Privacy</a>
-                            <a href="/cookies">Cookies</a>
+                            <Link to="/terms">Terms</Link>
+                            <Link to="/privacy">Privacy</Link>
+                            <Link to="/cookies">Cookies</Link>
                         </div>
                     </div>
                 </div>
                 <div className="footer-bottom">
                     <p>&copy; 2026 AlgoFight. All rights reserved.</p>
-                    <div className="social-icons">
-                        <a href="/developer">Arin Gupta</a>
-                        <a href="/developer">Vivek Chaurasiya</a>
-                        <a href="/developer">Krish Dargar</a>
+                    <div className="footer-dev-avatars">
+                        <Link to="/developer" className="dev-avatar-circle dev-a" title="Arin Gupta">A</Link>
+                        <Link to="/developer" className="dev-avatar-circle dev-v" title="Vivek Chaurasiya">V</Link>
+                        <Link to="/developer" className="dev-avatar-circle dev-k" title="Krish Dargar">K</Link>
                     </div>
                 </div>
             </footer>
-
-            {/* Public Info Overlay Modal */}
-            <PublicInfoModal
-                isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
-                activeTab={activeModalTab}
-                onSelectTab={setActiveModalTab}
-            />
         </BackgroundPaths>
     );
 }

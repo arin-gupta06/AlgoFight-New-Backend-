@@ -159,7 +159,7 @@
 
 .archive-list-head {
   display: grid;
-  grid-template-columns: 78px 86px minmax(220px, 1fr) 230px 108px 118px;
+  grid-template-columns: 74px 76px minmax(200px, 1fr) 210px 98px 108px 86px;
   align-items: center;
   column-gap: 10px;
   padding: 0 18px 12px;
@@ -184,7 +184,7 @@
 
 .archive-row {
   display: grid;
-  grid-template-columns: 78px 86px minmax(220px, 1fr) 230px 108px 118px;
+  grid-template-columns: 74px 76px minmax(200px, 1fr) 210px 98px 108px 86px;
   align-items: center;
   column-gap: 10px;
   padding: 17px 18px;
@@ -319,6 +319,45 @@
   background: rgba(255, 90, 118, 0.12);
 }
 
+.col-action {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.read-problem-btn {
+  min-height: 28px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 229, 255, 0.3);
+  background: rgba(0, 229, 255, 0.06);
+  color: #7ceeff;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 229, 255, 0.04);
+}
+
+.read-problem-btn:hover {
+  background: rgba(0, 229, 255, 0.16);
+  border-color: rgba(0, 229, 255, 0.6);
+  color: #ffffff;
+  box-shadow: 0 0 14px rgba(0, 229, 255, 0.24);
+  transform: translateY(-1px);
+}
+
+.read-problem-btn:focus-visible {
+  outline: 2px solid #00e5ff;
+  outline-offset: 1px;
+}
+
 .archive-pagination {
   margin-top: 2px;
   padding: 16px 18px 18px;
@@ -398,7 +437,7 @@
 @media (max-width: 1100px) {
   .archive-list-head,
   .archive-row {
-    grid-template-columns: 72px 78px minmax(200px, 1fr) 200px 92px 102px;
+    grid-template-columns: 68px 70px minmax(180px, 1fr) 180px 84px 94px 78px;
   }
 
   .archive-header h1 {
@@ -409,7 +448,7 @@
 @media (max-width: 900px) {
   .archive-list-head,
   .archive-row {
-    grid-template-columns: 62px 74px minmax(190px, 1fr) 102px;
+    grid-template-columns: 58px 64px minmax(160px, 1fr) 94px 78px;
   }
 
   .archive-list-head div:nth-child(4),
@@ -443,10 +482,10 @@
   }
 
   .archive-row {
-    grid-template-columns: 58px 34px minmax(140px, 1fr);
+    grid-template-columns: 54px 30px minmax(120px, 1fr) auto;
     grid-template-areas:
-      "num status title"
-      "num status diff";
+      "num status title action"
+      "num status diff action";
     row-gap: 6px;
     padding: 15px 14px;
   }
@@ -470,6 +509,11 @@
   .col-diff {
     grid-area: diff;
     justify-content: flex-start;
+  }
+
+  .col-action {
+    grid-area: action;
+    align-self: center;
   }
 
   .archive-pagination {

@@ -179,14 +179,30 @@ export class BattleRoomService {
         let eloResults: Record<string, EloResult> | undefined;
 
         if (this.ratingService) {
-            const rankedUserIds = sorted.map(p => p.userId).filter(id => id !== "bot");
-            if (rankedUserIds.length >= 2) {
-                // If it's a draw where nobody scored and no forfeit happened, we could optionally skip,
-                // but applyMultiplayerBattleResult will treat 1st tied index as win, others as loss. 
-                // Let's assume some score separation or tie-break logic applies.
+            if (sorted.length >= 2) {
                 const shouldApplyElo = forfeitedUserId || sorted.some(p => p.score > 0 || p.solvedAt);
                 if (shouldApplyElo) {
-                    eloResults = await this.ratingService.applyMultiplayerBattleResult(rankedUserIds);
+                    const totalProblems = room.questionCount || room.problems?.length || 1;
+                    const totalTimeSeconds = (room.timeLimitMinutes || 15) * 60;
+                    
+                    const participantInputs = sorted.map((p, index) => {
+                        const solvedCount = p.solvedProblemIds?.length || (p.solvedAt ? 1 : 0);
+                        const timeTakenSeconds = (room.startedAt && p.solvedAt) 
+                            ? Math.max(0, Math.round((p.solvedAt.getTime() - room.startedAt.getTime()) / 1000))
+                            : totalTimeSeconds;
+
+                        return {
+                            userId: p.userId,
+                            rank: index + 1,
+                            score: p.score ?? 0,
+                            solvedCount,
+                            totalProblems,
+                            timeTakenSeconds,
+                            totalTimeSeconds,
+                        };
+                    });
+
+                    eloResults = await this.ratingService.applyBattleResolution(roomId, participantInputs);
                 }
             }
         }

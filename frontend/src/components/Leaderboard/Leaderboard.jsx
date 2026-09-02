@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTrophy, faArrowTrendUp, faArrowTrendDown, faMinus } from "@fortawesome/free-solid-svg-icons";
 import { fetchLeaderboard } from "../../services/api";
+import RankEmblem from "../Common/RankEmblem";
 import "./Leaderboard.css";
 
 export default function Leaderboard() {
@@ -54,14 +55,14 @@ export default function Leaderboard() {
 
   if (data.length === 0) {
       topPlayers = [
-        { rank: 1, user: "tourist", score: 3799, country: "BY", trend: "up" },
-        { rank: 2, user: "Benq", score: 3687, country: "US", trend: "same" },
-        { rank: 3, user: "ecnerwala", score: 3651, country: "US", trend: "same" }
+        { rank: 1, user: "tourist", score: 2150, country: "BY", trend: "up" },
+        { rank: 2, user: "Benq", score: 1850, country: "US", trend: "same" },
+        { rank: 3, user: "ecnerwala", score: 1520, country: "US", trend: "same" }
       ];
       otherPlayers = [
-        { rank: 4, user: "Um_nik", score: 3598, country: "UA", trend: "down" },
-        { rank: 5, user: "ksun48", score: 3571, country: "CA", trend: "up" },
-        { rank: 6, user: "Petr", score: 3556, country: "CZ", trend: "same" }
+        { rank: 4, user: "Um_nik", score: 1180, country: "UA", trend: "down" },
+        { rank: 5, user: "ksun48", score: 940, country: "CA", trend: "up" },
+        { rank: 6, user: "Petr", score: 620, country: "CZ", trend: "same" }
       ];
   }
 
@@ -94,24 +95,54 @@ export default function Leaderboard() {
         {topPlayers.length >= 3 && (
             <div className="podium-container">
                 <div className="podium-item podium-2" onClick={() => handleUserClick(topPlayers[1])} style={{ cursor: "pointer" }}>
-                    <div className="avatar avatar-silver">{topPlayers[1].user.charAt(0).toUpperCase()}</div>
+                    <div className="podium-avatar-wrapper">
+                        <div className="avatar avatar-silver">
+                            {topPlayers[1].user.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="podium-emblem-badge">
+                            <RankEmblem rating={topPlayers[1].score} size={26} glow={true} />
+                        </div>
+                    </div>
                     <div className="podium-name">{topPlayers[1].user}</div>
-                    <div className="podium-score">{topPlayers[1].score}</div>
+                    <div className="podium-rank-row">
+                        <RankEmblem rating={topPlayers[1].score} size={18} showBadge={true} glow={false} />
+                        <span className="podium-score">{topPlayers[1].score} Rating</span>
+                    </div>
                     <div className="podium-block block-silver">2</div>
                 </div>
                 
                 <div className="podium-item podium-1" onClick={() => handleUserClick(topPlayers[0])} style={{ cursor: "pointer" }}>
                     <FontAwesomeIcon icon={faTrophy} className="podium-trophy" />
-                    <div className="avatar avatar-gold">{topPlayers[0].user.charAt(0).toUpperCase()}</div>
+                    <div className="podium-avatar-wrapper">
+                        <div className="avatar avatar-gold">
+                            {topPlayers[0].user.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="podium-emblem-badge">
+                            <RankEmblem rating={topPlayers[0].score} size={30} glow={true} />
+                        </div>
+                    </div>
                     <div className="podium-name">{topPlayers[0].user}</div>
-                    <div className="podium-score">{topPlayers[0].score}</div>
+                    <div className="podium-rank-row">
+                        <RankEmblem rating={topPlayers[0].score} size={20} showBadge={true} glow={false} />
+                        <span className="podium-score">{topPlayers[0].score} Rating</span>
+                    </div>
                     <div className="podium-block block-gold">1</div>
                 </div>
 
                 <div className="podium-item podium-3" onClick={() => handleUserClick(topPlayers[2])} style={{ cursor: "pointer" }}>
-                    <div className="avatar avatar-bronze">{topPlayers[2].user.charAt(0).toUpperCase()}</div>
+                    <div className="podium-avatar-wrapper">
+                        <div className="avatar avatar-bronze">
+                            {topPlayers[2].user.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="podium-emblem-badge">
+                            <RankEmblem rating={topPlayers[2].score} size={24} glow={true} />
+                        </div>
+                    </div>
                     <div className="podium-name">{topPlayers[2].user}</div>
-                    <div className="podium-score">{topPlayers[2].score}</div>
+                    <div className="podium-rank-row">
+                        <RankEmblem rating={topPlayers[2].score} size={18} showBadge={true} glow={false} />
+                        <span className="podium-score">{topPlayers[2].score} Rating</span>
+                    </div>
                     <div className="podium-block block-bronze">3</div>
                 </div>
             </div>
@@ -122,9 +153,14 @@ export default function Leaderboard() {
             {otherPlayers.map((entry, i) => (
                 <div className="ranking-row" key={i} onClick={() => handleUserClick(entry)} style={{ cursor: "pointer" }}>
                     <div className="rank-num">{entry.rank}</div>
-                    <div className="rank-avatar">{entry.user.charAt(0).toUpperCase()}</div>
+                    <div className="rank-avatar">
+                        {entry.user.charAt(0).toUpperCase()}
+                    </div>
                     <div className="rank-name">
                         {entry.user} <span className="rank-country">{entry.country || "UN"}</span>
+                    </div>
+                    <div className="rank-emblem-cell">
+                        <RankEmblem rating={entry.score} size={22} showBadge={true} glow={false} />
                     </div>
                     <div className="rank-trend">
                         {renderTrendIcon(entry.trend)} <span className="rank-score">{entry.score}</span>

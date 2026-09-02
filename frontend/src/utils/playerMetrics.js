@@ -1,25 +1,25 @@
-export const RANK_TIERS = [
-  { label: "Novice", minRating: 0 },
-  { label: "Warrior", minRating: 1200 },
-  { label: "Expert", minRating: 1500 },
-  { label: "Master", minRating: 1800 },
-  { label: "Grandmaster", minRating: 2200 },
-];
+import { RANK_TIERS as OFFICIAL_RANK_TIERS, getRankTier } from "../components/Common/RankEmblem";
+
+export const RANK_TIERS = OFFICIAL_RANK_TIERS.map((t) => ({
+  label: t.name,
+  key: t.key,
+  minRating: t.minRating,
+  maxRating: t.maxRating,
+  color: t.color,
+  gradient: t.gradient,
+  glowColor: t.glowColor,
+  description: t.description,
+}));
 
 export function deriveRank(rating) {
-  const score = Number(rating) || 0;
-
-  if (score >= 2200) return "Grandmaster";
-  if (score >= 1800) return "Master";
-  if (score >= 1500) return "Expert";
-  if (score >= 1200) return "Warrior";
-  return "Novice";
+  const tier = getRankTier(rating);
+  return tier.name;
 }
 
 export function normalizeUserStats(profile = {}) {
-  const rating = Number(profile?.rating ?? 1200);
+  const rating = Math.max(0, Number(profile?.rating ?? 0));
   const matchesPlayed = Number(profile?.matchesPlayed ?? 0);
-  const matchesWon = Number(profile?.matchesWon ?? 0);
+  const matchesWon = Number(profile?.matchesWon ?? (profile?.wins ?? 0));
 
   const solvedFromIds = Array.isArray(profile?.practiceSolvedProblemIds)
     ? profile.practiceSolvedProblemIds.length
@@ -33,6 +33,8 @@ export function normalizeUserStats(profile = {}) {
   const practiceAccuracy =
     practiceSubmissions > 0 ? Math.round((practiceSolved / practiceSubmissions) * 100) : 0;
 
+  const tier = getRankTier(rating);
+
   return {
     rating,
     matchesPlayed,
@@ -42,7 +44,12 @@ export function normalizeUserStats(profile = {}) {
     practiceSubmissions,
     winRate,
     practiceAccuracy,
-    rank: deriveRank(rating),
+    rank: tier.name,
+    rankKey: tier.key,
+    rankTier: tier,
+    highestRating: Math.max(rating, Number(profile?.highestRating ?? rating)),
+    highestRank: profile?.highestRank || tier.key,
+    ewma: Number(profile?.ewma ?? 0.5),
   };
 }
 
@@ -70,7 +77,7 @@ export const UNIVERSAL_EFFICIENCY_RULES = [
 export function calculateArenaPointBreakdown(stats) {
   const safeStats = normalizeUserStats(stats);
 
-  const ratingPoints = Math.max(0, safeStats.rating - 1000);
+  const ratingPoints = safeStats.rating;
   const battleWinPoints = safeStats.matchesWon * 120;
   const speedEfficiencyPoints = Math.round(safeStats.matchesWon * 35 + safeStats.practiceSolved * 15);
   const practiceSolvedPoints = safeStats.practiceSolved * 50;
@@ -89,7 +96,7 @@ export function calculateArenaPointBreakdown(stats) {
 }
 
 export function getRankProgressByRating(rating) {
-  const score = Number(rating) || 0;
+  const score = Math.max(0, Number(rating) || 0);
   const currentTierIndex = RANK_TIERS.reduce((bestIndex, tier, index) => {
     if (score >= tier.minRating) return index;
     return bestIndex;
@@ -98,24 +105,23 @@ export function getRankProgressByRating(rating) {
   const currentTier = RANK_TIERS[currentTierIndex];
   const nextTier = RANK_TIERS[currentTierIndex + 1] || currentTier;
 
-  const progressWithinTier =
-    nextTier.minRating === currentTier.minRating
-      ? 100
-      : Math.min(
-          100,
-          Math.max(
-            0,
-            ((score - currentTier.minRating) / (nextTier.minRating - currentTier.minRating)) * 100
-          )
-        );
+  const isMaxTier = currentTierIndex === RANK_TIERS.length - 1;
 
-  // This drives the visual bar in Rewards: current rating as a percentage of the next tier threshold.
-  const progressToNext =
-    nextTier.minRating === 0
-      ? 100
-      : Math.min(100, Math.max(0, (score / nextTier.minRating) * 100));
+  const progressWithinTier = isMaxTier
+    ? 100
+    : Math.min(
+        100,
+        Math.max(
+          0,
+          ((score - currentTier.minRating) / (nextTier.minRating - currentTier.minRating)) * 100
+        )
+      );
 
-  const ratingToNextTier = Math.max(0, nextTier.minRating - score);
+  const progressToNext = isMaxTier
+    ? 100
+    : Math.min(100, Math.max(0, (score / nextTier.minRating) * 100));
+
+  const ratingToNextTier = isMaxTier ? 0 : Math.max(0, nextTier.minRating - score);
 
   return {
     currentTier,
@@ -124,5 +130,6 @@ export function getRankProgressByRating(rating) {
     progressToNext,
     progressWithinTier,
     ratingToNextTier,
+    isMaxTier,
   };
 }

@@ -8,6 +8,7 @@ import AvailablePlayers from "./AvailablePlayers.jsx";
 import { useAuth } from "../../contexts/AuthContext";
 import { fetchUserProfile } from "../../services/api";
 import { normalizeUserStats } from "../../utils/playerMetrics";
+import RankEmblem from "../Common/RankEmblem";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faTrophy,
@@ -95,7 +96,7 @@ export default function BattleArena({ defaultTab }) {
         <section className="arena-stats">
           <div className="stat-card tone-gold">
             <div className="stat-icon-wrapper">
-              <FontAwesomeIcon icon={faTrophy} />
+              <RankEmblem rating={rating} size={28} glow={false} />
             </div>
             <div className="stat-info">
               <div className="stat-number">{rating}</div>

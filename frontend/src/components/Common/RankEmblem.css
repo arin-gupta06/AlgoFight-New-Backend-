@@ -1,0 +1,89 @@
+.rank-emblem-wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+  vertical-align: middle;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.2s ease;
+}
+
+.rank-emblem-wrapper:hover {
+  transform: translateY(-1px) scale(1.04);
+}
+
+.rank-emblem-svg-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.rank-emblem-wrapper.has-glow .rank-emblem-svg-container svg {
+  filter: drop-shadow(0 0 8px var(--tier-glow));
+  transition: filter 0.3s ease;
+}
+
+.rank-emblem-wrapper.has-glow:hover .rank-emblem-svg-container svg {
+  filter: drop-shadow(0 0 14px var(--tier-glow));
+}
+
+.rank-emblem-label {
+  font-weight: 700;
+  font-size: 0.92rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.rank-emblem-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  border: 1px solid var(--tier-badge-border);
+  background: var(--tier-badge-bg);
+  backdrop-filter: blur(8px);
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.rank-badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  box-shadow: 0 0 6px var(--tier-color);
+  animation: pulse-dot 2s infinite ease-in-out;
+}
+
+@keyframes pulse-dot {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(0.8);
+  }
+}
+
+/* Supreme Rank Emblem Ambient Animation */
+.rank-emblem-supreme.has-glow .rank-emblem-svg-container svg {
+  animation: supreme-aura 4s infinite linear;
+}
+
+@keyframes supreme-aura {
+  0% {
+    filter: drop-shadow(0 0 10px rgba(236, 72, 153, 0.6)) drop-shadow(0 0 20px rgba(139, 92, 246, 0.4));
+  }
+  50% {
+    filter: drop-shadow(0 0 16px rgba(56, 189, 248, 0.7)) drop-shadow(0 0 24px rgba(236, 72, 153, 0.5));
+  }
+  100% {
+    filter: drop-shadow(0 0 10px rgba(236, 72, 153, 0.6)) drop-shadow(0 0 20px rgba(139, 92, 246, 0.4));
+  }
+}

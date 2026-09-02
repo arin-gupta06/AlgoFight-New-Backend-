@@ -214,7 +214,7 @@ export default function HeroCodeEditor() {
             </div>
             <div className="exec-passed-right">
               <span className="exec-speed-tag">50K+ In Queue</span>
-              <span className="exec-elo-gain">Start Rating: 1200</span>
+              <span className="exec-elo-gain">Base Rating: 0</span>
             </div>
           </motion.div>
         )}

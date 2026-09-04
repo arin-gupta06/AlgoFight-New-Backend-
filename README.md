@@ -1,7 +1,7 @@
 # ⚔️ AlgoFight — Real-Time Competitive Coding Arena
 
 <p align="center">
-  <img src="frontend/public/algofight-logo.png" alt="AlgoFight Logo" width="130" />
+  <img src="[[frontend/public/algofight-logo.png](https://github.com/arin-gupta06/AlgoFight-New-Backend-/blob/main/frontend/src/assets/algofight-logo.png)](https://raw.githubusercontent.com/arin-gupta06/AlgoFight-New-Backend-/main/frontend/public/algofight-logo.png)" alt="AlgoFight Logo" width="130" />
 </p>
 
 <p align="center">

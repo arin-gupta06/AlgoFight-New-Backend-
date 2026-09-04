@@ -29,7 +29,7 @@ export default function PrivacyContent({ isModal = false }) {
         </p>
 
         <div className="legal-meta-row">
-          <span className="legal-meta">Effective: August 2026</span>
+          <span className="legal-meta">Effective: September 2026</span>
           <span className="legal-badge-pill">
             <FontAwesomeIcon icon={faShieldHalved} /> GDPR & CCPA Aligned
           </span>
@@ -104,7 +104,7 @@ export default function PrivacyContent({ isModal = false }) {
             <ul style={{ margin: '8px 0 0', paddingLeft: '18px' }}>
               <li><strong>Transport Security:</strong> All client-server communication and WebSocket streaming are encrypted with TLS 1.3.</li>
               <li><strong>HMAC Attestations:</strong> Test execution outcomes and score dispatch frames require signed HMAC-SHA256 tokens to prevent packet spoofing.</li>
-              <li><strong>Container Isolation:</strong> Arbitrary code runs in sandboxed Linux cgroups with read-only root filesystems and seccomp filters.</li>
+              <li><strong>Elastic Container Isolation:</strong> Arbitrary code runs in ephemeral Linux cgroups with read-only filesystems, segregated Light/Heavy lanes, and instant teardown.</li>
               <li><strong>Admission Rate Limiters:</strong> Multi-tiered token bucket algorithms shield backend endpoints against brute-force and scraping.</li>
             </ul>
           </div>

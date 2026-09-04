@@ -29,9 +29,9 @@ export default function TermsContent({ isModal = false }) {
         </p>
 
         <div className="legal-meta-row">
-          <span className="legal-meta">Effective: August 2026</span>
+          <span className="legal-meta">Effective: September 2026</span>
           <span className="legal-badge-pill">
-            <FontAwesomeIcon icon={faScaleBalanced} /> Version 2.4 Production
+            <FontAwesomeIcon icon={faScaleBalanced} /> Version 2.5 Production
           </span>
           <span className="legal-badge-pill">Jurisdiction: India & Global Standard</span>
         </div>
@@ -127,14 +127,15 @@ export default function TermsContent({ isModal = false }) {
         <section className="legal-panel" id="tos-5">
           <div className="legal-panel-head">
             <span className="legal-section-number">05</span>
-            <h2>Sandbox Execution & Code Governance</h2>
+            <h2>Elastic Multi-Runtime Sandboxes & Code Governance</h2>
           </div>
           <p>
-            All submitted code is compiled and executed in hardware-isolated container execution sandboxes governed by kernel cgroups and seccomp-bpf filters:
+            All submitted code is evaluated in hardware-isolated container execution sandboxes governed by kernel cgroups, seccomp-bpf filters, and dynamic workload routing:
           </p>
           <ul>
-            <li><strong>Resource Boundaries:</strong> Standard CPU execution is capped at 2.0 seconds and memory consumption is restricted to 256MB per judge pass.</li>
-            <li><strong>Prohibited Payloads:</strong> Submissions containing malicious code, fork bombs, unauthorized socket networking, kernel exploit attempts, filesystem breakouts, or crypto-mining scripts are automatically flagged and terminated.</li>
+            <li><strong>Workload Classification:</strong> Code runs in dedicated Light (interpreted scripts) or Heavy (compiled binaries) execution lanes with strict CPU governance and 256MB memory boundaries.</li>
+            <li><strong>Ephemeral Lifecycles:</strong> Executable artifacts and user submission binaries are destroyed immediately upon test evaluation completion and never persisted to permanent host storage.</li>
+            <li><strong>Prohibited Payloads:</strong> Submissions containing malicious code, fork bombs, unauthorized socket networking, kernel exploit attempts, filesystem breakouts, or crypto-mining scripts are automatically flagged, killed, and penalized.</li>
           </ul>
         </section>
 

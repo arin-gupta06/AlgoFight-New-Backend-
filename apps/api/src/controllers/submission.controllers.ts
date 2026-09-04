@@ -3,7 +3,7 @@ import { enqueueSubmissionJob } from "@algofight/queue";
 import { SubmissionInput, TestRunInput, PracticeEvaluateInput } from "../schema/submission.schema";
 import { SubmissionRepository, ProblemRepository } from "@algofight/database";
 import { SubmissionStatus } from "@algofight/types";
-import { EvaluationService, SandboxExecutor } from "@algofight/application";
+import { EvaluationService, SandboxExecutor, WorkloadClassifier, RuntimePoolManager } from "@algofight/application";
 import { logger } from "@algofight/logger";
 
 export class SubmissionController {
@@ -35,11 +35,35 @@ export class SubmissionController {
             SubmissionStatus.QUEUED,
         );
 
+        // 1. Workload Classification (LIGHT vs HEAVY)
+        const workload = WorkloadClassifier.classify({
+            language: body.language,
+            sourceCode: body.code,
+            timeLimitMs: problem.timeLimit,
+            memoryLimitBytes: problem.memoryLimit,
+        });
+
+        // 2. Intelligent Runtime Routing Strategy
+        const targetRuntimeUrl = await RuntimePoolManager.getInstance().routeSubmission({
+            submissionId: submission.id,
+            language: body.language,
+            sourceCode: body.code,
+            workload,
+            isLiveBattle: !!body.roomId,
+            priority: body.roomId ? "HIGH" : "NORMAL",
+        });
+
         try {
             await enqueueSubmissionJob({
                 submissionId: submission.id,
-                mode: "SUBMIT"
-            } as any);
+                mode: "SUBMIT",
+                workload,
+                targetRuntimeUrl,
+                priority: body.roomId ? "HIGH" : "NORMAL",
+                language: body.language,
+                userId: authenticatedUserId,
+                problemId: body.problemId,
+            });
         } catch (enqueueError: any) {
             logger.error({ error: enqueueError.message, submissionId: submission.id }, "Failed to enqueue submission to BullMQ");
             await this.submissionRepository.updateStatus(

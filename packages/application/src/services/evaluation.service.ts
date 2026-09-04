@@ -18,7 +18,8 @@ export class EvaluationService implements EvaluationServiceContract {
             testCases: payload.testCases,
             timeLimitMs: payload.timeLimitMs || 2000,
             memoryLimitBytes: payload.memoryLimitBytes || 256 * 1024 * 1024,
-            mode
+            mode,
+            targetRuntimeUrl: (payload as any).targetRuntimeUrl,
         };
 
         return await this.pipeline.execute(request, onProgress);

@@ -10,6 +10,7 @@ import {
     uploadBroadcastMedia,
 } from "../../services/api.js";
 import SystemBroadcastCard from "../Common/SystemBroadcastCard.jsx";
+import { generatePdfThumbnail } from "../../utils/pdfThumbnail.js";
 
 const SERVICE_NAMES = {
     apiGateway: "API Gateway",
@@ -57,6 +58,9 @@ export default function ControlHub() {
         contentType: "NONE",
         contentUrl: "",
         contentName: "",
+        thumbnailUrl: "",
+        pageCount: null,
+        contentSize: null,
         actionType: "EXTERNAL_LINK",
         actionLabel: "Share Your Feedback",
         actionTarget: "https://docs.google.com/forms/d/e/1FAIpQLSe-example/viewform",
@@ -204,6 +208,17 @@ export default function ControlHub() {
         reader.onload = async (event) => {
             const base64 = event.target?.result;
             try {
+                // If it's a PDF document, generate page 1 thumbnail and extract page count (WhatsApp style)
+                let pdfMeta = null;
+                const isPdf = file.type.includes("pdf") || file.name.toLowerCase().endsWith(".pdf");
+                if (isPdf) {
+                    try {
+                        pdfMeta = await generatePdfThumbnail(file, 640);
+                    } catch (thumbErr) {
+                        console.warn("PDF thumbnail pre-render note:", thumbErr);
+                    }
+                }
+
                 const res = await uploadBroadcastMedia(adminKey, {
                     name: file.name,
                     type: broadcastForm.contentType,
@@ -216,8 +231,15 @@ export default function ControlHub() {
                         ...prev,
                         contentUrl: res.media.url,
                         contentName: file.name,
+                        thumbnailUrl: pdfMeta?.thumbnailUrl || null,
+                        pageCount: pdfMeta?.pageCount || null,
+                        contentSize: file.size,
                     }));
-                    notify({ type: "success", title: "MEDIA ATTACHED", message: `Attached: ${file.name}` });
+                    notify({
+                        type: "success",
+                        title: "MEDIA ATTACHED",
+                        message: `Attached: ${file.name}${pdfMeta?.pageCount ? ` (${pdfMeta.pageCount} page${pdfMeta.pageCount > 1 ? "s" : ""})` : ""}`,
+                    });
                 }
             } catch (err) {
                 notify({ type: "error", title: "UPLOAD FAILED", message: err.message || "Failed to upload media." });
@@ -251,6 +273,9 @@ export default function ControlHub() {
                 type: broadcastForm.contentType,
                 url: broadcastForm.contentUrl.trim(),
                 name: broadcastForm.contentName || "Attachment",
+                thumbnailUrl: broadcastForm.thumbnailUrl || null,
+                pageCount: broadcastForm.pageCount || null,
+                size: broadcastForm.contentSize || null,
             } : null,
             action: includeMediaOrAction && broadcastForm.actionType !== "NONE" && broadcastForm.actionTarget ? {
                 type: broadcastForm.actionType,
@@ -445,6 +470,112 @@ export default function ControlHub() {
                                                 <span className="stat-value">{String(v)}</span>
                                             </div>
                                         ))}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* 1b. Elastic Execution Fleet & Asymmetric Queues (Zero-Cost Free-Tier) */}
+                    <div className="admin-section" style={{ marginTop: '24px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                            <div>
+                                <h3 className="section-title" style={{ margin: 0 }}>⚡ Elastic Sandbox Fleet & Workload Queue Lanes</h3>
+                                <p style={{ fontSize: '0.82rem', color: '#94a3b8', margin: '4px 0 0' }}>
+                                    Asymmetric BullMQ dispatch (Light Concurrency 4 vs Heavy Concurrency 2) + Programmatic Dynamic Scaling
+                                </p>
+                            </div>
+                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                <span style={{ fontSize: '0.75rem', padding: '4px 10px', borderRadius: '999px', background: 'rgba(56, 189, 248, 0.15)', border: '1px solid rgba(56, 189, 248, 0.3)', color: '#38bdf8', fontWeight: 600 }}>
+                                    {metrics?.runtimePool?.capacity?.current || 2} / {metrics?.runtimePool?.capacity?.max || 4} ACTIVE CONTAINERS
+                                </span>
+                                <span style={{ fontSize: '0.75rem', padding: '4px 10px', borderRadius: '999px', background: 'rgba(168, 85, 247, 0.15)', border: '1px solid rgba(168, 85, 247, 0.3)', color: '#c084fc', fontWeight: 600 }}>
+                                    60s COOLDOWN HYSTERESIS
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* Asymmetric Queue Lanes Cards */}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px', marginBottom: '20px' }}>
+                            {/* Light Lane */}
+                            <div style={{ background: 'linear-gradient(135deg, rgba(56, 189, 248, 0.08), rgba(0, 0, 0, 0.4))', border: '1px solid rgba(56, 189, 248, 0.25)', borderRadius: '14px', padding: '16px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#38bdf8', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                        ⚡ LIGHT LANE
+                                    </span>
+                                    <span style={{ fontSize: '0.7rem', color: '#94a3b8', background: 'rgba(255,255,255,0.05)', padding: '2px 8px', borderRadius: '4px' }}>
+                                        Fast-Track Script Runner
+                                    </span>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+                                    <div>
+                                        <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#38bdf8', fontFamily: 'Space Grotesk, sans-serif' }}>
+                                            {metrics?.runtimePool?.queues?.lightLane?.depth ?? 0}
+                                        </div>
+                                        <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Jobs in Queue</div>
+                                    </div>
+                                    <div style={{ textAlign: 'right', fontSize: '0.75rem', color: '#cbd5e1' }}>
+                                        <div>Concurrency: <strong style={{ color: '#38bdf8' }}>4 Workers</strong></div>
+                                        <div style={{ color: '#94a3b8' }}>Python / JS / TS (&lt;8KB)</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Heavy Lane */}
+                            <div style={{ background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.08), rgba(0, 0, 0, 0.4))', border: '1px solid rgba(245, 158, 11, 0.25)', borderRadius: '14px', padding: '16px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                        🛡️ HEAVY LANE
+                                    </span>
+                                    <span style={{ fontSize: '0.7rem', color: '#94a3b8', background: 'rgba(255,255,255,0.05)', padding: '2px 8px', borderRadius: '4px' }}>
+                                        Isolated Compiler Sandbox
+                                    </span>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+                                    <div>
+                                        <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#f59e0b', fontFamily: 'Space Grotesk, sans-serif' }}>
+                                            {metrics?.runtimePool?.queues?.heavyLane?.depth ?? 0}
+                                        </div>
+                                        <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Jobs in Queue</div>
+                                    </div>
+                                    <div style={{ textAlign: 'right', fontSize: '0.75rem', color: '#cbd5e1' }}>
+                                        <div>Concurrency: <strong style={{ color: '#f59e0b' }}>2 Workers</strong></div>
+                                        <div style={{ color: '#94a3b8' }}>C++ / Java / Heavy (&gt;8KB)</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Piston Active Fleet Grid */}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '14px' }}>
+                            {(metrics?.runtimePool?.activeInstances?.length ? metrics.runtimePool.activeInstances : [
+                                { id: "piston-1", port: 2001, url: "http://localhost:2001", state: "READY", type: "STATIC_PREWARMED", activeJobs: 0, healthy: true },
+                                { id: "piston-2", port: 2002, url: "http://localhost:2002", state: "READY", type: "STATIC_PREWARMED", activeJobs: 0, healthy: true }
+                            ]).map((inst, i) => (
+                                <div key={inst.id || i} style={{ background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '12px', padding: '14px', position: 'relative' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                        <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#f8fafc' }}>
+                                            📦 {inst.id || `piston-${i + 1}`}
+                                        </span>
+                                        <span style={{ fontSize: '0.68rem', padding: '2px 6px', borderRadius: '4px', background: inst.healthy ? 'rgba(74, 222, 128, 0.15)' : 'rgba(239, 68, 68, 0.15)', color: inst.healthy ? '#4ade80' : '#ef4444', border: `1px solid ${inst.healthy ? 'rgba(74, 222, 128, 0.3)' : 'rgba(239, 68, 68, 0.3)'}` }}>
+                                            {inst.state || (inst.healthy ? "ONLINE" : "OFFLINE")}
+                                        </span>
+                                    </div>
+                                    <div style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                                        <span>Type:</span>
+                                        <strong style={{ color: inst.type === "DYNAMIC_EPHEMERAL" ? '#f59e0b' : '#38bdf8' }}>
+                                            {inst.type === "DYNAMIC_EPHEMERAL" ? "⚡ Dynamic Scaled" : "🔒 Prewarmed"}
+                                        </strong>
+                                    </div>
+                                    <div style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                                        <span>Endpoint:</span>
+                                        <code style={{ color: '#cbd5e1' }}>:{inst.port || (2001 + i)}</code>
+                                    </div>
+                                    <div style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'flex', justifyContent: 'space-between' }}>
+                                        <span>Active Load:</span>
+                                        <strong style={{ color: (inst.activeJobs || 0) > 2 ? '#f59e0b' : '#4ade80' }}>
+                                            {inst.activeJobs || 0} job(s)
+                                        </strong>
                                     </div>
                                 </div>
                             ))}
@@ -760,7 +891,7 @@ export default function ControlHub() {
                                                                     type="button"
                                                                     className="media-clear-btn"
                                                                     title="Clear attachment"
-                                                                    onClick={() => setBroadcastForm((prev) => ({ ...prev, contentUrl: "", contentName: "" }))}
+                                                                    onClick={() => setBroadcastForm((prev) => ({ ...prev, contentUrl: "", contentName: "", thumbnailUrl: "", pageCount: null, contentSize: null }))}
                                                                 >
                                                                     ✕
                                                                 </button>
@@ -840,6 +971,9 @@ export default function ControlHub() {
                                                     type: broadcastForm.contentType,
                                                     url: broadcastForm.contentUrl,
                                                     name: broadcastForm.contentName || "Attachment",
+                                                    thumbnailUrl: broadcastForm.thumbnailUrl || null,
+                                                    pageCount: broadcastForm.pageCount || null,
+                                                    size: broadcastForm.contentSize || null,
                                                 } : null,
                                                 action: includeMediaOrAction && broadcastForm.actionType !== "NONE" && broadcastForm.actionTarget ? {
                                                     type: broadcastForm.actionType,

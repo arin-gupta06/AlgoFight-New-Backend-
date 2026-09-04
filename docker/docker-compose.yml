@@ -38,13 +38,28 @@ services:
     networks:
       - algofight-network
 
-  piston:
+  piston-1:
     image: ghcr.io/engineer-man/piston
-    container_name: algofight-piston
+    container_name: algofight-piston-1
     restart: unless-stopped
     privileged: true
     ports:
-      - "2000:2000"
+      - "2001:2000"
+      - "2000:2000" # Legacy compatibility fallback
+    volumes:
+      - piston_packages:/piston/packages
+    tmpfs:
+      - /tmp
+    networks:
+      - algofight-network
+
+  piston-2:
+    image: ghcr.io/engineer-man/piston
+    container_name: algofight-piston-2
+    restart: unless-stopped
+    privileged: true
+    ports:
+      - "2002:2000"
     volumes:
       - piston_packages:/piston/packages
     tmpfs:

@@ -24,9 +24,13 @@ export class ExecutionService {
         private readonly battleService?: BattleService,
     ) { }
 
-    async processSubmission(submissionId: string, mode: "SAMPLE" | "SUBMIT" = "SUBMIT"): Promise<void> {
+    async processSubmission(
+        submissionId: string,
+        mode: "SAMPLE" | "SUBMIT" = "SUBMIT",
+        targetRuntimeUrl?: string,
+    ): Promise<void> {
         try {
-            logger.info({ submissionId, mode }, "Starting submission processing");
+            logger.info({ submissionId, mode, targetRuntimeUrl }, "Starting submission processing");
 
             const submission = await this.submissionRepository.getSubmissionById(submissionId);
             if (!submission) {
@@ -69,7 +73,8 @@ export class ExecutionService {
                 })),
                 timeLimitMs: problem.timeLimit,
                 memoryLimitBytes: problem.memoryLimit,
-            }, onProgress, mode);
+                targetRuntimeUrl,
+            } as any, onProgress, mode);
 
             const passedCount = evalResult.testCases?.filter((tc) => tc.passed).length || 0;
             const failedCount = evalResult.testCases?.filter((tc) => !tc.passed).length || 0;

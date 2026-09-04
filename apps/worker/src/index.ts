@@ -1,9 +1,9 @@
 import "@algofight/config";
-import { submissionWorker, redisConnection } from "@algofight/queue";
+import { submissionWorker, submissionLightWorker, submissionHeavyWorker, redisConnection } from "@algofight/queue";
 import { prisma } from "@algofight/database";
 import { logger } from "@algofight/logger";
 
-logger.info("Worker service started with graceful shutdown handlers");
+logger.info("Worker service started with Light and Heavy asymmetric worker pools and graceful shutdown handlers");
 
 let isShuttingDown = false;
 
@@ -13,13 +13,21 @@ const gracefulShutdown = async (signal: string) => {
     logger.info({ signal }, "Worker received termination signal, starting graceful drain...");
 
     try {
-        // 1. Pause worker to stop accepting new submissions
-        await submissionWorker.pause();
-        logger.info("Submission worker paused");
+        // 1. Pause workers to stop accepting new submissions
+        await Promise.all([
+            submissionWorker.pause(),
+            submissionLightWorker.pause(),
+            submissionHeavyWorker.pause(),
+        ]);
+        logger.info("All submission workers paused");
 
         // 2. Wait for active jobs in flight to complete cleanly
-        await submissionWorker.close();
-        logger.info("Active submission jobs drained and worker closed");
+        await Promise.all([
+            submissionWorker.close(),
+            submissionLightWorker.close(),
+            submissionHeavyWorker.close(),
+        ]);
+        logger.info("Active submission jobs drained and all workers closed cleanly");
 
         // 3. Disconnect Redis connection
         await redisConnection.quit();

@@ -1,40 +1,48 @@
 import { submissionQueue } from "../queues/submission.queue";
-import {JOB_NAMES} from "../constants/queue.constants"
+import { submissionLightQueue, submissionHeavyQueue } from "../queues/submission-workload.queue";
+import { JOB_NAMES } from "../constants/queue.constants";
 import { SubmissionJobPayload } from "../types/submission-job.type";
 import { logger } from "@algofight/logger";
 
 export const enqueueSubmissionJob = async (
   payload: SubmissionJobPayload,
 ) => {
-
   logger.info(
       {
-          submissionId:
-              payload.submissionId,
+          submissionId: payload.submissionId,
+          workload: payload.workload || "DEFAULT",
+          targetRuntimeUrl: payload.targetRuntimeUrl,
       },
       "Enqueueing submission job",
   );
 
   try {
-    const job = 
-      await submissionQueue.add(
-        JOB_NAMES.SUBMISSION,
+    let targetQueue = submissionQueue;
+    let jobName: string = JOB_NAMES.SUBMISSION;
 
+    if (payload.workload === "LIGHT") {
+        targetQueue = submissionLightQueue;
+        jobName = JOB_NAMES.SUBMISSION_LIGHT;
+    } else if (payload.workload === "HEAVY") {
+        targetQueue = submissionHeavyQueue;
+        jobName = JOB_NAMES.SUBMISSION_HEAVY;
+    }
+
+    const job = await targetQueue.add(
+        jobName,
         payload,
-
         {
-          priority: 1,
+          priority: payload.priority === "HIGH" ? 1 : 2,
         },
-      );
+    );
 
     logger.info(
       {
-        submissionId:
-          payload.submissionId,
-        jobId: 
-          job.id,
+        submissionId: payload.submissionId,
+        jobId: job.id,
+        queue: targetQueue.name,
       },
-      "Submission job enqueued",
+      "Submission job enqueued successfully into target queue lane",
     );
 
     return job;

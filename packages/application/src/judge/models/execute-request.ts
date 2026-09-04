@@ -10,6 +10,7 @@ export interface ExecuteRequest {
     timeLimitMs: number;
     memoryLimitBytes: number;
     mode: ExecutionMode;
+    targetRuntimeUrl?: string;
 }
 
 export interface PipelineProgressEvent {

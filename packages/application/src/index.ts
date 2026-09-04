@@ -13,3 +13,11 @@ export * from "./battle/utils/room-code.generator";
 export * from "./battle/services/matchmaking.service";
 export * from "./battle/services/battle.service";
 
+// Runtime Pool & Workload Architecture
+export * from "./runtime-pool/runtime.types";
+export * from "./runtime-pool/runtime-routing.strategy";
+export * from "./runtime-pool/piston-runtime.factory";
+export * from "./runtime-pool/runtime-pool.observer";
+export * from "./runtime-pool/runtime-pool.manager";
+export * from "./workload/workload.classifier";
+

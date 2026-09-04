@@ -468,7 +468,9 @@ export default function PracticeWorkspace() {
 
             <div className="livebattle-output-box" style={{ marginTop: "12px" }}>
               {running ? (
-                <div className="livebattle-loader livebattle-inline-loader">Evaluating...</div>
+                <div className="livebattle-loader livebattle-inline-loader">
+                  {runMode === "test" ? "Testing against sample cases..." : "Evaluating against balanced test suite..."}
+                </div>
               ) : (
                 <pre>{output || "Output will appear here."}</pre>
               )}

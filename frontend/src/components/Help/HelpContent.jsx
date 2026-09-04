@@ -28,7 +28,7 @@ const faqs = [
     category: 'Code Sandbox',
     icon: faServer,
     question: 'How are code submissions executed and graded?',
-    answer: 'Every test run or submission is dispatched to our hardened, containerized judge runtime (Piston engine). Your code is executed inside hardware-isolated Linux cgroups with strict time limits (2.0s standard) and memory limits (256MB). Standard input/output is verified deterministically against secret judge suites.'
+    answer: 'Every submission is dynamically classified into Light (Python, JS) or Heavy (C++, Java compilation) workload queues. Submissions are processed by asymmetric BullMQ workers across an elastic multi-container Piston sandbox pool with strict CPU and memory limits (256MB), ensuring sub-second grading and zero queue starvation.'
   },
   {
     id: 'elo-ratings',
@@ -62,8 +62,15 @@ const faqs = [
     id: 'custom-rooms',
     category: '1v1 Battles',
     icon: faGamepad,
-    question: 'Can I host institutional competitions or university classroom tournaments?',
-    answer: 'Yes! Our Control Hub and Room Lobby allow mentors and batch leads to spin up custom room codes with predefined difficulty filters, time limits, and isolated batch leaderboards.'
+    question: 'Can I host institutional competitions or classroom group battles?',
+    answer: 'Yes! Custom Room Lobbies allow host players, mentors, and batch leads to spin up private battle rooms for up to 100 players with configurable question counts (1 to 5), dynamic MIX difficulty, time limits, and live in-room scoreboard synchronization.'
+  },
+  {
+    id: 'broadcast-documents',
+    category: 'Announcements',
+    icon: faShieldHalved,
+    question: 'How do System Broadcasts and document previews work?',
+    answer: 'System announcements and tournament bulletins support rich media attachments. PDF documents, problem set briefs, and guidelines display with an instant WhatsApp-style first-page sheet preview, page counters, and secure one-click downloads.'
   }
 ];
 
@@ -72,7 +79,7 @@ export default function HelpContent({ isModal = false, onSelectTab }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [openFaqId, setOpenFaqId] = useState('battle-matchmaking');
 
-  const categories = ['All', '1v1 Battles', 'Practice', 'Code Sandbox', 'Elo & Ratings', 'Security', 'Rewards'];
+  const categories = ['All', '1v1 Battles', 'Practice', 'Code Sandbox', 'Elo & Ratings', 'Security', 'Rewards', 'Announcements'];
 
   const filteredFaqs = useMemo(() => {
     return faqs.filter((faq) => {

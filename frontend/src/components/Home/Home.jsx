@@ -28,32 +28,32 @@ import logoIcon from '../../assets/algofight-logo.png';
 const featureCards = [
     {
         title: 'Real-Time 1v1 Duels',
-        copy: 'Head-to-head algorithmic combat with synchronized room lifecycles and dynamic Elo ratings.',
+        copy: 'Head-to-head algorithmic combat with synchronized room lifecycles, live opponent progress, and dynamic Elo ratings.',
         icon: faBolt,
     },
     {
-        title: 'Institutional Arenas',
-        copy: 'Dedicated tournament sub-batches for universities and student labs with custom leaderboards.',
+        title: 'Multiplayer Room Lobbies',
+        copy: 'Host private arenas for up to 100 players with configurable problem sets, dynamic difficulty, and live scoreboards.',
         icon: faBuildingColumns,
     },
     {
-        title: 'Cryptographic Edge Gateway',
-        copy: 'HMAC-SHA256 authenticated admission boundary preventing abusive traffic and bot manipulation.',
+        title: 'Anti-Cheat & Fair Play',
+        copy: 'Strict competitive integrity with automated plagiarism detection, sealed judge test suites, and fair-play rating enforcement.',
         icon: faLock,
     },
     {
-        title: 'Isolated Execution Sandbox',
-        copy: 'Fast, secure multi-language judging with strict CPU, memory, and timeout governance.',
+        title: 'Lightning-Fast Sandboxes',
+        copy: 'Hardware-isolated execution environments supporting C++, Python, Java, and JavaScript with sub-second test feedback.',
         icon: faMicrochip,
     },
     {
-        title: 'Combatant ID & Badges',
-        copy: 'High-entropy alphanumeric platform codes (e.g. AF-USR-XXXXXXX) for verified competition.',
+        title: 'Verified Combatant Badges',
+        copy: 'Showcase your achievements, custom title banners, verified match credentials, and seasonal victory emblems.',
         icon: faShieldHalved,
     },
     {
-        title: 'Global Rank & Leaderboard',
-        copy: 'Climb through competitive tiers from Rookie to Supreme with live match analytics.',
+        title: 'Global Ranks & Leaderboards',
+        copy: 'Climb through official competitive tiers from Rookie to Supreme with live match analytics and Hall of Fame standings.',
         icon: faTrophy,
     },
 ];

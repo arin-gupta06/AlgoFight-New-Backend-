@@ -15,6 +15,18 @@ import './Blog.css';
 
 const blogArticles = [
   {
+    id: 'elastic-multi-runtime',
+    title: 'Elastic Multi-Runtime Architecture: Workload Classification, Autoscaling Sandboxes & Linux Telemetry',
+    tag: 'Architecture',
+    author: 'Arin Gupta & Vivek Chaurasiya',
+    role: 'Full Stack & Sandbox Leads',
+    date: 'September 2026',
+    readTime: '5 min read',
+    icon: faTerminal,
+    excerpt: 'How we segregated submissions into Light and Heavy workload queues with asymmetric worker concurrency, automated Docker Piston scaling, and a 1Hz Linux telemetry data spine.',
+    content: `Handling concurrent submission spikes without blowing past free-tier server limits requires intelligent orchestration. In this deep dive, we detail our multi-runtime pipeline: heuristic workload classification (Python/JS scripts vs C++/Java compilation), asymmetric concurrency workers (4x Light vs 2x Heavy), programmatic container scale-out with 60s cooldown hysteresis, and a dedicated FastAPI telemetry stream providing sub-second fleet visibility.`
+  },
+  {
     id: 'sandbox-v2',
     title: 'Deterministic Sandbox V2: Sub-6ms Code Execution & Hardware Isolation',
     tag: 'Architecture',

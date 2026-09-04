@@ -95,55 +95,90 @@ export function getRankTier(ratingOrKey) {
 }
 
 /**
- * Rookie Emblem SVG: Iron Cyber Shield
+ * Rookie Emblem SVG: Titanium Cyber Aegis with Cyan Power Core
  */
 const RookieSvg = ({ size }) => (
   <svg width={size} height={size} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
     <defs>
-      <linearGradient id="rookie-base" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#475569" />
-        <stop offset="50%" stopColor="#64748b" />
-        <stop offset="100%" stopColor="#334155" />
+      <linearGradient id="rookie-steel-bevel" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#94a3b8" />
+        <stop offset="30%" stopColor="#64748b" />
+        <stop offset="70%" stopColor="#334155" />
+        <stop offset="100%" stopColor="#1e293b" />
       </linearGradient>
-      <linearGradient id="rookie-rim" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#cbd5e1" />
-        <stop offset="100%" stopColor="#64748b" />
+      <linearGradient id="rookie-cyan-core" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#38bdf8" />
+        <stop offset="50%" stopColor="#00e5ff" />
+        <stop offset="100%" stopColor="#0284c7" />
       </linearGradient>
+      <filter id="rookie-glow" x="-20%" y="-20%" width="140%" height="140%">
+        <feGaussianBlur stdDeviation="2.5" result="blur" />
+        <feComposite in="SourceGraphic" in2="blur" operator="over" />
+      </filter>
     </defs>
-    {/* Outer Shield */}
-    <path d="M50 8 L84 24 L80 62 L50 92 L20 62 L16 24 Z" fill="url(#rookie-base)" stroke="url(#rookie-rim)" strokeWidth="3" />
-    {/* Inner Plate */}
-    <path d="M50 18 L74 30 L70 58 L50 80 L30 58 L26 30 Z" fill="#1e293b" stroke="#94a3b8" strokeWidth="1.5" />
-    {/* Cyber Iron Core */}
-    <polygon points="50,30 65,50 50,70 35,50" fill="url(#rookie-rim)" opacity="0.9" />
-    <circle cx="50" cy="50" r="5" fill="#38bdf8" />
+    {/* Outer Armor Mantle */}
+    <path d="M50 4 L86 18 L82 56 L50 96 L18 56 L14 18 Z" fill="#0f172a" stroke="url(#rookie-steel-bevel)" strokeWidth="3" />
+    {/* Upper Shoulder Chamfers */}
+    <path d="M14 18 L34 26 L50 16 L66 26 L86 18" stroke="#cbd5e1" strokeWidth="1.5" strokeLinecap="round" opacity="0.6" />
+    {/* Recessed Plate */}
+    <path d="M50 14 L76 25 L72 52 L50 84 L28 52 L24 25 Z" fill="url(#rookie-steel-bevel)" />
+    <path d="M50 20 L70 30 L66 50 L50 76 L34 50 L30 30 Z" fill="#0b0f19" stroke="#475569" strokeWidth="1.5" />
+    {/* Cyan Power Channels */}
+    <path d="M50 24 L50 40" stroke="#00e5ff" strokeWidth="2.5" strokeLinecap="round" opacity="0.9" />
+    <path d="M38 36 L46 44" stroke="#00e5ff" strokeWidth="1.8" strokeLinecap="round" opacity="0.8" />
+    <path d="M62 36 L54 44" stroke="#00e5ff" strokeWidth="1.8" strokeLinecap="round" opacity="0.8" />
+    {/* Central Power Core Crystal */}
+    <polygon points="50,38 65,52 50,68 35,52" fill="url(#rookie-cyan-core)" filter="url(#rookie-glow)" />
+    <polygon points="50,44 58,52 50,60 42,52" fill="#ffffff" opacity="0.9" />
+    {/* Bottom Vented Spine */}
+    <line x1="50" y1="72" x2="50" y2="82" stroke="#38bdf8" strokeWidth="2" strokeLinecap="round" opacity="0.7" />
+    {/* Armor Rivets */}
+    <circle cx="26" cy="28" r="2" fill="#cbd5e1" />
+    <circle cx="74" cy="28" r="2" fill="#cbd5e1" />
+    <circle cx="50" cy="90" r="2" fill="#00e5ff" />
   </svg>
 );
 
 /**
- * Expert Emblem SVG: Cyan Cyber Hexagon with Energy Chevrons
+ * Expert Emblem SVG: Cyan Cyber Hex-Valkyrie Blade
  */
 const ExpertSvg = ({ size }) => (
   <svg width={size} height={size} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
     <defs>
-      <linearGradient id="expert-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#0891b2" />
-        <stop offset="50%" stopColor="#06b6d4" />
-        <stop offset="100%" stopColor="#22d3ee" />
+      <linearGradient id="expert-neon" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#22d3ee" />
+        <stop offset="45%" stopColor="#00e5ff" />
+        <stop offset="80%" stopColor="#0891b2" />
+        <stop offset="100%" stopColor="#0369a1" />
       </linearGradient>
-      <filter id="expert-glow" x="-20%" y="-20%" width="140%" height="140%">
-        <feGaussianBlur stdDeviation="3" result="blur" />
+      <linearGradient id="expert-blade" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stopColor="#ffffff" />
+        <stop offset="50%" stopColor="#38bdf8" />
+        <stop offset="100%" stopColor="#0284c7" />
+      </linearGradient>
+      <filter id="expert-glow-fx" x="-25%" y="-25%" width="150%" height="150%">
+        <feGaussianBlur stdDeviation="3.2" result="blur" />
         <feComposite in="SourceGraphic" in2="blur" operator="over" />
       </filter>
     </defs>
-    {/* Hexagon Outer Frame */}
-    <polygon points="50,6 88,27 88,73 50,94 12,73 12,27" fill="#0f172a" stroke="url(#expert-grad)" strokeWidth="3.5" filter="url(#expert-glow)" />
-    {/* Circuit Lines */}
-    <path d="M50 15 L78 31 L78 69 L50 85 L22 69 L22 31 Z" fill="#082f49" stroke="#38bdf8" strokeWidth="1.5" opacity="0.8" />
-    {/* Dual Chevrons */}
-    <path d="M35 44 L50 32 L65 44" stroke="url(#expert-grad)" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-    <path d="M35 58 L50 46 L65 58" stroke="url(#expert-grad)" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-    <polygon points="50,62 58,72 42,72" fill="#22d3ee" />
+    {/* Outer Swept Hex-Wing Frame */}
+    <path d="M50 4 L88 20 L94 48 L76 74 L50 96 L24 74 L6 48 L12 20 Z" fill="#041226" stroke="url(#expert-neon)" strokeWidth="3" filter="url(#expert-glow-fx)" />
+    {/* Recessed Carbon Plate */}
+    <path d="M50 14 L78 28 L82 48 L68 68 L50 84 L32 68 L18 48 L22 28 Z" fill="#08233d" stroke="#0284c7" strokeWidth="1.5" />
+    {/* Lateral Aerodynamic Fins */}
+    <polygon points="12,24 24,34 16,46" fill="url(#expert-neon)" opacity="0.8" />
+    <polygon points="88,24 76,34 84,46" fill="url(#expert-neon)" opacity="0.8" />
+    {/* Dual Velocity Energy Chevrons */}
+    <path d="M34 38 L50 24 L66 38" stroke="url(#expert-blade)" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M34 52 L50 38 L66 52" stroke="url(#expert-neon)" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" />
+    {/* Center Plasma Prism */}
+    <polygon points="50,50 62,64 50,78 38,64" fill="url(#expert-neon)" />
+    <polygon points="50,56 56,64 50,72 44,64" fill="#ffffff" />
+    {/* Top and Bottom Power Nodes */}
+    <circle cx="50" cy="10" r="3" fill="#ffffff" />
+    <circle cx="50" cy="88" r="2.5" fill="#00e5ff" />
+    <circle cx="28" cy="70" r="2" fill="#38bdf8" />
+    <circle cx="72" cy="70" r="2" fill="#38bdf8" />
   </svg>
 );
 
@@ -153,28 +188,43 @@ const ExpertSvg = ({ size }) => (
 const MasterSvg = ({ size }) => (
   <svg width={size} height={size} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
     <defs>
-      <linearGradient id="master-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#7e22ce" />
-        <stop offset="50%" stopColor="#a855f7" />
-        <stop offset="100%" stopColor="#c084fc" />
+      <linearGradient id="master-regal" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#f3e8ff" />
+        <stop offset="25%" stopColor="#c084fc" />
+        <stop offset="65%" stopColor="#a855f7" />
+        <stop offset="100%" stopColor="#6b21a8" />
       </linearGradient>
-      <filter id="master-glow" x="-20%" y="-20%" width="140%" height="140%">
-        <feGaussianBlur stdDeviation="3.5" result="blur" />
+      <linearGradient id="master-core-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stopColor="#ffffff" />
+        <stop offset="50%" stopColor="#d8b4fe" />
+        <stop offset="100%" stopColor="#7e22ce" />
+      </linearGradient>
+      <filter id="master-glow-fx" x="-25%" y="-25%" width="150%" height="150%">
+        <feGaussianBlur stdDeviation="3.6" result="blur" />
         <feComposite in="SourceGraphic" in2="blur" operator="over" />
       </filter>
     </defs>
-    {/* Outer Diamond Crest */}
-    <polygon points="50,4 92,50 50,96 8,50" fill="#2e1065" stroke="url(#master-grad)" strokeWidth="3.5" filter="url(#master-glow)" />
-    {/* Inner Angular Plate */}
-    <polygon points="50,16 80,50 50,84 20,50" fill="#1e1b4b" stroke="#c084fc" strokeWidth="2" />
-    {/* Crystal Centerpiece */}
-    <polygon points="50,28 68,50 50,72 32,50" fill="url(#master-grad)" opacity="0.9" />
-    <polygon points="50,38 60,50 50,62 40,50" fill="#f3e8ff" />
-    {/* Side Accents */}
-    <circle cx="50" cy="16" r="3" fill="#e9d5ff" />
-    <circle cx="80" cy="50" r="3" fill="#e9d5ff" />
-    <circle cx="50" cy="84" r="3" fill="#e9d5ff" />
-    <circle cx="20" cy="50" r="3" fill="#e9d5ff" />
+    {/* Floating Crystal Mantle Spikes */}
+    <polygon points="4,48 20,24 24,56" fill="url(#master-regal)" opacity="0.85" />
+    <polygon points="96,48 80,24 76,56" fill="url(#master-regal)" opacity="0.85" />
+    {/* Outer Imperial Diamond */}
+    <polygon points="50,2 92,48 50,96 8,48" fill="#1e0a38" stroke="url(#master-regal)" strokeWidth="3.5" filter="url(#master-glow-fx)" />
+    {/* Recessed Amethyst Plate */}
+    <polygon points="50,14 80,48 50,82 20,48" fill="#2e1065" stroke="#c084fc" strokeWidth="1.8" />
+    {/* Faceted Crystal Angles */}
+    <polygon points="50,14 50,48 20,48" fill="#3b0764" opacity="0.6" />
+    <polygon points="50,14 80,48 50,48" fill="#581c87" opacity="0.6" />
+    <polygon points="50,82 50,48 20,48" fill="#581c87" opacity="0.6" />
+    <polygon points="50,82 80,48 50,48" fill="#3b0764" opacity="0.6" />
+    {/* Brilliant Faceted Jewel Heart */}
+    <polygon points="50,26 68,48 50,70 32,48" fill="url(#master-core-grad)" stroke="#f3e8ff" strokeWidth="1.2" />
+    {/* Arcane 8-Point Starlight Center */}
+    <polygon points="50,34 53,44 64,48 53,52 50,62 47,52 36,48 47,44" fill="#ffffff" />
+    {/* Cardinal Orbit Spheres */}
+    <circle cx="50" cy="12" r="3" fill="#ffffff" />
+    <circle cx="82" cy="48" r="3" fill="#ffffff" />
+    <circle cx="50" cy="84" r="3" fill="#ffffff" />
+    <circle cx="18" cy="48" r="3" fill="#ffffff" />
   </svg>
 );
 
@@ -184,24 +234,37 @@ const MasterSvg = ({ size }) => (
 const GrandmasterSvg = ({ size }) => (
   <svg width={size} height={size} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
     <defs>
-      <linearGradient id="gm-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#991b1b" />
-        <stop offset="50%" stopColor="#ef4444" />
-        <stop offset="100%" stopColor="#fca5a5" />
+      <linearGradient id="gm-crimson" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#fca5a5" />
+        <stop offset="30%" stopColor="#ef4444" />
+        <stop offset="70%" stopColor="#dc2626" />
+        <stop offset="100%" stopColor="#7f1d1d" />
       </linearGradient>
-      <filter id="gm-glow" x="-25%" y="-25%" width="150%" height="150%">
-        <feGaussianBlur stdDeviation="4" result="blur" />
+      <linearGradient id="gm-gold-trim" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%" stopColor="#fbbf24" />
+        <stop offset="50%" stopColor="#f59e0b" />
+        <stop offset="100%" stopColor="#b45309" />
+      </linearGradient>
+      <filter id="gm-glow-fx" x="-28%" y="-28%" width="156%" height="156%">
+        <feGaussianBlur stdDeviation="4.2" result="blur" />
         <feComposite in="SourceGraphic" in2="blur" operator="over" />
       </filter>
     </defs>
-    {/* Star Points Outer */}
-    <path d="M50 4 L61 32 L91 35 L68 54 L75 84 L50 68 L25 84 L32 54 L9 35 L39 32 Z" fill="#450a0a" stroke="url(#gm-grad)" strokeWidth="3" filter="url(#gm-glow)" />
-    {/* Inner Octagonal Shield */}
-    <polygon points="50,18 72,28 82,50 72,72 50,82 28,72 18,50 28,28" fill="#18181b" stroke="#f87171" strokeWidth="2" />
-    {/* Blazing Center Ruby */}
-    <polygon points="50,28 65,42 65,58 50,72 35,58 35,42" fill="url(#gm-grad)" />
-    <polygon points="50,38 58,50 50,62 42,50" fill="#fee2e2" />
-    <circle cx="50" cy="50" r="4" fill="#ffffff" />
+    {/* Razor-Edged Battle Star Points */}
+    <path d="M50 2 L62 22 L88 10 L78 36 L98 50 L74 64 L82 92 L50 76 L18 92 L26 64 L2 50 L22 36 L12 10 L38 22 Z" fill="#2a0505" stroke="url(#gm-crimson)" strokeWidth="3" filter="url(#gm-glow-fx)" />
+    {/* Gold Edge Highlights on Star */}
+    <path d="M50 4 L62 22 M88 12 L78 36 M98 50 L74 64 M50 4 L38 22 M12 12 L22 36 M2 50 L26 64" stroke="url(#gm-gold-trim)" strokeWidth="1.5" strokeLinecap="round" />
+    {/* Inner Armored Fortress Shield */}
+    <polygon points="50,18 74,32 72,66 50,82 28,66 26,32" fill="#450a0a" stroke="#f87171" strokeWidth="2" />
+    {/* Faceted Ruby Mantle */}
+    <polygon points="50,28 66,44 66,58 50,72 34,58 34,44" fill="url(#gm-crimson)" stroke="#fecaca" strokeWidth="1" />
+    {/* Molten Solar Heart */}
+    <polygon points="50,36 58,48 50,60 42,48" fill="#ffffff" />
+    <circle cx="50" cy="48" r="4.5" fill="#fef08a" />
+    <circle cx="50" cy="48" r="2.5" fill="#ffffff" />
+    {/* Cardinal Star Beams */}
+    <line x1="50" y1="6" x2="50" y2="14" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" />
+    <line x1="50" y1="84" x2="50" y2="90" stroke="#f87171" strokeWidth="2" strokeLinecap="round" />
   </svg>
 );
 
@@ -211,28 +274,44 @@ const GrandmasterSvg = ({ size }) => (
 const LegendSvg = ({ size }) => (
   <svg width={size} height={size} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
     <defs>
-      <linearGradient id="legend-gold" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#b45309" />
-        <stop offset="35%" stopColor="#f59e0b" />
-        <stop offset="70%" stopColor="#fde047" />
-        <stop offset="100%" stopColor="#fffbeb" />
+      <linearGradient id="legend-24k-gold" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#fffbeb" />
+        <stop offset="25%" stopColor="#fde047" />
+        <stop offset="55%" stopColor="#f59e0b" />
+        <stop offset="85%" stopColor="#d97706" />
+        <stop offset="100%" stopColor="#78350f" />
       </linearGradient>
-      <filter id="legend-glow" x="-25%" y="-25%" width="150%" height="150%">
+      <linearGradient id="legend-shine" x1="0%" y1="100%" x2="100%" y2="0%">
+        <stop offset="0%" stopColor="#b45309" />
+        <stop offset="50%" stopColor="#fef08a" />
+        <stop offset="100%" stopColor="#ffffff" />
+      </linearGradient>
+      <filter id="legend-glow-fx" x="-28%" y="-28%" width="156%" height="156%">
         <feGaussianBlur stdDeviation="4.5" result="blur" />
         <feComposite in="SourceGraphic" in2="blur" operator="over" />
       </filter>
     </defs>
-    {/* Soaring Wing Flairs */}
-    <path d="M10 32 C26 22 40 32 50 14 C60 32 74 22 90 32 C78 52 74 72 50 94 C26 72 22 52 10 32 Z" fill="#451a03" stroke="url(#legend-gold)" strokeWidth="3.5" filter="url(#legend-glow)" />
-    {/* Inner Crowned Core */}
-    <path d="M24 38 C34 30 42 36 50 24 C58 36 66 30 76 38 C68 54 64 68 50 82 C36 68 32 54 24 38 Z" fill="#1c1917" stroke="#fbbf24" strokeWidth="2" />
-    {/* Apex Solar Diamond */}
-    <polygon points="50,32 64,50 50,68 36,50" fill="url(#legend-gold)" />
-    <polygon points="50,40 57,50 50,60 43,50" fill="#ffffff" />
-    {/* Sunburst Rays */}
-    <line x1="50" y1="8" x2="50" y2="18" stroke="#fde047" strokeWidth="3" strokeLinecap="round" />
-    <line x1="28" y1="18" x2="35" y2="25" stroke="#fde047" strokeWidth="2.5" strokeLinecap="round" />
-    <line x1="72" y1="18" x2="65" y2="25" stroke="#fde047" strokeWidth="2.5" strokeLinecap="round" />
+    {/* Sweeping Tiered Phoenix Wings */}
+    <path d="M10 30 C24 16 38 28 50 12 C62 28 76 16 90 30 C78 52 74 72 50 96 C26 72 22 52 10 30 Z" fill="#2d1502" stroke="url(#legend-24k-gold)" strokeWidth="3.5" filter="url(#legend-glow-fx)" />
+    {/* Secondary Wing Feather Layer */}
+    <path d="M18 36 C30 26 40 34 50 20 C60 34 70 26 82 36 C72 54 68 70 50 86 C32 70 28 54 18 36 Z" fill="#451a03" stroke="url(#legend-shine)" strokeWidth="2" />
+    {/* Imperial Crown Apex */}
+    <polygon points="50,4 56,16 50,14 44,16" fill="url(#legend-shine)" />
+    <polygon points="34,14 42,22 36,22" fill="url(#legend-24k-gold)" />
+    <polygon points="66,14 58,22 64,22" fill="url(#legend-24k-gold)" />
+    {/* Royal Gold Chest Shield */}
+    <polygon points="50,28 72,44 64,72 50,82 36,72 28,44" fill="#1c1917" stroke="url(#legend-24k-gold)" strokeWidth="2" />
+    {/* Brilliant Sunburst Diamond */}
+    <polygon points="50,34 65,50 50,66 35,50" fill="url(#legend-24k-gold)" stroke="#ffffff" strokeWidth="1" />
+    <polygon points="50,40 58,50 50,60 42,50" fill="#ffffff" />
+    {/* Radiating Sun Beams */}
+    <line x1="50" y1="2" x2="50" y2="10" stroke="#ffffff" strokeWidth="2.5" strokeLinecap="round" />
+    <line x1="26" y1="12" x2="32" y2="18" stroke="#fde047" strokeWidth="2" strokeLinecap="round" />
+    <line x1="74" y1="12" x2="68" y2="18" stroke="#fde047" strokeWidth="2" strokeLinecap="round" />
+    {/* Sparkle Spheres */}
+    <circle cx="50" cy="50" r="3.5" fill="#ffffff" />
+    <circle cx="28" cy="46" r="2" fill="#fef08a" />
+    <circle cx="72" cy="46" r="2" fill="#fef08a" />
   </svg>
 );
 
@@ -242,35 +321,42 @@ const LegendSvg = ({ size }) => (
 const SupremeSvg = ({ size }) => (
   <svg width={size} height={size} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
     <defs>
-      <linearGradient id="supreme-chroma" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#ec4899" />
-        <stop offset="33%" stopColor="#a855f7" />
-        <stop offset="66%" stopColor="#3b82f6" />
-        <stop offset="100%" stopColor="#06b6d4" />
+      <linearGradient id="supreme-hologram" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#f43f5e" />
+        <stop offset="25%" stopColor="#ec4899" />
+        <stop offset="50%" stopColor="#a855f7" />
+        <stop offset="75%" stopColor="#3b82f6" />
+        <stop offset="100%" stopColor="#00e5ff" />
       </linearGradient>
-      <linearGradient id="supreme-halo" x1="100%" y1="0%" x2="0%" y2="100%">
-        <stop offset="0%" stopColor="#ffffff" />
-        <stop offset="50%" stopColor="#f472b6" />
-        <stop offset="100%" stopColor="#67e8f9" />
+      <linearGradient id="supreme-stellar-core" x1="0%" y1="100%" x2="100%" y2="0%">
+        <stop offset="0%" stopColor="#a855f7" />
+        <stop offset="40%" stopColor="#ec4899" />
+        <stop offset="80%" stopColor="#38bdf8" />
+        <stop offset="100%" stopColor="#ffffff" />
       </linearGradient>
-      <filter id="supreme-glow" x="-30%" y="-30%" width="160%" height="160%">
-        <feGaussianBlur stdDeviation="5" result="blur" />
+      <filter id="supreme-supernova-glow" x="-32%" y="-32%" width="164%" height="164%">
+        <feGaussianBlur stdDeviation="5.5" result="blur" />
         <feComposite in="SourceGraphic" in2="blur" operator="over" />
       </filter>
     </defs>
-    {/* Pulsing Outer Aura Halo */}
-    <circle cx="50" cy="50" r="44" stroke="url(#supreme-chroma)" strokeWidth="1.5" strokeDasharray="4 4" opacity="0.7" />
-    {/* Supreme Crowned Apex Mantle */}
-    <path d="M50 4 L64 22 L86 16 L78 44 L94 62 L68 76 L50 96 L32 76 L6 62 L22 44 L14 16 L36 22 Z" fill="#18042b" stroke="url(#supreme-chroma)" strokeWidth="3.5" filter="url(#supreme-glow)" />
-    {/* Prismatic Inner Seal */}
-    <polygon points="50,20 74,38 74,68 50,84 26,68 26,38" fill="#090117" stroke="url(#supreme-halo)" strokeWidth="2" />
-    {/* Multi-Faceted Cosmic Core */}
-    <polygon points="50,30 65,45 65,65 50,76 35,65 35,45" fill="url(#supreme-chroma)" />
-    <polygon points="50,38 60,50 50,64 40,50" fill="#ffffff" opacity="0.95" />
-    {/* Floating Celestial Stars */}
-    <circle cx="50" cy="10" r="3.5" fill="#ffffff" filter="url(#supreme-glow)" />
-    <circle cx="18" cy="22" r="2.5" fill="#67e8f9" />
-    <circle cx="82" cy="22" r="2.5" fill="#f472b6" />
+    {/* Celestial Orbit Rings */}
+    <ellipse cx="50" cy="50" rx="46" ry="18" stroke="url(#supreme-hologram)" strokeWidth="1.2" strokeDasharray="5 3" opacity="0.75" transform="rotate(-20 50 50)" />
+    <ellipse cx="50" cy="50" rx="46" ry="18" stroke="url(#supreme-hologram)" strokeWidth="1.2" strokeDasharray="5 3" opacity="0.75" transform="rotate(20 50 50)" />
+    {/* Outer Crown of the Cosmos */}
+    <path d="M50 2 L64 18 L88 10 L80 34 L98 52 L76 68 L84 94 L50 82 L16 94 L24 68 L2 52 L20 34 L12 10 L36 18 Z" fill="#120324" stroke="url(#supreme-hologram)" strokeWidth="3.5" filter="url(#supreme-supernova-glow)" />
+    {/* Inner Astral Plate */}
+    <polygon points="50,16 76,32 76,66 50,82 24,66 24,32" fill="#1f0a38" stroke="url(#supreme-stellar-core)" strokeWidth="2" />
+    {/* Multidimensional Hypercube Prism */}
+    <polygon points="50,26 70,42 70,64 50,78 30,64 30,42" fill="url(#supreme-hologram)" opacity="0.9" />
+    {/* Center Supernova Core */}
+    <polygon points="50,34 54,45 66,50 54,55 50,66 46,55 34,50 46,45" fill="#ffffff" />
+    <circle cx="50" cy="50" r="5" fill="#fef08a" />
+    <circle cx="50" cy="50" r="2.5" fill="#ffffff" />
+    {/* Floating Satellite Crystals */}
+    <circle cx="50" cy="8" r="3.5" fill="#ffffff" filter="url(#supreme-supernova-glow)" />
+    <circle cx="16" cy="24" r="2.5" fill="#38bdf8" />
+    <circle cx="84" cy="24" r="2.5" fill="#f43f5e" />
+    <circle cx="50" cy="90" r="3" fill="#a855f7" />
   </svg>
 );
 

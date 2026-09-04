@@ -1,5 +1,7 @@
 import { prisma } from "@algofight/database";
 import { redisConnection } from "@algofight/queue/src/client/redis";
+import { RuntimePoolManager } from "@algofight/application";
+import { submissionLightQueue, submissionHeavyQueue } from "@algofight/queue";
 
 const probeService = async (probeFn: () => Promise<any>): Promise<"ONLINE" | "OFFLINE"> => {
     try {
@@ -54,6 +56,51 @@ export class AdminController {
         const memoryUsageMb = (process.memoryUsage().rss / (1024 * 1024)).toFixed(1);
         const reqRate = (recentSubmissionsCount / 60).toFixed(1);
 
+        let runtimePoolData: any = null;
+        try {
+            const manager = RuntimePoolManager.getInstance();
+            const snapshot = manager.getSnapshot();
+            const instances = snapshot.runtimes.map((i: any) => ({
+                id: i.id,
+                port: i.port,
+                url: i.url,
+                state: i.status,
+                type: i.isBaseline ? "STATIC_PREWARMED" : "DYNAMIC_EPHEMERAL",
+                activeJobs: i.activeJobs,
+                healthy: i.status === "HEALTHY",
+            }));
+            const [lightCount, heavyCount] = await Promise.all([
+                submissionLightQueue.count().catch(() => 0),
+                submissionHeavyQueue.count().catch(() => 0),
+            ]);
+            runtimePoolData = {
+                activeInstances: instances,
+                capacity: {
+                    current: snapshot.activeCount,
+                    min: 2,
+                    max: 4,
+                },
+                scalingState: snapshot.scalingState,
+                cooldownRemainingSeconds: snapshot.cooldownRemainingSeconds,
+                queues: {
+                    lightLane: {
+                        name: "SUBMISSION_LIGHT",
+                        concurrency: 4,
+                        depth: lightCount,
+                        target: "Python / JS / TS (<8KB)",
+                    },
+                    heavyLane: {
+                        name: "SUBMISSION_HEAVY",
+                        concurrency: 2,
+                        depth: heavyCount,
+                        target: "C++ / Java / Heavy (>8KB)",
+                    },
+                },
+            };
+        } catch {
+            // runtime pool not initialized or standalone probe
+        }
+
         return {
             services: {
                 apiGateway: { status: "ONLINE", uptime: uptimeSeconds, latency: "<1ms" },
@@ -69,6 +116,7 @@ export class AdminController {
                 activeSocketNodes: 1,
                 peakBandwidth: `${memoryUsageMb} MB RSS`,
             },
+            runtimePool: runtimePoolData,
             users: {
                 total: totalUsers,
                 students: studentUsers,

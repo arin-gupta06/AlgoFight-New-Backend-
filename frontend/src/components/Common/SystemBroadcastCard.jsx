@@ -15,6 +15,7 @@ import {
   faShieldHalved,
 } from '@fortawesome/free-solid-svg-icons';
 import './SystemBroadcastCard.css';
+import WhatsAppDocumentPreview from './WhatsAppDocumentPreview.jsx';
 
 function getEmbedVideoUrl(url) {
   if (!url || typeof url !== 'string') return null;
@@ -177,24 +178,7 @@ export default function SystemBroadcastCard({ broadcast, isPreview = false, isUn
           )}
 
           {content.type === 'DOCUMENT' && (
-            <a
-              href={content.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              download={content.url.startsWith('data:') ? (content.name || 'document') : undefined}
-              className="broadcast-doc-link"
-            >
-              <FontAwesomeIcon icon={faFileLines} className="doc-icon" />
-              <div className="doc-meta">
-                <span className="doc-name">{content.name || 'System Document Attachment'}</span>
-                {content.size && (
-                  <span className="doc-size">({(content.size / 1024).toFixed(1)} KB)</span>
-                )}
-              </div>
-              <span className="doc-action-text">
-                {content.url.startsWith('data:') ? 'Download Document' : 'View Document'}
-              </span>
-            </a>
+            <WhatsAppDocumentPreview content={content} isPreview={isPreview} />
           )}
         </div>
       )}

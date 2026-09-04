@@ -1,0 +1,355 @@
+/* ===== WHATSAPP-STYLE PDF & DOCUMENT PREVIEW CARD ===== */
+
+.whatsapp-doc-card {
+  display: flex;
+  flex-direction: column;
+  background: rgba(10, 17, 28, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  overflow: hidden;
+  margin: 10px 0 14px 0;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  position: relative;
+  user-select: none;
+}
+
+.whatsapp-doc-card:hover {
+  border-color: rgba(0, 229, 255, 0.4);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6), 0 0 20px rgba(0, 229, 255, 0.15);
+  transform: translateY(-2px);
+}
+
+.whatsapp-doc-card.is-preview-mode {
+  cursor: default;
+}
+
+.whatsapp-doc-card.is-preview-mode:hover {
+  transform: none;
+}
+
+/* 1. First-Page Viewport */
+.whatsapp-doc-viewport {
+  width: 100%;
+  min-height: 220px;
+  max-height: 380px;
+  background: radial-gradient(circle at center, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.95) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 16px 12px;
+  position: relative;
+  overflow: hidden;
+}
+
+.whatsapp-page-wrapper {
+  position: relative;
+  max-width: 92%;
+  max-height: 340px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.1);
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.whatsapp-page-img {
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 340px;
+  object-fit: contain;
+  display: block;
+  transition: transform 0.3s ease;
+}
+
+.whatsapp-doc-card:hover .whatsapp-page-img {
+  transform: scale(1.02);
+}
+
+/* WhatsApp 1 / N page pill */
+.whatsapp-page-pill {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #f8fafc;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  z-index: 3;
+}
+
+/* Hover overlay with quick view prompt */
+.whatsapp-page-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  opacity: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.25s ease;
+  z-index: 2;
+}
+
+.whatsapp-doc-card:hover .whatsapp-page-overlay {
+  opacity: 1;
+}
+
+.whatsapp-open-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(0, 229, 255, 0.9);
+  color: #030712;
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  box-shadow: 0 4px 20px rgba(0, 229, 255, 0.45);
+  transform: translateY(4px);
+  transition: transform 0.25s ease;
+}
+
+.whatsapp-doc-card:hover .whatsapp-open-chip {
+  transform: translateY(0);
+}
+
+/* Skeleton Loading State */
+.whatsapp-page-skeleton {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.whatsapp-shimmer-paper {
+  width: 180px;
+  height: 240px;
+  background: #ffffff;
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  padding: 20px 16px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton-bar {
+  background: #e2e8f0;
+  border-radius: 4px;
+  margin-bottom: 10px;
+}
+
+.skeleton-bar.title-bar {
+  width: 70%;
+  height: 14px;
+  background: #cbd5e1;
+}
+
+.skeleton-bar.line-bar {
+  width: 100%;
+  height: 8px;
+}
+
+.skeleton-bar.line-bar.short {
+  width: 50%;
+}
+
+.skeleton-spinner {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  color: #64748b;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.pulse-pdf-icon {
+  font-size: 1.6rem;
+  color: #ef4444;
+  animation: pulsePdf 1.5s infinite ease-in-out;
+}
+
+@keyframes pulsePdf {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 1;
+  }
+}
+
+/* Fallback Document Cover (Non-PDF or when canvas unavailable) */
+.whatsapp-cover-fallback {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 0;
+}
+
+.cover-sheet {
+  width: 190px;
+  height: 250px;
+  background: linear-gradient(145deg, #1e293b, #0f172a);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 20px 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+}
+
+.cover-badge-corner {
+  position: absolute;
+  top: 0;
+  right: 0;
+  padding: 4px 10px;
+  border-bottom-left-radius: 8px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: 0.5px;
+}
+
+.cover-sheet-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 24px;
+  gap: 16px;
+}
+
+.cover-sheet-icon {
+  font-size: 2.8rem;
+}
+
+.cover-sheet-lines {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sheet-line {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+.sheet-line.line-1 { width: 85%; }
+.sheet-line.line-2 { width: 100%; }
+.sheet-line.line-3 { width: 60%; }
+
+.cover-page-badge {
+  margin-top: auto;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #94a3b8;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+/* 2. WhatsApp Document Bottom Info Bar */
+.whatsapp-doc-footer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: rgba(15, 23, 42, 0.95);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.doc-type-icon-box {
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  border: 1px solid;
+  flex-shrink: 0;
+}
+
+.doc-text-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  flex-grow: 1;
+}
+
+.doc-primary-title {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #f1f5f9;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: -0.01em;
+}
+
+.doc-secondary-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+  color: #94a3b8;
+}
+
+.meta-dot {
+  opacity: 0.5;
+  font-size: 0.65rem;
+}
+
+.meta-ext {
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.doc-action-bubble {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #00e5ff;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.whatsapp-doc-card:hover .doc-action-bubble {
+  background: #00e5ff;
+  color: #030712;
+  border-color: #00e5ff;
+  box-shadow: 0 0 12px rgba(0, 229, 255, 0.4);
+}

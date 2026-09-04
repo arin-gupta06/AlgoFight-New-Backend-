@@ -9,10 +9,21 @@ import { isAdminUser } from '../../constants/admins';
 import InboxDropdown from './InboxDropdown';
 import logoIcon from '../../assets/algofight-logo.png';
 
+const getInitials = (user) => {
+  if (!user) return 'U';
+  const name = user.displayName?.trim() || user.email?.split('@')[0] || 'User';
+  const parts = name.split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[1][0]).toUpperCase();
+  }
+  return name.slice(0, 2).toUpperCase();
+};
+
 const Navbar = () => {
   const { user, logout } = useAuth();
   const { unreadCount } = useNotificationInbox();
   const [isInboxOpen, setIsInboxOpen] = useState(false);
+  const [avatarError, setAvatarError] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -69,7 +80,27 @@ const Navbar = () => {
                   )}
                 </button>
 
-                <Link to="/profile" style={{ color: '#888', textDecoration: 'none', fontSize: '0.9rem', fontWeight: 500 }}>Profile</Link>
+                <Link
+                  to="/profile"
+                  className={`nav-profile-circle ${isActive('/profile')}`}
+                  title={user.displayName ? `${user.displayName} (${user.email || ''})` : user.email || "Profile"}
+                  aria-label="User Profile"
+                >
+                  {user.photoURL && !avatarError ? (
+                    <img
+                      src={user.photoURL}
+                      alt={user.displayName || "User Avatar"}
+                      className="nav-profile-avatar-img"
+                      onError={() => setAvatarError(true)}
+                    />
+                  ) : (
+                    <span className="nav-profile-initials">
+                      {getInitials(user)}
+                    </span>
+                  )}
+                  <span className="nav-profile-status-dot" title="Online" />
+                </Link>
+
                 <button onClick={handleLogout} className="btn-nav-outline">
                   Logout
                 </button>

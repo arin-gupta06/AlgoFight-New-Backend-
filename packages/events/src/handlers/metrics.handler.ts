@@ -33,6 +33,22 @@ export class MetricsHandler {
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify(payload),
                 });
+            } else if (eventName === "runtime.pool.state" || eventName === "autoscaler.event") {
+                await fetch(`${TELEMETRY_URL}/api/v1/telemetry/runtime-pool`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        active_runtimes_count: payload.activeCount || 0,
+                        runtimes: payload.runtimes || [],
+                        scaling_state: payload.scalingState || "STABLE",
+                        cooldown_seconds_remaining: payload.cooldownRemainingSeconds || 0,
+                        light_queue_depth: payload.lightDepth || 0,
+                        heavy_queue_depth: payload.heavyDepth || 0,
+                        light_workers_busy: payload.lightWorkersBusy || 0,
+                        heavy_workers_busy: payload.heavyWorkersBusy || 0,
+                        timestamp: Date.now() / 1000,
+                    }),
+                });
             }
         } catch (err) {
             // Non-blocking error handling

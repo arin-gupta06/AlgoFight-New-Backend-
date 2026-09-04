@@ -11,7 +11,7 @@ export default function Cookies() {
           Cookies and local storage help AlgoFight keep sessions secure, preserve preferences,
           and improve product reliability and performance.
         </p>
-        <div className="legal-meta">Last updated: April 16, 2026</div>
+        <div className="legal-meta">Last updated: September 2026</div>
       </section>
 
       <div className="legal-stack">

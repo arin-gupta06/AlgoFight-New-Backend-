@@ -71,7 +71,8 @@ export class PistonAdapter {
         code: string,
         stdin: string,
         timeLimitMs: number = 3000,
-        memoryLimitBytes: number = -1 // Use Piston default if -1
+        memoryLimitBytes: number = -1, // Use Piston default if -1
+        targetUrl?: string
     ): Promise<NormalizedExecutionResult> {
         const pistonLang = this.languageMap[language.toLowerCase()];
         if (!pistonLang) {
@@ -98,7 +99,8 @@ export class PistonAdapter {
             // A bit more than Piston's run_timeout to allow network travel
             const id = setTimeout(() => controller.abort(), timeLimitMs + 5000); 
 
-            const response = await fetch(`${this.PISTON_URL}/api/v2/execute`, {
+            const endpoint = targetUrl || this.PISTON_URL;
+            const response = await fetch(`${endpoint}/api/v2/execute`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",

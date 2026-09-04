@@ -29,7 +29,7 @@ export const submissionWorker = new Worker(
   },
   {
     connection: redisConnection,
-    concurrency: 15,
+    concurrency: 3,
   },
 );
 

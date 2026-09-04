@@ -260,9 +260,9 @@ export default function LandingPage() {
             <div className="feature-badge-icon tone-pink">
               <FontAwesomeIcon icon={faShieldHalved} />
             </div>
-            <h3 className="feature-panel-title">ANTI-CHEAT PROTECTED</h3>
+            <h3 className="feature-panel-title">FAIR PLAY & INTEGRITY</h3>
             <p className="feature-panel-text">
-              Protected by high-performance Logical Gateways with HMAC-SHA256 attestations, anti-cheat detection, and IP abuse jails.
+              Protected by automated anti-cheat detection, sealed judge test suites, and strict fair-play rating enforcement.
             </p>
           </div>
 
@@ -364,8 +364,9 @@ export default function LandingPage() {
               <h4 className="footer-col-title">COMPANY</h4>
               <ul className="footer-list">
                 <li><a onClick={() => handleOpenModal('about')}>About Us</a></li>
-                <li><a onClick={() => handleOpenModal('blog')}>Blog</a></li>
+                <li><a onClick={() => handleOpenModal('blog')}>DevLog</a></li>
                 <li><a onClick={() => handleOpenModal('careers')}>Careers</a></li>
+                <li><a onClick={() => navigate('/developer')}>Developers</a></li>
               </ul>
             </div>
 

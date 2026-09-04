@@ -26,8 +26,8 @@ export const missionPillars = [
     tone: 'cyan'
   },
   {
-    title: 'Cryptographic Edge Security',
-    copy: 'Protected by high-performance Logical Gateways with HMAC-SHA256 attestations, anti-cheat detection, and IP abuse jails.',
+    title: 'Anti-Cheat & Fair Play',
+    copy: 'Protected by real-time anti-cheat detection, HMAC-SHA256 test attestations, and strict fair-play rating enforcement.',
     icon: faShieldHalved,
     tone: 'pink'
   },
@@ -80,22 +80,22 @@ export const architecturalHighlights = [
   {
     icon: faShieldHalved,
     title: 'Logical User Gateway',
-    desc: 'Requests are validated and authenticated at the application perimeter before reaching domain services.',
+    desc: 'Requests are validated and authenticated with HMAC-SHA256 tokens at the perimeter before reaching domain services.',
   },
   {
     icon: faServer,
-    title: 'Sandboxed Isolation',
-    desc: 'Code runs inside hardened container execution sandboxes with zero host leakage.',
+    title: 'Elastic Multi-Runtime Fleet',
+    desc: 'Workload-classified light & heavy execution lanes with dynamic Docker Piston scaling and hardware isolation.',
   },
   {
     icon: faBolt,
     title: 'Reactive WebSocket Fabric',
-    desc: 'High-frequency broadcast bus dispatching room updates and Elo changes under 5ms.',
+    desc: 'High-frequency broadcast bus dispatching room state updates, keystroke telemetry, and Elo shifts under 5ms.',
   },
   {
     icon: faLock,
     title: 'Anti-Abuse Jails & Limits',
-    desc: 'Automatic token bucket rate limiters and instant session revocation for bad actors.',
+    desc: 'Multi-dimensional token bucket rate limiters, anti-cheat detection, and instant session revocation for bad actors.',
   },
 ];
 

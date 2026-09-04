@@ -10,7 +10,7 @@ export class ExecutionPipeline {
     private workerPool = new WorkerPool(4); // Bounded concurrency limit
 
     async execute(request: ExecuteRequest, onProgress?: PipelineEventCallback): Promise<EvaluationResult> {
-        const { submissionId, language, code, testCases, timeLimitMs, memoryLimitBytes, mode } = request;
+        const { submissionId, language, code, testCases, timeLimitMs, memoryLimitBytes, mode, targetRuntimeUrl } = request;
         
         onProgress?.({ submissionId, stage: "PREPARE" });
 
@@ -31,7 +31,8 @@ export class ExecutionPipeline {
             code,
             firstTestCase.input,
             timeLimitMs,
-            memoryLimitBytes
+            memoryLimitBytes,
+            targetRuntimeUrl
         );
 
         const compilationResult = {
@@ -75,7 +76,8 @@ export class ExecutionPipeline {
                         code,
                         testCase.input,
                         timeLimitMs,
-                        memoryLimitBytes
+                        memoryLimitBytes,
+                        targetRuntimeUrl
                     );
                 }
 

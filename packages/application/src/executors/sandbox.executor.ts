@@ -3,6 +3,7 @@ import { SubmissionResult } from "@algofight/database";
 import { JudgeService } from "../judge/services/judge.service";
 import { SubmissionStatus, Verdict } from "@algofight/types";
 import { logger } from "@algofight/logger";
+import { RuntimePoolManager } from "../runtime-pool/runtime-pool.manager";
 
 const PISTON_URL = process.env.PISTON_URL || "http://127.0.0.1:2000";
 const MAX_OUTPUT_BYTES = 512 * 1024; // 512 KB Output Limit
@@ -47,6 +48,25 @@ export class SandboxExecutor implements CodeExecutor {
             "Dispatching code to hardened Piston sandbox",
         );
 
+        let targetRuntimeUrl = payload.targetRuntimeUrl;
+        if (!targetRuntimeUrl && payload.runtimePort) {
+            targetRuntimeUrl = `http://localhost:${payload.runtimePort}`;
+        }
+        let dynamicallyAllocated = false;
+        if (!targetRuntimeUrl) {
+            try {
+                targetRuntimeUrl = await RuntimePoolManager.getInstance().routeSubmission({
+                    submissionId: payload.submissionId,
+                    language: payload.language,
+                    sourceCode: payload.code,
+                    workload: payload.code.length > 8192 ? "HEAVY" : "LIGHT",
+                });
+                dynamicallyAllocated = true;
+            } catch {
+                targetRuntimeUrl = PISTON_URL;
+            }
+        }
+
         const individualExecutions: any[] = [];
         const judgeInputs: any[] = [];
         let combinedStdout = "";
@@ -58,92 +78,99 @@ export class SandboxExecutor implements CodeExecutor {
         const CONCURRENCY = 3;
         let shortCircuit = false;
 
-        for (let i = 0; i < testCases.length; i += CONCURRENCY) {
-            if (shortCircuit) break;
+        try {
+            for (let i = 0; i < testCases.length; i += CONCURRENCY) {
+                if (shortCircuit) break;
 
-            const chunk = testCases.slice(i, i + CONCURRENCY);
-            const chunkPromises = chunk.map(async (tc, chunkIdx) => {
-                const globalIdx = i + chunkIdx;
-                const tcStart = Date.now();
+                const chunk = testCases.slice(i, i + CONCURRENCY);
+                const chunkPromises = chunk.map(async (tc, chunkIdx) => {
+                    const globalIdx = i + chunkIdx;
+                    const tcStart = Date.now();
 
-                const res = await this.executeInSandbox(
-                    language,
-                    code,
-                    tc.input,
-                    timeLimit,
-                    memoryLimitBytes,
-                );
+                    const res = await this.executeInSandbox(
+                        language,
+                        code,
+                        tc.input,
+                        timeLimit,
+                        memoryLimitBytes,
+                        targetRuntimeUrl,
+                    );
 
-                const tcTime = Math.max(res.cpuTime || 1, Date.now() - tcStart);
-                return { globalIdx, tc, res, tcTime };
-            });
-
-            const chunkResults = await Promise.all(chunkPromises);
-
-            for (const item of chunkResults) {
-                const { globalIdx, tc, res, tcTime } = item;
-
-                if (globalIdx === 0) {
-                    combinedStdout = res.stdout;
-                }
-                if (res.stderr && !combinedStderr) {
-                    combinedStderr = res.stderr;
-                }
-
-                if (res.memoryUsed > peakMemoryUsed) {
-                    peakMemoryUsed = res.memoryUsed;
-                }
-
-                if (res.exitCode !== 0 || res.timedOut || res.memoryLimitExceeded || res.outputLimitExceeded || res.compilationError) {
-                    anyError = true;
-                }
-
-                // Short-circuit on compilation error (no need to run remaining tests)
-                if (res.compilationError) {
-                    shortCircuit = true;
-                }
-
-                const isMatch =
-                    res.exitCode === 0 &&
-                    !res.timedOut &&
-                    !res.memoryLimitExceeded &&
-                    !res.outputLimitExceeded &&
-                    !res.compilationError &&
-                    (res.stdout || "").trim() === (tc.expectedOutput || "").trim();
-
-                let tcVerdict = Verdict.ACCEPTED;
-                if (res.compilationError) tcVerdict = Verdict.COMPILATION_ERROR;
-                else if (res.timedOut) tcVerdict = Verdict.TIME_LIMIT_EXCEEDED;
-                else if (res.outputLimitExceeded) tcVerdict = Verdict.OUTPUT_LIMIT_EXCEEDED;
-                else if (res.memoryLimitExceeded) tcVerdict = Verdict.MEMORY_LIMIT_EXCEEDED;
-                else if (res.exitCode !== 0) tcVerdict = Verdict.RUNTIME_ERROR;
-                else if (!isMatch) tcVerdict = Verdict.WRONG_ANSWER;
-
-                judgeInputs.push({
-                    testcaseId: `tc-${globalIdx + 1}`,
-                    expectedOutput: tc.expectedOutput,
-                    actualOutput: res.exitCode === 0 && !res.timedOut && !res.compilationError ? res.stdout : "",
-                    executionTime: tcTime,
-                    memoryUsed: res.memoryUsed,
-                    exitCode: res.exitCode,
-                    timeLimitExceededError: res.timedOut,
-                    memoryLimitExceededError: res.memoryLimitExceeded,
-                    outputLimitExceededError: res.outputLimitExceeded,
-                    runtimeError: res.exitCode !== 0 && !res.timedOut && !res.memoryLimitExceeded && !res.outputLimitExceeded && !res.compilationError,
-                    compilationError: res.compilationError,
+                    const tcTime = Math.max(res.cpuTime || 1, Date.now() - tcStart);
+                    return { globalIdx, tc, res, tcTime };
                 });
 
-                individualExecutions.push({
-                    testCaseId: `tc-${globalIdx + 1}`,
-                    input: tc.input,
-                    expectedOutput: tc.expectedOutput,
-                    actualOutput: res.stdout,
-                    passed: isMatch,
-                    verdict: tcVerdict,
-                    executionTime: tcTime,
-                    memoryUsage: res.memoryUsed,
-                    error: res.stderr || (res.timedOut ? "Time Limit Exceeded" : res.outputLimitExceeded ? "Output Limit Exceeded" : res.memoryLimitExceeded ? "Memory Limit Exceeded" : !isMatch ? "Wrong Answer" : undefined),
-                });
+                const chunkResults = await Promise.all(chunkPromises);
+
+                for (const item of chunkResults) {
+                    const { globalIdx, tc, res, tcTime } = item;
+
+                    if (globalIdx === 0) {
+                        combinedStdout = res.stdout;
+                    }
+                    if (res.stderr && !combinedStderr) {
+                        combinedStderr = res.stderr;
+                    }
+
+                    if (res.memoryUsed > peakMemoryUsed) {
+                        peakMemoryUsed = res.memoryUsed;
+                    }
+
+                    if (res.exitCode !== 0 || res.timedOut || res.memoryLimitExceeded || res.outputLimitExceeded || res.compilationError) {
+                        anyError = true;
+                    }
+
+                    // Short-circuit on compilation error (no need to run remaining tests)
+                    if (res.compilationError) {
+                        shortCircuit = true;
+                    }
+
+                    const isMatch =
+                        res.exitCode === 0 &&
+                        !res.timedOut &&
+                        !res.memoryLimitExceeded &&
+                        !res.outputLimitExceeded &&
+                        !res.compilationError &&
+                        (res.stdout || "").trim() === (tc.expectedOutput || "").trim();
+
+                    let tcVerdict = Verdict.ACCEPTED;
+                    if (res.compilationError) tcVerdict = Verdict.COMPILATION_ERROR;
+                    else if (res.timedOut) tcVerdict = Verdict.TIME_LIMIT_EXCEEDED;
+                    else if (res.outputLimitExceeded) tcVerdict = Verdict.OUTPUT_LIMIT_EXCEEDED;
+                    else if (res.memoryLimitExceeded) tcVerdict = Verdict.MEMORY_LIMIT_EXCEEDED;
+                    else if (res.exitCode !== 0) tcVerdict = Verdict.RUNTIME_ERROR;
+                    else if (!isMatch) tcVerdict = Verdict.WRONG_ANSWER;
+
+                    judgeInputs.push({
+                        testcaseId: `tc-${globalIdx + 1}`,
+                        expectedOutput: tc.expectedOutput,
+                        actualOutput: res.exitCode === 0 && !res.timedOut && !res.compilationError ? res.stdout : "",
+                        executionTime: tcTime,
+                        memoryUsed: res.memoryUsed,
+                        exitCode: res.exitCode,
+                        timeLimitExceededError: res.timedOut,
+                        memoryLimitExceededError: res.memoryLimitExceeded,
+                        outputLimitExceededError: res.outputLimitExceeded,
+                        runtimeError: res.exitCode !== 0 && !res.timedOut && !res.memoryLimitExceeded && !res.outputLimitExceeded && !res.compilationError,
+                        compilationError: res.compilationError,
+                    });
+
+                    individualExecutions.push({
+                        testCaseId: `tc-${globalIdx + 1}`,
+                        input: tc.input,
+                        expectedOutput: tc.expectedOutput,
+                        actualOutput: res.stdout,
+                        passed: isMatch,
+                        verdict: tcVerdict,
+                        executionTime: tcTime,
+                        memoryUsage: res.memoryUsed,
+                        error: res.stderr || (res.timedOut ? "Time Limit Exceeded" : res.outputLimitExceeded ? "Output Limit Exceeded" : res.memoryLimitExceeded ? "Memory Limit Exceeded" : !isMatch ? "Wrong Answer" : undefined),
+                    });
+                }
+            }
+        } finally {
+            if (dynamicallyAllocated && targetRuntimeUrl) {
+                await RuntimePoolManager.getInstance().releaseExecutionSlot(targetRuntimeUrl).catch(() => {});
             }
         }
 
@@ -161,6 +188,7 @@ export class SandboxExecutor implements CodeExecutor {
                 passed: judgeResult.passedCount,
                 total: testCases.length,
                 peakMemoryBytes: peakMemoryUsed,
+                targetRuntimeUrl,
             },
             "Hardened sandbox judging completed",
         );
@@ -187,6 +215,7 @@ export class SandboxExecutor implements CodeExecutor {
         stdinInput: string,
         timeoutMs: number,
         memoryLimitBytes: number,
+        targetRuntimeUrl?: string,
     ): Promise<SandboxResult> {
         const langMap: Record<string, string> = {
             javascript: "javascript",
@@ -223,8 +252,10 @@ export class SandboxExecutor implements CodeExecutor {
             run_memory_limit: memoryLimitBytes,
         };
 
+        const baseUrl = targetRuntimeUrl || PISTON_URL;
+
         try {
-            const res = await fetch(`${PISTON_URL}/api/v2/execute`, {
+            const res = await fetch(`${baseUrl}/api/v2/execute`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(requestBody),

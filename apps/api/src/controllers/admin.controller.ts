@@ -1,6 +1,6 @@
 import { prisma } from "@algofight/database";
 import { redisConnection } from "@algofight/queue/src/client/redis";
-import { RuntimePoolManager } from "@algofight/application";
+import { RuntimePoolManager, PistonAdapter } from "@algofight/application";
 import { submissionLightQueue, submissionHeavyQueue } from "@algofight/queue";
 
 const probeService = async (probeFn: () => Promise<any>): Promise<"ONLINE" | "OFFLINE"> => {
@@ -154,5 +154,71 @@ export class AdminController {
             take: limit,
             orderBy: { createdAt: "desc" },
         });
+    }
+
+    async scaleOutRuntime(reason?: string) {
+        const manager = RuntimePoolManager.getInstance();
+        const instance = await manager.scaleOut(reason || "Admin API scale-out trigger");
+        return {
+            success: !!instance,
+            instance,
+            snapshot: manager.getSnapshot(),
+        };
+    }
+
+    async scaleInRuntime() {
+        const manager = RuntimePoolManager.getInstance();
+        const drainedUrl = await manager.scaleIn();
+        return {
+            success: !!drainedUrl,
+            drainedUrl,
+            snapshot: manager.getSnapshot(),
+        };
+    }
+
+    async probeAllRuntimes(payload?: { language?: string; code?: string }) {
+        const manager = RuntimePoolManager.getInstance();
+        const runtimes = manager.getActiveRuntimes();
+        const adapter = new PistonAdapter();
+        const lang = payload?.language || "python";
+        const code = payload?.code || "print('AlgoFight Piston Runtime Probe: OK')";
+
+        const results = await Promise.all(
+            runtimes.map(async (runtime) => {
+                const start = Date.now();
+                try {
+                    const execResult = await adapter.executeCode(lang, code, "", 3000, 256 * 1024 * 1024, runtime.url);
+                    return {
+                        id: runtime.id,
+                        port: runtime.port,
+                        url: runtime.url,
+                        type: runtime.isBaseline ? "PREWARMED_BASELINE" : "EXTENDED_EPHEMERAL",
+                        status: "HEALTHY",
+                        reachable: true,
+                        latencyMs: Date.now() - start,
+                        output: execResult.run.stdout.trim(),
+                        stderr: execResult.run.stderr,
+                        exitCode: execResult.run.code,
+                    };
+                } catch (err: any) {
+                    return {
+                        id: runtime.id,
+                        port: runtime.port,
+                        url: runtime.url,
+                        type: runtime.isBaseline ? "PREWARMED_BASELINE" : "EXTENDED_EPHEMERAL",
+                        status: "ERROR",
+                        reachable: false,
+                        latencyMs: Date.now() - start,
+                        error: err.message,
+                    };
+                }
+            })
+        );
+
+        return {
+            probedAt: new Date().toISOString(),
+            totalActiveRuntimes: runtimes.length,
+            results,
+        };
     }
 }

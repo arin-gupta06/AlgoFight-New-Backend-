@@ -28,4 +28,6 @@ export interface SubmissionRoutingContext {
     priority?: "HIGH" | "NORMAL";
     isLiveBattle?: boolean;
     matchId?: string;
+    targetRuntimeUrl?: string;
+    targetPort?: number;
 }

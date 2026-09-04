@@ -126,5 +126,20 @@ export async function adminRoutes(app: FastifyInstance) {
             return { status: "OFFLINE", online: false };
         }
     });
+
+    // 6. Runtime Pool Elastic Orchestration & Probing via REST API
+    app.post("/admin/runtime-pool/scale-out", { preHandler: [verifyAdminAccess] }, async (request) => {
+        const body = (request.body as any) || {};
+        return controller.scaleOutRuntime(body.reason);
+    });
+
+    app.post("/admin/runtime-pool/scale-in", { preHandler: [verifyAdminAccess] }, async () => {
+        return controller.scaleInRuntime();
+    });
+
+    app.post("/admin/runtime-pool/probe-all", { preHandler: [verifyAdminAccess] }, async (request) => {
+        const body = (request.body as any) || {};
+        return controller.probeAllRuntimes(body);
+    });
 }
 

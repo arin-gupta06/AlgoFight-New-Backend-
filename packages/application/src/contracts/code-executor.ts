@@ -9,7 +9,9 @@ export interface ExecutionPayload  {
     code: string,
     testCases: ExecutionTestCase[],
     timeLimit: number,
-    memoryLimit: number
+    memoryLimit: number,
+    targetRuntimeUrl?: string,
+    runtimePort?: number,
 };
 export interface CodeExecutor {
     execute (

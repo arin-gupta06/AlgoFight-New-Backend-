@@ -78,8 +78,29 @@ export class RuntimePoolManager {
 
     /**
      * Routing Step: Selects the target Piston runtime for a submission using Strategy Pattern.
+     * Supports direct target override if targetRuntimeUrl or targetPort is explicitly provided.
      */
     public async routeSubmission(context: SubmissionRoutingContext): Promise<string> {
+        let explicitTargetUrl: string | undefined = context.targetRuntimeUrl;
+        if (!explicitTargetUrl && context.targetPort) {
+            explicitTargetUrl = `http://localhost:${context.targetPort}`;
+        }
+
+        if (explicitTargetUrl) {
+            const runtime = this.runtimes.get(explicitTargetUrl);
+            if (runtime) {
+                runtime.activeJobs++;
+            }
+            if (this.redisClient && typeof this.redisClient.incr === "function") {
+                try {
+                    await this.redisClient.incr(`{runtime:${runtime?.id || "piston"}}:load`);
+                } catch {
+                    // Non-blocking error
+                }
+            }
+            return explicitTargetUrl;
+        }
+
         const pool = Array.from(this.runtimes.values());
         const selectedUrl = await this.routingStrategy.selectRuntime(context, pool, this.redisClient);
 
@@ -182,6 +203,62 @@ export class RuntimePoolManager {
         await this.factory.destroyRuntime(runtimeUrl);
         this.runtimes.delete(runtimeUrl);
         logger.info({ runtimeUrl }, "RuntimePoolManager: Runtime successfully drained and removed from active pool");
+    }
+
+    public getRuntime(urlOrPort: string | number): RuntimeInstance | undefined {
+        if (typeof urlOrPort === "number") {
+            return Array.from(this.runtimes.values()).find((r) => r.port === urlOrPort);
+        }
+        const normalized = urlOrPort.endsWith("/") ? urlOrPort.slice(0, -1) : urlOrPort;
+        return this.runtimes.get(normalized) || Array.from(this.runtimes.values()).find((r) => r.url === normalized);
+    }
+
+    public getActiveRuntimes(): RuntimeInstance[] {
+        return Array.from(this.runtimes.values());
+    }
+
+    public async checkRuntimeHealth(url: string): Promise<boolean> {
+        try {
+            const res = await fetch(`${url}/api/v2/runtimes`, { signal: AbortSignal.timeout(1200) });
+            const runtime = this.runtimes.get(url);
+            if (runtime) {
+                runtime.status = res.ok ? "HEALTHY" : "OFFLINE";
+                runtime.lastHeartbeat = Date.now();
+            }
+            return res.ok;
+        } catch {
+            const runtime = this.runtimes.get(url);
+            if (runtime) {
+                runtime.status = "OFFLINE";
+            }
+            return false;
+        }
+    }
+
+    public async probeAllRuntimes(): Promise<Array<RuntimeInstance & { reachable: boolean; latencyMs: number }>> {
+        const runtimes = Array.from(this.runtimes.values());
+        const results = await Promise.all(
+            runtimes.map(async (runtime) => {
+                const start = Date.now();
+                let reachable = false;
+                try {
+                    const res = await fetch(`${runtime.url}/api/v2/runtimes`, { signal: AbortSignal.timeout(1500) });
+                    reachable = res.ok;
+                    runtime.status = reachable ? "HEALTHY" : "OFFLINE";
+                } catch {
+                    reachable = false;
+                    runtime.status = "OFFLINE";
+                }
+                const latencyMs = Date.now() - start;
+                runtime.lastHeartbeat = Date.now();
+                return {
+                    ...runtime,
+                    reachable,
+                    latencyMs,
+                };
+            })
+        );
+        return results;
     }
 
     public getSnapshot(): RuntimePoolSnapshot {

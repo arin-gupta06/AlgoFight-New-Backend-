@@ -5,6 +5,7 @@ export * from "./types/container-result";
 export * from "./executors/docker.executor";
 export * from "./executors/sandbox.executor";
 export * from "./services/evaluation.service";
+export * from "./services/piston.adapter";
 
 // Battle module exports
 export * from "./battle/services/battle-room.service";

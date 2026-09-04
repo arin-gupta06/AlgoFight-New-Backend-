@@ -1,13 +1,14 @@
 import { ProblemNotFoundError } from "@algofight/error-handling";
 import { enqueueSubmissionJob } from "@algofight/queue";
-import { SubmissionInput, TestRunInput, PracticeEvaluateInput } from "../schema/submission.schema";
+import { SubmissionInput, TestRunInput, PracticeEvaluateInput, ExecuteDirectInput } from "../schema/submission.schema";
 import { SubmissionRepository, ProblemRepository } from "@algofight/database";
 import { SubmissionStatus } from "@algofight/types";
-import { EvaluationService, SandboxExecutor, WorkloadClassifier, RuntimePoolManager } from "@algofight/application";
+import { EvaluationService, SandboxExecutor, WorkloadClassifier, RuntimePoolManager, PistonAdapter } from "@algofight/application";
 import { logger } from "@algofight/logger";
 
 export class SubmissionController {
     private readonly sandboxExecutor = new SandboxExecutor();
+    private readonly pistonAdapter = new PistonAdapter();
 
     constructor(
         private readonly submissionRepository: SubmissionRepository,
@@ -43,15 +44,22 @@ export class SubmissionController {
             memoryLimitBytes: problem.memoryLimit,
         });
 
-        // 2. Intelligent Runtime Routing Strategy
-        const targetRuntimeUrl = await RuntimePoolManager.getInstance().routeSubmission({
-            submissionId: submission.id,
-            language: body.language,
-            sourceCode: body.code,
-            workload,
-            isLiveBattle: !!body.roomId,
-            priority: body.roomId ? "HIGH" : "NORMAL",
-        });
+        // 2. Intelligent Runtime Routing Strategy (or explicit REST API override)
+        let targetRuntimeUrl: string;
+        if (body.targetRuntimeUrl) {
+            targetRuntimeUrl = body.targetRuntimeUrl;
+        } else if (body.runtimePort) {
+            targetRuntimeUrl = `http://localhost:${body.runtimePort}`;
+        } else {
+            targetRuntimeUrl = await RuntimePoolManager.getInstance().routeSubmission({
+                submissionId: submission.id,
+                language: body.language,
+                sourceCode: body.code,
+                workload,
+                isLiveBattle: !!body.roomId,
+                priority: body.roomId ? "HIGH" : "NORMAL",
+            });
+        }
 
         try {
             await enqueueSubmissionJob({
@@ -96,6 +104,11 @@ export class SubmissionController {
             };
         }
 
+        let targetRuntimeUrl = body.targetRuntimeUrl;
+        if (!targetRuntimeUrl && body.runtimePort) {
+            targetRuntimeUrl = `http://localhost:${body.runtimePort}`;
+        }
+
         try {
             const result = await this.sandboxExecutor.execute({
                 submissionId: `practice-${Date.now()}`,
@@ -107,6 +120,7 @@ export class SubmissionController {
                 })),
                 timeLimit: problem.timeLimit,
                 memoryLimit: problem.memoryLimit,
+                targetRuntimeUrl,
             });
 
             const passed = result.failedCount === 0;
@@ -175,6 +189,11 @@ export class SubmissionController {
     }
 
     async test(body: TestRunInput) {
+        let targetRuntimeUrl = body.targetRuntimeUrl;
+        if (!targetRuntimeUrl && body.runtimePort) {
+            targetRuntimeUrl = `http://localhost:${body.runtimePort}`;
+        }
+
         const evaluationService = new EvaluationService();
         const result = await evaluationService.evaluateSubmission({
             submissionId: "test-run",
@@ -183,7 +202,92 @@ export class SubmissionController {
             testCases: body.testCases as any,
             timeLimitMs: 2000,
             memoryLimitBytes: 256 * 1024 * 1024,
-        }, () => { }, "SAMPLE");
+            targetRuntimeUrl,
+        } as any, () => { }, "SAMPLE");
         return result;
+    }
+
+    /**
+     * Direct Code Execution across any active Piston container (prewarmed baseline or dynamic extended).
+     * Bypasses the queue for immediate synchronous REST response.
+     */
+    async executeDirect(body: ExecuteDirectInput) {
+        const poolManager = RuntimePoolManager.getInstance();
+        let targetRuntimeUrl = body.targetRuntimeUrl;
+        if (!targetRuntimeUrl && body.runtimePort) {
+            targetRuntimeUrl = `http://localhost:${body.runtimePort}`;
+        }
+
+        let allocatedSlot = false;
+        if (!targetRuntimeUrl) {
+            targetRuntimeUrl = await poolManager.routeSubmission({
+                submissionId: `direct-${Date.now()}`,
+                language: body.language,
+                sourceCode: body.code,
+                workload: body.code.length > 8192 ? "HEAVY" : "LIGHT",
+            });
+            allocatedSlot = true;
+        }
+
+        const startTime = Date.now();
+        try {
+            const result = await this.pistonAdapter.executeCode(
+                body.language,
+                body.code,
+                body.stdin || "",
+                body.timeLimitMs || 3000,
+                body.memoryLimitBytes || 256 * 1024 * 1024,
+                targetRuntimeUrl
+            );
+            const totalTime = Date.now() - startTime;
+
+            const runtimeInstance = poolManager.getRuntime(targetRuntimeUrl);
+            const port = runtimeInstance?.port || (targetRuntimeUrl.includes(":") ? parseInt(targetRuntimeUrl.split(":").pop()!, 10) : undefined);
+
+            return {
+                success: true,
+                targetRuntime: {
+                    url: targetRuntimeUrl,
+                    port,
+                    id: runtimeInstance?.id || `piston-port-${port}`,
+                    type: runtimeInstance?.isBaseline ? "PREWARMED_BASELINE" : "EXTENDED_EPHEMERAL",
+                    status: runtimeInstance?.status || "HEALTHY",
+                },
+                executionTimeMs: totalTime,
+                compile: result.compile,
+                run: result.run,
+            };
+        } finally {
+            if (allocatedSlot && targetRuntimeUrl) {
+                await poolManager.releaseExecutionSlot(targetRuntimeUrl).catch(() => {});
+            }
+        }
+    }
+
+    /**
+     * Retrieves real-time status and live health probes for all active prewarmed and extended runtimes.
+     */
+    async getRuntimePoolStatus() {
+        const poolManager = RuntimePoolManager.getInstance();
+        const runtimesWithHealth = await poolManager.probeAllRuntimes();
+        const snapshot = poolManager.getSnapshot();
+
+        return {
+            activeCount: snapshot.activeCount,
+            scalingState: snapshot.scalingState,
+            cooldownRemainingSeconds: snapshot.cooldownRemainingSeconds,
+            runtimes: runtimesWithHealth.map((r) => ({
+                id: r.id,
+                port: r.port,
+                url: r.url,
+                status: r.status,
+                type: r.isBaseline ? "PREWARMED_BASELINE" : "EXTENDED_EPHEMERAL",
+                isBaseline: r.isBaseline,
+                activeJobs: r.activeJobs,
+                reachable: r.reachable,
+                latencyMs: r.latencyMs,
+                createdAt: r.createdAt,
+            })),
+        };
     }
 }

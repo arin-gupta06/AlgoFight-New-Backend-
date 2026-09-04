@@ -84,7 +84,56 @@ export async function submissionRoutes(app: FastifyInstance) {
         },
     );
 
-    // 5. Submission Details by ID (Object-Level Authorization)
+    // 5. Direct Runtime Code Execution (Callable for both prewarmed baseline & extended instances)
+    app.post(
+        "/submissions/execute-direct",
+        {
+            config: {
+                rateLimit: {
+                    max: 60,
+                    timeWindow: "1 minute",
+                },
+            },
+        },
+        async (request) => {
+            const body = (request.body as any) || {};
+            return submissionController.executeDirect(body);
+        }
+    );
+
+    // Alias: Direct Piston Runtime Execution
+    app.post(
+        "/runtimes/execute",
+        {
+            config: {
+                rateLimit: {
+                    max: 60,
+                    timeWindow: "1 minute",
+                },
+            },
+        },
+        async (request) => {
+            const body = (request.body as any) || {};
+            return submissionController.executeDirect(body);
+        }
+    );
+
+    // 6. Runtime Pool Discovery (Lists all prewarmed baseline and extended Piston instances)
+    app.get(
+        "/runtimes",
+        async () => {
+            return submissionController.getRuntimePoolStatus();
+        }
+    );
+
+    app.get(
+        "/submissions/runtimes",
+        async () => {
+            return submissionController.getRuntimePoolStatus();
+        }
+    );
+
+    // 7. Submission Details by ID (Object-Level Authorization)
     app.get(
         "/submissions/:id",
         async (request, reply) => {

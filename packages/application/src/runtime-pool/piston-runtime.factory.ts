@@ -35,7 +35,7 @@ export class DockerPistonRuntimeFactory extends AbstractRuntimeFactory {
             }
 
             // Docker run command mounting the prewarmed packages volume and tmpfs
-            const cmd = `docker run -d --name ${containerName} --restart=unless-stopped --privileged ${memoryLimit} -p ${port}:2000 -v piston_packages:/piston/packages --tmpfs /tmp ghcr.io/engineer-man/piston`;
+            const cmd = `docker run -d --name ${containerName} --restart=unless-stopped --privileged ${memoryLimit} -p ${port}:2000 -v docker_piston_packages:/piston/packages --tmpfs /tmp ghcr.io/engineer-man/piston`;
             await execAsync(cmd);
 
             this.spawnedContainers.set(url, containerName);

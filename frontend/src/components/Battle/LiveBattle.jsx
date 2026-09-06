@@ -6,9 +6,9 @@ import { useAuth } from "../../contexts/AuthContext";
 import { useNotification } from "../../contexts/NotificationContext.jsx";
 import { requestJson } from "../../services/api";
 import { useAntiCheat } from "../../hooks/useAntiCheat";
-import ProblemStatement from "../Common/ProblemStatement.jsx";
-import DetailedAnalysisModal from "../Common/DetailedAnalysisModal.jsx";
-import RankEmblem from "../Common/RankEmblem";
+import ProblemStatement from "../Common/problem/ProblemStatement.jsx";
+import DetailedAnalysisModal from "../Common/modals/DetailedAnalysisModal.jsx";
+import RankEmblem from "../Common/gamification/RankEmblem";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faClock,
@@ -32,9 +32,46 @@ import {
 } from "../../constants/languages";
 import "./LiveBattle.css";
 
-const PostBattleSummaryModal = ({ battleResult, liveState, problems, ratingUpdates, onClose }) => {
+const PostBattleSummaryModal = ({ battleResult, liveState, problems, ratingUpdates, currentUser, currentUsername, onClose }) => {
   if (!battleResult) return null;
-  const isWin = battleResult.winner === "You";
+
+  const myUserId = currentUser?.uid;
+  const myRatingData = myUserId ? ratingUpdates?.[myUserId] : null;
+  const myRatingDelta = myRatingData?.ratingDelta;
+
+  // Determining win status reliably across all payloads and rating deltas
+  const isWin =
+    battleResult.isWin === true ||
+    battleResult.winner === "You" ||
+    (myRatingDelta !== undefined && myRatingDelta > 0) ||
+    (battleResult.winnerId && myUserId && battleResult.winnerId === myUserId) ||
+    (battleResult.winner && currentUsername && (battleResult.winner === currentUsername || battleResult.winner === "You")) ||
+    (battleResult.reason === "OPPONENT_FORFEIT" && battleResult.forfeitedUserId !== myUserId && battleResult.forfeitedPlayer !== currentUsername);
+
+  // Identify winning user id
+  let winnerUserId = battleResult.winnerId;
+  if (!winnerUserId && isWin && myUserId) {
+    winnerUserId = myUserId;
+  }
+  if (!winnerUserId && ratingUpdates) {
+    const sortedDeltas = Object.entries(ratingUpdates).sort(([, a], [, b]) => (b.ratingDelta ?? 0) - (a.ratingDelta ?? 0));
+    if (sortedDeltas.length > 0 && (sortedDeltas[0][1]?.ratingDelta ?? 0) > 0) {
+      winnerUserId = sortedDeltas[0][0];
+    }
+  }
+
+  // Sort players: winner first, then by rating delta, then points, then solved count
+  const sortedPlayers = [...(liveState?.players || [])].sort((a, b) => {
+    if (winnerUserId) {
+      if (a.userId === winnerUserId) return -1;
+      if (b.userId === winnerUserId) return 1;
+    }
+    const aDelta = ratingUpdates?.[a.userId]?.ratingDelta ?? 0;
+    const bDelta = ratingUpdates?.[b.userId]?.ratingDelta ?? 0;
+    if (aDelta !== bDelta) return bDelta - aDelta;
+    if ((b.points || 0) !== (a.points || 0)) return (b.points || 0) - (a.points || 0);
+    return (b.solvedCount || 0) - (a.solvedCount || 0);
+  });
 
   return (
     <div className="modal-overlay">
@@ -65,19 +102,41 @@ const PostBattleSummaryModal = ({ battleResult, liveState, problems, ratingUpdat
               <div className="lb-header">Points</div>
               <div className="lb-header">Status</div>
               <div className="lb-header">Rating</div>
-              {liveState?.players?.map((p, i) => {
+              {sortedPlayers.map((p, i) => {
                 const ratingChange = ratingUpdates?.[p.userId]?.ratingDelta;
-                const newRating = ratingUpdates?.[p.userId]?.winnerNewRating;
+                const newRating = ratingUpdates?.[p.userId]?.newRating ?? ratingUpdates?.[p.userId]?.winnerNewRating ?? ratingUpdates?.[p.userId]?.loserNewRating;
+                
+                const isThisPlayerWinner = 
+                  (winnerUserId && p.userId === winnerUserId) ||
+                  (p.userId === myUserId && isWin) ||
+                  (p.username === battleResult.winner) ||
+                  (ratingChange !== undefined && ratingChange > 0 && (sortedPlayers.length <= 2 || i === 0));
+
+                const isThisPlayerForfeited = 
+                  p.forfeited || 
+                  p.status === "LEFT" || 
+                  p.status === "FORFEITED" || 
+                  (battleResult.reason === "OPPONENT_FORFEIT" && !isThisPlayerWinner && (p.userId === battleResult.forfeitedUserId || p.username === battleResult.forfeitedPlayer || sortedPlayers.length <= 2));
                 
                 return (
-                  <React.Fragment key={p.userId}>
+                  <React.Fragment key={p.userId || i}>
                     <div className="lb-cell" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      {i === 0 && <FontAwesomeIcon icon={faTrophy} style={{ color: "gold" }} />}
+                      {isThisPlayerWinner && <FontAwesomeIcon icon={faTrophy} style={{ color: "gold" }} />}
                       <RankEmblem rating={newRating || p.rating || 0} size={22} glow={false} />
-                      <span>{p.username}</span>
+                      <span style={{ fontWeight: isThisPlayerWinner ? '600' : 'normal' }}>
+                        {p.username} {p.userId === myUserId ? <span style={{ opacity: 0.7, fontSize: '0.85em' }}>(You)</span> : null}
+                      </span>
                     </div>
-                    <div className="lb-cell">{p.points}</div>
-                    <div className="lb-cell">{p.solvedCount === problems.length ? "Completed" : "Incomplete"}</div>
+                    <div className="lb-cell">{p.points || 0}</div>
+                    <div className="lb-cell">
+                      {isThisPlayerForfeited ? (
+                        <span style={{ color: '#ef4444', fontWeight: 'bold' }}>Forfeited</span>
+                      ) : p.solvedCount === problems.length ? (
+                        <span style={{ color: '#4ade80', fontWeight: '600' }}>Completed</span>
+                      ) : (
+                        <span style={{ color: '#94a3b8' }}>Incomplete</span>
+                      )}
+                    </div>
                     <div className="lb-cell">
                       {newRating !== undefined ? (
                         <span>
@@ -108,9 +167,11 @@ const PostBattleSummaryModal = ({ battleResult, liveState, problems, ratingUpdat
               {problems.map((_, i) => (
                 <div key={i} className="mx-header" style={{ fontWeight: 'bold', textAlign: 'center' }}>Q{i + 1}</div>
               ))}
-              {liveState?.players?.map((p) => (
+              {sortedPlayers.map((p) => (
                 <React.Fragment key={p.userId}>
-                  <div className="mx-cell">{p.username}</div>
+                  <div className="mx-cell" style={{ fontWeight: p.userId === myUserId ? '600' : 'normal' }}>
+                    {p.username} {p.userId === myUserId ? "(You)" : ""}
+                  </div>
                   {problems.map((prob) => {
                      const solvedData = p.solvedProblems?.find(sp => sp.problemId === prob.id);
                      return (
@@ -470,14 +531,38 @@ export default function LiveBattle() {
       });
 
       socket.on("battle_over", (data) => {
-        const winner = data?.winner || "Opponent";
-        const youWin = winner === username;
-        let message = `Time is up! ${winner} wins.`;
-        if (data.reason === "ALL_SOLVED") message = `${winner} completed all questions first!`;
-        if (data.reason === "OPPONENT_FORFEIT") message = data.forfeitedPlayer ? `${data.forfeitedPlayer} forfeited the match! You win!` : `Your opponent forfeited! You win!`;
+        const winnerId = data?.winnerId;
+        const winnerName = data?.winnerUsername || data?.winner || "Opponent";
+        const myUid = user?.uid;
+        const myName = username;
+
+        // Check if the current client is the winner or the one who forfeited
+        const isIWinner = (winnerId && myUid && winnerId === myUid) ||
+                          (winnerName && (winnerName === myName || winnerName === "You"));
+        const isIForfeited = (data?.forfeitedUserId && myUid && data.forfeitedUserId === myUid) ||
+                             (data?.forfeitedPlayer && data.forfeitedPlayer === myName);
+
+        const youWin = isIWinner || (!isIForfeited && data?.reason === "OPPONENT_FORFEIT");
+
+        let message = `Time is up! ${winnerName} wins.`;
+        if (data.reason === "ALL_SOLVED") {
+          message = youWin ? "You completed all questions first!" : `${winnerName} completed all questions first!`;
+        } else if (data.reason === "OPPONENT_FORFEIT") {
+          if (isIForfeited) {
+            message = "You forfeited the match.";
+          } else {
+            message = data.forfeitedPlayer ? `${data.forfeitedPlayer} forfeited the match! You win!` : "Your opponent forfeited! You win!";
+          }
+        }
         
         setBattleResult({
-          winner: youWin ? "You" : winner,
+          winner: youWin ? "You" : winnerName,
+          winnerId,
+          winnerUsername: winnerName,
+          reason: data?.reason,
+          forfeitedPlayer: data?.forfeitedPlayer,
+          forfeitedUserId: data?.forfeitedUserId,
+          isWin: youWin,
           message,
         });
         if (data.finalState) {
@@ -488,8 +573,8 @@ export default function LiveBattle() {
 
         if (data.reason === "OPPONENT_FORFEIT") {
           notify({
-            type: youWin ? "success" : "info",
-            title: youWin ? "🏆 Victory by Forfeit!" : "Match Concluded",
+            type: youWin ? "success" : "error",
+            title: youWin ? "🏆 Victory by Forfeit!" : "Match Forfeited",
             message,
             duration: 6000,
           });
@@ -708,6 +793,8 @@ export default function LiveBattle() {
            liveState={liveState} 
            problems={problems}
            ratingUpdates={ratingUpdates}
+           currentUser={user}
+           currentUsername={username}
            onClose={goBack} 
          />
       )}

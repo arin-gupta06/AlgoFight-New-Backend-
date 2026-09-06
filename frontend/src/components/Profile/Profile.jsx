@@ -25,7 +25,7 @@ import { useNotification } from '../../contexts/NotificationContext';
 import { fetchUserProfile } from '../../services/api';
 import { connectSocket, getSocket } from '../../services/socket';
 import { calculateArenaPointBreakdown, normalizeUserStats, getRankProgressByRating } from '../../utils/playerMetrics';
-import RankEmblem from '../Common/RankEmblem';
+import RankEmblem from '../Common/gamification/RankEmblem';
 
 function Profile() {
     const { userId } = useParams();
@@ -36,6 +36,7 @@ function Profile() {
     const [profile, setProfile] = useState(null);
     const [isLoadingProfile, setIsLoadingProfile] = useState(false);
     const [profileError, setProfileError] = useState('');
+    const [avatarError, setAvatarError] = useState(false);
 
     // Duel challenge states
     const [outgoingChallenge, setOutgoingChallenge] = useState(null);
@@ -43,8 +44,8 @@ function Profile() {
     const [offlineChallengeTarget, setOfflineChallengeTarget] = useState(null);
     const [challengeTimeRemaining, setChallengeTimeRemaining] = useState(30);
 
-    const targetUserId = userId || user?.uid;
-    const isOwnProfile = !userId || userId === user?.uid;
+    const targetUserId = userId || user?.email || user?.uid;
+    const isOwnProfile = !userId || userId === user?.uid || userId === user?.email || (profile && userId === profile?.id);
 
     useEffect(() => {
         let active = true;
@@ -235,6 +236,63 @@ function Profile() {
     const email = isOwnProfile ? (profile?.email || user?.email || '') : (profile?.platformCode || profile?.email || '');
     const photoURL = profile?.photoURL || (isOwnProfile ? user?.photoURL : '');
 
+    // Dynamic institutional academic fallback calculation if email is institutional
+    const academicFallback = useMemo(() => {
+        const studentEmail = (email || user?.email || "").toLowerCase().trim();
+        if (!studentEmail.endsWith("@mitsgwl.ac.in")) return null;
+
+        const match = studentEmail.match(/^(\d{2})([a-z]+)/i);
+        const admissionYear = match ? 2000 + parseInt(match[1], 10) : 2024;
+        const branchCode = match ? match[2].toUpperCase() : "CD";
+
+        const branchMap = {
+            CD: "Computer Science & Design",
+            CS: "Computer Science & Engineering",
+            IT: "Information Technology",
+            AI: "Artificial Intelligence & Data Science",
+            EC: "Electronics & Communication",
+            EE: "Electrical Engineering",
+            ME: "Mechanical Engineering",
+            CE: "Civil Engineering",
+        };
+        const branchName = branchMap[branchCode] || `${branchCode} Engineering`;
+
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        const currentMonth = now.getMonth() + 1;
+
+        const yearsDiff = currentYear - admissionYear;
+        const isOdd = currentMonth >= 7;
+        const currentSemester = isOdd ? (yearsDiff * 2 + 1) : (yearsDiff * 2);
+        const clampedSemester = Math.max(1, Math.min(8, currentSemester));
+        const yearNumber = Math.ceil(clampedSemester / 2);
+        const yearLabels = ["1st Year", "2nd Year", "3rd Year", "4th Year"];
+
+        const semSuffix = ["th", "st", "nd", "rd", "th", "th", "th", "th"];
+        const semesterLabel = `${clampedSemester}${semSuffix[clampedSemester % 10] || "th"} Semester`;
+
+        const startYear = isOdd ? currentYear : currentYear - 1;
+        const academicYear = `${startYear}-${String(startYear + 1).slice(-2)}`;
+
+        const rollMatch = studentEmail.match(/(\d+)(?:@|$)/);
+        const rollNumber = rollMatch ? rollMatch[1] : "";
+
+        return {
+            isInstitutional: true,
+            institutionName: "MITS Gwalior",
+            branch: branchName,
+            batchYear: String(admissionYear),
+            yearLabel: yearLabels[yearNumber - 1] || `${yearNumber}th Year`,
+            semesterLabel,
+            semesterType: isOdd ? "ODD" : "EVEN",
+            academicYear,
+            rollNumber,
+            statusNote: "Dynamic semester calculated in real-time from academic calendar",
+        };
+    }, [email, user?.email]);
+
+    const isInstitutional = Boolean(profile?.academicProfile || profile?.institutionName || academicFallback);
+
     const {
         rating,
         matchesPlayed,
@@ -401,8 +459,13 @@ function Profile() {
                 <section className="profile-hero-card">
                     <div className="profile-identity-row">
                         <div className="profile-avatar-shell">
-                            {photoURL ? (
-                                <img src={photoURL} alt="Profile avatar" className="profile-avatar-image" />
+                            {photoURL && !avatarError ? (
+                                <img
+                                    src={photoURL}
+                                    alt="Profile avatar"
+                                    className="profile-avatar-image"
+                                    onError={() => setAvatarError(true)}
+                                />
                             ) : (
                                 <FontAwesomeIcon icon={faUser} />
                             )}
@@ -452,6 +515,61 @@ function Profile() {
                     {profileError ? <div className="profile-warning">{profileError}</div> : null}
                 </section>
 
+                {/* Institutional Student Identity Card */}
+                {isInstitutional && (
+                    <section className="profile-student-card">
+                        <div className="student-card-header">
+                            <div className="student-card-badge">
+                                <span className="student-card-icon">🏛️</span>
+                                <span className="student-card-title">INSTITUTIONAL STUDENT IDENTITY</span>
+                            </div>
+                            {(profile?.academicProfile?.academicYear || academicFallback?.academicYear) && (
+                                <span className="academic-session-tag">Academic Session {profile?.academicProfile?.academicYear || academicFallback?.academicYear}</span>
+                            )}
+                        </div>
+                        <div className="student-card-grid">
+                            <div className="student-info-item">
+                                <span className="info-label">Institute</span>
+                                <span className="info-value highlight-cyan">{profile?.institutionName || academicFallback?.institutionName || "MITS Gwalior"}</span>
+                            </div>
+                            <div className="student-info-item">
+                                <span className="info-label">Branch</span>
+                                <span className="info-value">{profile?.department || profile?.branch || academicFallback?.branch || "Computer Science & Design"}</span>
+                            </div>
+                            <div className="student-info-item">
+                                <span className="info-label">Batch</span>
+                                <span className="info-value">{profile?.batchYear || profile?.admissionYear || academicFallback?.batchYear || "2024"}</span>
+                            </div>
+                            <div className="student-info-item">
+                                <span className="info-label">Year</span>
+                                <span className="info-value highlight-year">
+                                    {profile?.academicProfile?.yearLabel || academicFallback?.yearLabel || "3rd Year"}
+                                </span>
+                            </div>
+                            <div className="student-info-item">
+                                <span className="info-label">Semester</span>
+                                <span className="info-value highlight-sem">
+                                    {profile?.academicProfile?.semesterLabel || academicFallback?.semesterLabel || "5th Semester"}
+                                    {(profile?.academicProfile?.semesterType || academicFallback?.semesterType) && (
+                                        <span className={`sem-type-badge ${(profile?.academicProfile?.semesterType || academicFallback?.semesterType).toLowerCase()}`}>
+                                            {profile?.academicProfile?.semesterType || academicFallback?.semesterType}
+                                        </span>
+                                    )}
+                                </span>
+                            </div>
+                            <div className="student-info-item">
+                                <span className="info-label">Roll / Enrollment</span>
+                                <span className="info-value font-mono">{profile?.enrollmentNumber || profile?.studentIdentityMetadata?.rollNumber || academicFallback?.rollNumber || "15"}</span>
+                            </div>
+                        </div>
+                        {(profile?.academicProfile?.statusNote || academicFallback?.statusNote) && (
+                            <div className="student-card-note">
+                                ℹ️ {profile?.academicProfile?.statusNote || academicFallback?.statusNote}
+                            </div>
+                        )}
+                    </section>
+                )}
+
                 <section className="profile-stat-grid">
                     {profileStats.map((stat) => (
                         <article key={stat.label} className="profile-stat-card">
@@ -481,10 +599,10 @@ function Profile() {
                                 <span>
                                     {rankProgress.isMaxTier 
                                         ? "Peak Tier (Supreme)" 
-                                        : `${rankProgress.ratingToNextTier} rating to ${rankProgress.nextTier.name}`}
+                                        : `${rankProgress.ratingToNextTier} rating to ${rankProgress.nextTier?.label || rankProgress.nextTier?.name || "Next Tier"}`}
                                 </span>
                                 <strong>
-                                    {rating} / {rankProgress.isMaxTier ? "2000+" : rankProgress.nextTier.minRating}
+                                    {rating} / {rankProgress.isMaxTier ? "2000+" : (rankProgress.nextTier?.minRating || 400)}
                                 </strong>
                             </div>
                             <div className="profile-progress-track">

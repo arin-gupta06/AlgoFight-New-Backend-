@@ -8,7 +8,7 @@ import AvailablePlayers from "./AvailablePlayers.jsx";
 import { useAuth } from "../../contexts/AuthContext";
 import { fetchUserProfile } from "../../services/api";
 import { normalizeUserStats } from "../../utils/playerMetrics";
-import RankEmblem from "../Common/RankEmblem";
+import RankEmblem from "../Common/gamification/RankEmblem";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faTrophy,

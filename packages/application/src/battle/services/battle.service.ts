@@ -61,6 +61,7 @@ export class BattleService {
                 event: "BATTLE_FINISHED",
                 roomId,
                 winnerId: winnerId || null,
+                forfeitedUserId: forfeitedUserId || null,
                 reason,
                 finalState: state,
                 eloResults

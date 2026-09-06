@@ -4,15 +4,16 @@ import { AnimatePresence } from 'framer-motion';
 
 import Login from './components/Login/Login.jsx';
 import NavBar from './components/NavBar/NavBar.jsx';
-import ProtectedRoute from './components/ProtectedRoute.jsx';
-import AdminRoute from './components/AdminRoute.jsx';
-import SystemBroadcastBanner from './components/Common/SystemBroadcastBanner.jsx';
+import ProtectedRoute from './components/Common/routing/ProtectedRoute.jsx';
+import AdminRoute from './components/Common/routing/AdminRoute.jsx';
+import SystemBroadcastBanner from './components/Common/broadcasts/SystemBroadcastBanner.jsx';
 
 // 🚀 Code-split secondary route components with React.lazy
 const LandingPage = lazy(() => import('./components/LandingPage/LandingPage.jsx'));
 const Home = lazy(() => import('./components/Home/Home.jsx'));
 const Rewards = lazy(() => import('./components/Rewards/Rewards.jsx'));
 const Signup = lazy(() => import('./components/Signup/Signup.jsx'));
+const StudentLogin = lazy(() => import('./components/Login/StudentLogin.jsx'));
 const Profile = lazy(() => import('./components/Profile/Profile.jsx'));
 const LiveBattle = lazy(() => import('./components/Battle/LiveBattle.jsx'));
 const Leaderboard = lazy(() => import('./components/Leaderboard/Leaderboard.jsx'));
@@ -83,6 +84,7 @@ function App() {
             <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
+            <Route path="/student-login" element={<StudentLogin />} />
           </Route>
 
         {/* ================= Main App Routes ================= */}

@@ -27,7 +27,7 @@ import { requestJson } from "../../services/api";
 import { useAuth } from "../../contexts/AuthContext";
 import { useNotification } from "../../contexts/NotificationContext";
 import { getWsUrl } from "../../services/socket";
-import RankEmblem from "../Common/RankEmblem";
+import RankEmblem from "../Common/gamification/RankEmblem";
 import "./RoomLobby.css";
 
 export default function RoomLobby() {
@@ -458,7 +458,13 @@ export default function RoomLobby() {
     // Filter & Search
     const filteredParticipants = useMemo(() => {
         return participants.filter((p) => {
-            const name = (p.user?.username || p.username || "").toLowerCase();
+            const isMe = p.userId === currentUserId;
+            const name = (
+                p.user?.username || 
+                p.username || 
+                (isMe ? currentUsername : null) || 
+                (p.user?.email ? p.user.email.split('@')[0] : "")
+            ).toLowerCase();
             const id = (p.userId || "").toLowerCase();
             const query = searchQuery.trim().toLowerCase();
             const matchesSearch = !query || name.includes(query) || id.includes(query);
@@ -538,6 +544,12 @@ export default function RoomLobby() {
                             <div className="spec-item">
                                 <span className="spec-label">Problems</span>
                                 <span className="spec-val">{room?.questionCount || 3} ({room?.difficulty || "MIX"})</span>
+                            </div>
+                            <div className="spec-item">
+                                <span className="spec-label">Host</span>
+                                <span className="spec-val" style={{ color: '#ffd500', fontWeight: 600 }}>
+                                    {room?.host?.username || (isHost ? currentUsername : "Host")}
+                                </span>
                             </div>
                             <div className="spec-item">
                                 <span className="spec-label">Status</span>
@@ -695,7 +707,14 @@ export default function RoomLobby() {
                         {filteredParticipants.map((player, idx) => {
                             const isPlayerHost = player.userId === room?.hostId || player.userId === room?.host?.id;
                             const isMe = player.userId === currentUserId;
-                            const playerName = player.user?.username || player.username || `Player ${idx + 1}`;
+                            const playerName =
+                                player.user?.username ||
+                                player.username ||
+                                (isMe ? currentUsername : null) ||
+                                (player.user?.email ? player.user.email.split('@')[0] : null) ||
+                                (player.email ? player.email.split('@')[0] : null) ||
+                                `Combatant ${idx + 1}`;
+                            const playerRating = player.user?.rating ?? player.rating ?? 0;
 
                             return (
                                 <motion.div
@@ -706,7 +725,7 @@ export default function RoomLobby() {
                                     layout
                                 >
                                     <div className="participant-avatar">
-                                        {(playerName || "P")[0].toUpperCase()}
+                                        {(playerName || "C")[0].toUpperCase()}
                                     </div>
 
                                     <div className="participant-info">
@@ -716,8 +735,8 @@ export default function RoomLobby() {
                                             {isPlayerHost && <span className="host-badge"><FontAwesomeIcon icon={faCrown} /> HOST</span>}
                                         </div>
                                         <div className="participant-rating" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                            <RankEmblem rating={player.user?.rating ?? 0} size={18} glow={false} />
-                                            <span>Rating: {player.user?.rating ?? 0}</span>
+                                            <RankEmblem rating={playerRating} size={18} glow={false} />
+                                            <span>Rating: {playerRating}</span>
                                         </div>
                                     </div>
 

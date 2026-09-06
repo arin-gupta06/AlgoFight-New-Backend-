@@ -1,6 +1,8 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { AdminController } from "../controllers/admin.controller";
 import { SystemBroadcastService } from "../services/system-broadcast.service";
+import { linuxTelemetryBridge } from "../services/linux-telemetry-bridge.service";
+import { auditService } from "../services/audit.service";
 import { config } from "@algofight/config";
 
 const controller = new AdminController();
@@ -10,6 +12,14 @@ const ADMIN_SECRET = config.adminSecretKey || process.env.ADMIN_SECRET_KEY;
 const verifyAdminAccess = async (request: FastifyRequest, reply: FastifyReply) => {
     const adminKey = request.headers["x-admin-key"];
     if (adminKey !== ADMIN_SECRET) {
+        auditService.recordEvent({
+            category: "SECURITY",
+            severity: "WARN",
+            action: "UNAUTHORIZED_ADMIN_ACCESS_ATTEMPT",
+            actor: request.ip || "Unknown IP",
+            details: `Failed admin access attempt on ${request.url}`,
+        });
+
         return reply.status(403).send({
             error: "ACCESS_DENIED",
             message: "Level 5 SuperAdmin Clearance Required. Invalid or missing admin key.",
@@ -22,8 +32,24 @@ export async function adminRoutes(app: FastifyInstance) {
     app.post("/admin/auth/verify", async (request, reply) => {
         const { key } = (request.body as any) || {};
         if (key === ADMIN_SECRET) {
+            auditService.recordEvent({
+                category: "AUTH",
+                severity: "INFO",
+                action: "ADMIN_CLEARANCE_GRANTED",
+                actor: "SuperAdmin",
+                details: `SuperAdmin successfully authenticated from ${request.ip}`,
+            });
             return { success: true, message: "SuperAdmin clearance granted." };
         }
+
+        auditService.recordEvent({
+            category: "SECURITY",
+            severity: "WARN",
+            action: "INVALID_PASSKEY_SUBMITTED",
+            actor: request.ip || "Unknown IP",
+            details: "Invalid administrative passkey submitted",
+        });
+
         return reply.status(401).send({ success: false, message: "Invalid SuperAdmin Passkey." });
     });
 
@@ -41,8 +67,19 @@ export async function adminRoutes(app: FastifyInstance) {
         });
     });
 
-    // 4. System Broadcast Dispatcher Endpoints
-    // 4a. Dispatch new time-bound broadcast
+    // 4. Live Platform Audit Logs
+    app.get("/admin/audit-logs", { preHandler: [verifyAdminAccess] }, async (request) => {
+        const query = request.query as any;
+        return controller.getAuditLogs({
+            category: query.category,
+            severity: query.severity,
+            limit: query.limit ? parseInt(query.limit, 10) : 50,
+            search: query.search,
+        });
+    });
+
+    // 5. System Broadcast Dispatcher Endpoints
+    // 5a. Dispatch new time-bound broadcast
     app.post("/admin/broadcast", { preHandler: [verifyAdminAccess] }, async (request, reply) => {
         try {
             const body = (request.body as any) || {};
@@ -56,6 +93,16 @@ export async function adminRoutes(app: FastifyInstance) {
                 content: body.content,
                 action: body.action,
             });
+
+            auditService.recordEvent({
+                category: "ADMIN",
+                severity: "INFO",
+                action: "BROADCAST_DISPATCHED",
+                actor: "SuperAdmin",
+                details: `"${broadcast.title}" [${broadcast.type}] flash=${broadcast.flashBanner}`,
+                metadata: { broadcastId: broadcast.id, expiresAt: broadcast.expiresAt },
+            });
+
             return { success: true, broadcast };
         } catch (err: any) {
             return reply.status(400).send({
@@ -65,23 +112,35 @@ export async function adminRoutes(app: FastifyInstance) {
         }
     });
 
-    // 4b. List all broadcasts (Active, Expired, Revoked) for Control Hub management
+    // 5b. List all broadcasts (Active, Expired, Revoked) for Control Hub management
     app.get("/admin/broadcasts", { preHandler: [verifyAdminAccess] }, async () => {
         const broadcasts = await SystemBroadcastService.getAllAdminBroadcasts();
         return { broadcasts };
     });
 
-    // 4c. Revoke / delete a broadcast
+    // 5c. Revoke / delete a broadcast
     app.delete("/admin/broadcast/:id", { preHandler: [verifyAdminAccess] }, async (request, reply) => {
         const { id } = request.params as { id: string };
         if (!id) {
             return reply.status(400).send({ error: "MISSING_ID", message: "Broadcast ID is required." });
         }
         const success = await SystemBroadcastService.revokeBroadcast(id);
+
+        if (success) {
+            auditService.recordEvent({
+                category: "ADMIN",
+                severity: "WARN",
+                action: "BROADCAST_REVOKED",
+                actor: "SuperAdmin",
+                details: `Revoked broadcast ${id}`,
+                metadata: { broadcastId: id },
+            });
+        }
+
         return { success, message: "Broadcast revoked and purged from active clients." };
     });
 
-    // 4d. Upload broadcast media (Images, Videos, Documents)
+    // 5d. Upload broadcast media (Images, Videos, Documents)
     app.post("/admin/media", { preHandler: [verifyAdminAccess] }, async (request, reply) => {
         try {
             const body = (request.body as any) || {};
@@ -109,25 +168,18 @@ export async function adminRoutes(app: FastifyInstance) {
         }
     });
 
-    // 5. Proxy for Linux Telemetry Health (Bypasses Ad-Blockers)
-    app.get("/admin/linux-status", async (request, reply) => {
-        const rawTelemetryUrl = process.env.LINUX_TELEMETRY_URL || "http://localhost:8000";
-        const linuxBaseUrl = rawTelemetryUrl.replace(/\/dashboard\/?$/, "").replace(/\/$/, "");
-        
-        try {
-            const res = await fetch(`${linuxBaseUrl}/healthz`, {
-                signal: AbortSignal.timeout(2500),
-            });
-            if (res.ok) {
-                return { status: "ONLINE", online: true };
-            }
-            return { status: "OFFLINE", online: false };
-        } catch (err) {
-            return { status: "OFFLINE", online: false };
-        }
+    // 6. Resilient Proxy for Linux Telemetry Health
+    app.get("/admin/linux-status", async () => {
+        const health = await linuxTelemetryBridge.checkHealth();
+        return {
+            status: health.status,
+            online: health.online,
+            latencyMs: health.latencyMs,
+            endpoint: health.endpoint,
+        };
     });
 
-    // 6. Runtime Pool Elastic Orchestration & Probing via REST API
+    // 7. Runtime Pool Elastic Orchestration & Probing via REST API
     app.post("/admin/runtime-pool/scale-out", { preHandler: [verifyAdminAccess] }, async (request) => {
         const body = (request.body as any) || {};
         return controller.scaleOutRuntime(body.reason);
@@ -142,4 +194,3 @@ export async function adminRoutes(app: FastifyInstance) {
         return controller.probeAllRuntimes(body);
     });
 }
-

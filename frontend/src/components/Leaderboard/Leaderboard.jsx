@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTrophy, faArrowTrendUp, faArrowTrendDown, faMinus } from "@fortawesome/free-solid-svg-icons";
 import { fetchLeaderboard } from "../../services/api";
-import RankEmblem from "../Common/RankEmblem";
+import RankEmblem from "../Common/gamification/RankEmblem";
 import "./Leaderboard.css";
 
 export default function Leaderboard() {

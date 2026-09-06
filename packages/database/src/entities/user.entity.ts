@@ -11,6 +11,12 @@ export interface UserEntity {
     platformCode?: string | null;
     githubUrl?: string | null;
     linkedinUrl?: string | null;
+    institutionId?: string | null;
+    institutionDomain?: string | null;
+    admissionYear?: number | null;
+    branch?: string | null;
+    enrollmentNumber?: string | null;
+    studentIdentityMetadata?: any | null;
     rating: number;
     ewma: number;
     highestRating: number;

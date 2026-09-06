@@ -33,6 +33,20 @@ export async function syncBattleToTelemetry(battleData: {
     }>;
 }) {
     try {
+        const participants = battleData.participants.map(p => ({
+            user_id: p.userId,
+            username: p.username,
+            language: p.language || "cpp",
+            execution_time_ms: p.executionTimeMs || 0,
+            cpu_time_ms: p.cpuTimeMs || 0,
+            peak_memory_kb: p.peakMemoryKb || 0,
+            score: p.score || 0,
+            rank: p.rank || 1,
+            verdict: p.verdict || "ACCEPTED",
+            tests_passed: p.testsPassed || 0,
+            tests_total: p.testsTotal || 0,
+        }));
+
         await fetch(`${TELEMETRY_URL}/api/v1/telemetry/battle`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -44,8 +58,10 @@ export async function syncBattleToTelemetry(battleData: {
                 problem_title: battleData.problemTitle || "Algorithm Duel",
                 status: "FINISHED",
                 duration_seconds: battleData.durationSeconds || 0,
-                participants: battleData.participants,
-                winner_id: battleData.winnerId,
+                participants,
+                player1: participants[0] || null,
+                player2: participants[1] || null,
+                winner_id: battleData.winnerId || null,
             }),
         });
     } catch {

@@ -23,7 +23,7 @@ export async function userRoutes(app: FastifyInstance) {
     // 2. Get User Profile by ID or Email
     app.get("/users/:id", async (req) => {
         const { id } = req.params as { id: string };
-        return userController.getUserById(id);
+        return userController.getUserById(id, (req as any).user);
     });
 
     // 3. Available Players

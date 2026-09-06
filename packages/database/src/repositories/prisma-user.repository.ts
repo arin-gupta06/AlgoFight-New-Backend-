@@ -6,26 +6,34 @@ import { generatePlatformCode } from "../utils/platform-code";
 
 export class PrismaUserRepository implements UserRepository {
     async createUser(input: CreateUserInput): Promise<UserEntity> {
+        const createData: any = {
+            id: input.id,
+            username: input.username,
+            email: input.email,
+            userType: (input.userType as any) || "INDIVIDUAL",
+            primaryEmail: input.primaryEmail || input.email,
+            secondaryEmail: input.secondaryEmail || null,
+            institutionName: input.institutionName || null,
+            department: input.department || (input.branch ? input.branch : null),
+            batchYear: input.batchYear || (input.admissionYear ? String(input.admissionYear) : null),
+            platformCode: input.platformCode || generatePlatformCode(input.userType),
+            githubUrl: input.githubUrl || null,
+            linkedinUrl: input.linkedinUrl || null,
+            institutionId: input.institutionId || null,
+            institutionDomain: input.institutionDomain || null,
+            admissionYear: input.admissionYear || null,
+            branch: input.branch || null,
+            enrollmentNumber: input.enrollmentNumber || null,
+            studentIdentityMetadata: input.studentIdentityMetadata || null,
+        };
+
         return prisma.user.create({
-            data: {
-                id: input.id,
-                username: input.username,
-                email: input.email,
-                userType: (input.userType as any) || "INDIVIDUAL",
-                primaryEmail: input.primaryEmail || input.email,
-                secondaryEmail: input.secondaryEmail || null,
-                institutionName: input.institutionName || null,
-                department: input.department || null,
-                batchYear: input.batchYear || null,
-                platformCode: input.platformCode || generatePlatformCode(input.userType),
-                githubUrl: input.githubUrl || null,
-                linkedinUrl: input.linkedinUrl || null,
-            },
-        });
+            data: createData,
+        }) as unknown as UserEntity;
     }
 
     async upsertUser(input: CreateUserInput): Promise<UserEntity> {
-        let existing = input.id ? await prisma.user.findUnique({ where: { id: input.id } }) : null;
+        let existing: any = input.id ? await prisma.user.findUnique({ where: { id: input.id } }) : null;
         
         if (!existing && input.email) {
             existing = await prisma.user.findUnique({ where: { email: input.email } });
@@ -49,17 +57,28 @@ export class PrismaUserRepository implements UserRepository {
                 }
             }
 
+            const updateData: any = {
+                username: finalUsername,
+                email: finalEmail,
+                userType: (input.userType as any) || existing.userType,
+                institutionName: input.institutionName || existing.institutionName,
+                department: input.department || (input.branch ? input.branch : existing.department),
+                batchYear: input.batchYear || (input.admissionYear ? String(input.admissionYear) : existing.batchYear),
+                secondaryEmail: input.secondaryEmail || existing.secondaryEmail,
+                githubUrl: input.githubUrl || existing.githubUrl,
+                linkedinUrl: input.linkedinUrl || existing.linkedinUrl,
+                institutionId: input.institutionId || existing.institutionId,
+                institutionDomain: input.institutionDomain || existing.institutionDomain,
+                admissionYear: input.admissionYear || existing.admissionYear,
+                branch: input.branch || existing.branch,
+                enrollmentNumber: input.enrollmentNumber || existing.enrollmentNumber,
+                studentIdentityMetadata: input.studentIdentityMetadata !== undefined ? input.studentIdentityMetadata : existing.studentIdentityMetadata,
+            };
+
             return prisma.user.update({
                 where: { id: existing.id },
-                data: {
-                    username: finalUsername,
-                    email: finalEmail,
-                    institutionName: input.institutionName || existing.institutionName,
-                    secondaryEmail: input.secondaryEmail || existing.secondaryEmail,
-                    githubUrl: input.githubUrl || existing.githubUrl,
-                    linkedinUrl: input.linkedinUrl || existing.linkedinUrl,
-                },
-            });
+                data: updateData,
+            }) as unknown as UserEntity;
         }
 
         const usernameConflict = await prisma.user.findUnique({ where: { username: input.username } });
@@ -72,18 +91,28 @@ export class PrismaUserRepository implements UserRepository {
         } catch (error: any) {
             // Handle race condition where another request created the user just after we checked
             if (error?.code === "P2002") {
-                const retryExisting = await prisma.user.findUnique({ where: { id: input.id } });
+                const retryExisting: any = await prisma.user.findUnique({ where: { id: input.id } });
                 if (retryExisting) {
+                    const retryUpdateData: any = {
+                        email: input.email,
+                        institutionName: input.institutionName || retryExisting.institutionName,
+                        department: input.department || (input.branch ? input.branch : retryExisting.department),
+                        batchYear: input.batchYear || (input.admissionYear ? String(input.admissionYear) : retryExisting.batchYear),
+                        secondaryEmail: input.secondaryEmail || retryExisting.secondaryEmail,
+                        githubUrl: input.githubUrl || retryExisting.githubUrl,
+                        linkedinUrl: input.linkedinUrl || retryExisting.linkedinUrl,
+                        institutionId: input.institutionId || retryExisting.institutionId,
+                        institutionDomain: input.institutionDomain || retryExisting.institutionDomain,
+                        admissionYear: input.admissionYear || retryExisting.admissionYear,
+                        branch: input.branch || retryExisting.branch,
+                        enrollmentNumber: input.enrollmentNumber || retryExisting.enrollmentNumber,
+                        studentIdentityMetadata: input.studentIdentityMetadata !== undefined ? input.studentIdentityMetadata : retryExisting.studentIdentityMetadata,
+                    };
+
                     return prisma.user.update({
                         where: { id: retryExisting.id },
-                        data: {
-                            email: input.email,
-                            institutionName: input.institutionName || retryExisting.institutionName,
-                            secondaryEmail: input.secondaryEmail || retryExisting.secondaryEmail,
-                            githubUrl: input.githubUrl || retryExisting.githubUrl,
-                            linkedinUrl: input.linkedinUrl || retryExisting.linkedinUrl,
-                        },
-                    });
+                        data: retryUpdateData,
+                    }) as unknown as UserEntity;
                 }
             }
             throw error;
@@ -99,13 +128,18 @@ export class PrismaUserRepository implements UserRepository {
 
     async getUserById(identifier: string): Promise<UserEntity | null> {
         if (!identifier) return null;
+        const normalized = identifier.trim();
         const user = await prisma.user.findFirst({
             where: {
                 OR: [
-                    { id: identifier },
-                    { email: identifier },
-                    { username: identifier },
-                    { platformCode: identifier },
+                    { id: normalized },
+                    { email: normalized },
+                    { email: { equals: normalized, mode: "insensitive" } },
+                    { primaryEmail: { equals: normalized, mode: "insensitive" } },
+                    { username: normalized },
+                    { username: { equals: normalized, mode: "insensitive" } },
+                    { platformCode: normalized },
+                    { platformCode: { equals: normalized, mode: "insensitive" } },
                 ],
             },
         });

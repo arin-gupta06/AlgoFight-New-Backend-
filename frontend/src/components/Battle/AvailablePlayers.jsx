@@ -23,7 +23,7 @@ import { fetchAvailablePlayers } from "../../services/api";
 import { connectSocket, getSocket } from "../../services/socket";
 import { useAuth } from "../../contexts/AuthContext";
 import { useNotification } from "../../contexts/NotificationContext";
-import RankEmblem, { getRankTier } from "../Common/RankEmblem";
+import RankEmblem, { getRankTier } from "../Common/gamification/RankEmblem";
 import "./AvailablePlayers.css";
 
 export default function AvailablePlayers({ onPlayerCountChange }) {

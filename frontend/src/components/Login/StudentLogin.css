@@ -1,0 +1,339 @@
+/* frontend/src/components/Login/StudentLogin.css */
+
+.student-login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  background: radial-gradient(circle at 50% 20%, rgba(0, 240, 255, 0.08) 0%, rgba(10, 14, 23, 0.95) 75%),
+              linear-gradient(180deg, #06090e 0%, #0d121d 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.student-login-page::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(rgba(0, 229, 255, 0.03) 1px, transparent 1px);
+  background-size: 32px 32px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.student-login-card {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 480px;
+  background: rgba(13, 19, 32, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(0, 240, 255, 0.22);
+  border-radius: 16px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.7),
+              0 0 32px rgba(0, 240, 255, 0.12),
+              inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  padding: 36px 32px;
+}
+
+.student-login-header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.back-link {
+  display: inline-block;
+  font-size: 0.85rem;
+  color: #00f0ff;
+  text-decoration: none;
+  margin-bottom: 14px;
+  transition: all 0.2s ease;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+}
+
+.back-link:hover {
+  color: #66f7ff;
+  transform: translateX(-3px);
+}
+
+.badge-wrapper {
+  margin-bottom: 12px;
+}
+
+.institute-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(0, 240, 255, 0.12);
+  border: 1px solid rgba(0, 240, 255, 0.4);
+  color: #00f0ff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  padding: 5px 14px;
+  border-radius: 999px;
+  text-transform: uppercase;
+}
+
+.student-login-header h2 {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: 0.08em;
+  margin: 0 0 8px;
+  text-transform: uppercase;
+  background: linear-gradient(135deg, #ffffff 40%, #00f0ff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.student-login-header .subtitle {
+  font-size: 0.84rem;
+  color: #8c9ba8;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.student-auth-tabs {
+  display: flex;
+  background: rgba(8, 12, 20, 0.75);
+  padding: 4px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  margin-bottom: 24px;
+}
+
+.tab-btn {
+  flex: 1;
+  background: none;
+  border: none;
+  color: #7b8a99;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 9px 0;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.tab-btn.active {
+  background: rgba(0, 240, 255, 0.16);
+  color: #00f0ff;
+  box-shadow: 0 2px 10px rgba(0, 240, 255, 0.15);
+}
+
+.student-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.input-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.input-field label {
+  font-size: 0.76rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #a4b3c4;
+}
+
+.input-field input {
+  background: rgba(7, 11, 18, 0.75);
+  border: 1px solid rgba(0, 240, 255, 0.2);
+  border-radius: 8px;
+  color: #ffffff;
+  font-size: 0.92rem;
+  padding: 12px 14px;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.input-field input:focus {
+  border-color: #00f0ff;
+  box-shadow: 0 0 12px rgba(0, 240, 255, 0.25);
+  background: rgba(10, 16, 26, 0.9);
+}
+
+/* Detection Preview Card */
+.detection-card {
+  border-radius: 10px;
+  padding: 14px;
+  margin-top: -4px;
+  overflow: hidden;
+  font-size: 0.82rem;
+}
+
+.detection-card.success {
+  background: rgba(0, 240, 255, 0.08);
+  border: 1px solid rgba(0, 240, 255, 0.35);
+}
+
+.detection-card.warning {
+  background: rgba(255, 170, 0, 0.08);
+  border: 1px solid rgba(255, 170, 0, 0.35);
+}
+
+.detection-card.danger {
+  background: rgba(255, 59, 48, 0.08);
+  border: 1px solid rgba(255, 59, 48, 0.35);
+}
+
+.detection-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: #00f0ff;
+  margin-bottom: 10px;
+}
+
+.indicator-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.indicator-dot.green {
+  background: #00f0ff;
+  box-shadow: 0 0 8px #00f0ff;
+}
+
+.indicator-dot.red {
+  background: #ff4757;
+  box-shadow: 0 0 8px #ff4757;
+}
+
+.detection-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px 14px;
+}
+
+.grid-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.grid-label {
+  font-size: 0.7rem;
+  color: #7b8a99;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.grid-val {
+  font-size: 0.86rem;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.detection-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #ff6b81;
+}
+
+.form-error-text {
+  color: #ff4757;
+  font-size: 0.8rem;
+  margin: 0;
+  text-align: center;
+}
+
+.student-submit-btn {
+  background: linear-gradient(135deg, #00f0ff 0%, #0077ff 100%);
+  border: none;
+  border-radius: 8px;
+  color: #040810;
+  font-weight: 800;
+  font-size: 0.88rem;
+  letter-spacing: 0.1em;
+  padding: 14px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 20px rgba(0, 240, 255, 0.35);
+  margin-top: 4px;
+}
+
+.student-submit-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px rgba(0, 240, 255, 0.5);
+}
+
+.student-submit-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.student-separator {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  margin: 10px 0;
+}
+
+.student-separator::before,
+.student-separator::after {
+  content: "";
+  flex: 1;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.student-separator span {
+  padding: 0 12px;
+  font-size: 0.72rem;
+  color: #657585;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.student-google-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: rgba(18, 24, 38, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  color: #ffffff;
+  padding: 12px;
+  font-size: 0.86rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.student-google-btn:hover:not(:disabled) {
+  background: rgba(26, 36, 56, 0.95);
+  border-color: rgba(0, 240, 255, 0.35);
+  box-shadow: 0 0 16px rgba(0, 240, 255, 0.15);
+}
+
+.student-footer-note {
+  margin-top: 24px;
+  text-align: center;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding-top: 18px;
+}
+
+.student-footer-note p {
+  font-size: 0.74rem;
+  color: #6b7c8d;
+  line-height: 1.45;
+  margin: 0;
+}

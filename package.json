@@ -10,7 +10,7 @@
     "dev:api": "pnpm --filter @algofight/api exec tsx watch src/index.ts",
     "dev:worker": "pnpm --filter @algofight/worker exec tsx watch src/index.ts",
     "build:api": "pnpm --filter @algofight/database exec prisma db push --accept-data-loss && pnpm --filter @algofight/database exec prisma generate && pnpm --filter @algofight/api run build",
-    "import:problems": "pnpm exec tsx scripts/import-problems.ts",
+    "import:problems": "pnpm exec tsx scripts/database/import-problems.ts",
     "start:api": "pnpm --filter @algofight/api exec tsx src/index.ts",
     "lint": "eslint .",
     "format": "prettier --write ."

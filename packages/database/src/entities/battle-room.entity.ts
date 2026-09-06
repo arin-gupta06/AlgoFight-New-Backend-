@@ -9,9 +9,15 @@ export type BattleRoomStatusType =
     | "CANCELLED"
 
 export interface BattleRoomEntity {
-    id: string,
+    id: string;
     roomCode: string;
-    hostId: string,
+    hostId: string;
+    host?: {
+        id: string;
+        username: string;
+        rating: number;
+        email?: string | null;
+    };
     maxPlayers: number;
     participants: BattleParticipantEntity[];
     status: BattleRoomStatusType;

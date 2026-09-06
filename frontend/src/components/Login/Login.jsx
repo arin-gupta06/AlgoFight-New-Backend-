@@ -2,8 +2,8 @@ import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "./Login.css";
 import { motion, AnimatePresence } from "framer-motion";
-import { GoogleIcon, GithubIcon } from "../Common/Icons";
-import CompleteProfileDialog from "../Common/CompleteProfileDialog";
+import { GoogleIcon, GithubIcon } from "../Common/icons/Icons";
+import CompleteProfileDialog from "../Common/modals/CompleteProfileDialog";
 import { emailPasswordSignIn, googleSignIn, githubSignIn } from "../../firebaseConfig.js";
 import { useAuth } from "../../contexts/AuthContext.jsx";
 import { useNotification } from "../../contexts/NotificationContext.jsx";
@@ -149,6 +149,31 @@ function Login() {
               <button type="submit" className="auth-submit-btn" disabled={loading}>
                 {loading ? "AUTHENTICATING..." : "ENTER ARENA"}
               </button>
+
+              <div style={{ marginTop: "16px", textAlign: "center" }}>
+                <Link
+                  to="/student-login"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "8px",
+                    width: "100%",
+                    padding: "11px 16px",
+                    background: "rgba(0, 240, 255, 0.08)",
+                    border: "1px solid rgba(0, 240, 255, 0.35)",
+                    borderRadius: "8px",
+                    color: "#00f0ff",
+                    fontSize: "0.82rem",
+                    fontWeight: "700",
+                    letterSpacing: "0.06em",
+                    textDecoration: "none",
+                    transition: "all 0.2s ease"
+                  }}
+                >
+                  🏛️ STUDENT LOGIN (MITS GWALIOR & COLLEGES) →
+                </Link>
+              </div>
             </form>
           </motion.div>
         ) : (

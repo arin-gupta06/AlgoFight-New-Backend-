@@ -7,6 +7,7 @@ import rateLimit from "@fastify/rate-limit";
 import gatewayPlugin from "./plugins/gateway.plugin";
 import authPlugin from "./plugins/auth.plugin";
 import websocketPlugin from "./plugins/websocket.plugin";
+import studentIdentityPlugin from "./plugins/student-identity.plugin";
 import { registerErrorHandler } from "./plugins/error-handler";
 import { healthRoutes } from "./routes/health.route";
 import { submissionRoutes } from "./routes/submission.route";
@@ -62,6 +63,9 @@ const start = async () => {
 
         // Register WebSocket Plugin
         await app.register(websocketPlugin);
+
+        // Attachable Student Identity Plugin (MITS & Institutional Profiles)
+        await app.register(studentIdentityPlugin);
 
         // 5. Route Registrar Helper
         const registerAllRoutes = (instance: any) => {

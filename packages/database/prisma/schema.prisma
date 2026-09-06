@@ -37,9 +37,21 @@ model User {
   ratingHistories RatingHistory[]
   githubUrl       String?
   linkedinUrl     String?
+
+  // Institutional Student Identity (Stable Fields)
+  institutionId           String?
+  institutionDomain       String?
+  admissionYear           Int?
+  branch                  String?
+  enrollmentNumber        String?
+  studentIdentityMetadata Json?
+
   // Track high-level counts
   totalSubmissions Int @default(0)
   totalExecutions  Int @default(0)
+
+  @@index([institutionDomain])
+  @@index([institutionId])
 }
 
 enum Verdict {

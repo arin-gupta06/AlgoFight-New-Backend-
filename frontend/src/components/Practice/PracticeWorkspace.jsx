@@ -15,8 +15,8 @@ import { evaluatePracticeCode, fetchProblemById, recordPracticeProgress } from "
 import { useNotification } from "../../contexts/NotificationContext.jsx";
 import { useAuth } from "../../contexts/AuthContext.jsx";
 import { useAntiCheat } from "../../hooks/useAntiCheat";
-import ProblemStatement from "../Common/ProblemStatement.jsx";
-import DetailedAnalysisModal from "../Common/DetailedAnalysisModal.jsx";
+import ProblemStatement from "../Common/problem/ProblemStatement.jsx";
+import DetailedAnalysisModal from "../Common/modals/DetailedAnalysisModal.jsx";
 import {
   SUPPORTED_LANGUAGES,
   getStarterCodeForLanguage,

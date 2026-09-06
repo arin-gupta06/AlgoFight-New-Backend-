@@ -122,9 +122,72 @@ export class GatewayTelemetryCollector {
         return [...this.metrics];
     }
 
+    // 7. Dynamic Window Calculations for Real-Time Telemetry
+    public getRequestsInWindow(windowMs = 60000): number {
+        const cutoff = Date.now() - windowMs;
+        let count = 0;
+        for (let i = this.metrics.length - 1; i >= 0; i--) {
+            const m = this.metrics[i];
+            if (m.timestamp < cutoff) break;
+            if (m.name === "gateway_requests_total") count++;
+        }
+        return count;
+    }
+
+    public getRequestRate(windowMs = 60000): number {
+        const count = this.getRequestsInWindow(windowMs);
+        const seconds = Math.max(1, windowMs / 1000);
+        return Number((count / seconds).toFixed(2));
+    }
+
+    public getLatencyDistribution(windowMs = 60000): { avgMs: number; p95Ms: number; minMs: number; maxMs: number; sampleCount: number } {
+        const cutoff = Date.now() - windowMs;
+        const latencies: number[] = [];
+
+        for (let i = this.metrics.length - 1; i >= 0; i--) {
+            const m = this.metrics[i];
+            if (m.timestamp < cutoff) break;
+            if (m.name === "gateway_request_duration_seconds") {
+                latencies.push(m.value * 1000); // convert back to ms
+            }
+        }
+
+        if (latencies.length === 0) {
+            return { avgMs: 0, p95Ms: 0, minMs: 0, maxMs: 0, sampleCount: 0 };
+        }
+
+        latencies.sort((a, b) => a - b);
+        const sum = latencies.reduce((acc, v) => acc + v, 0);
+        const avgMs = Number((sum / latencies.length).toFixed(1));
+        const p95Index = Math.min(latencies.length - 1, Math.floor(latencies.length * 0.95));
+        const p95Ms = Number(latencies[p95Index].toFixed(1));
+        const minMs = Number(latencies[0].toFixed(1));
+        const maxMs = Number(latencies[latencies.length - 1].toFixed(1));
+
+        return { avgMs, p95Ms, minMs, maxMs, sampleCount: latencies.length };
+    }
+
+    public getAdmissionStats(windowMs = 60000): { total: number; admitted: number; rejected: number; admissionRate: number } {
+        const cutoff = Date.now() - windowMs;
+        let admitted = 0;
+        let rejected = 0;
+
+        for (let i = this.metrics.length - 1; i >= 0; i--) {
+            const m = this.metrics[i];
+            if (m.timestamp < cutoff) break;
+            if (m.name === "gateway_admissions_total") admitted++;
+            if (m.name === "gateway_rejections_total") rejected++;
+        }
+
+        const total = admitted + rejected;
+        const admissionRate = total > 0 ? Number(((admitted / total) * 100).toFixed(1)) : 100.0;
+        return { total, admitted, rejected, admissionRate };
+    }
+
     public clear(): void {
         this.metrics.length = 0;
     }
 }
 
 export const gatewayTelemetryCollector = new GatewayTelemetryCollector();
+

@@ -511,3 +511,162 @@
         grid-template-columns: 1fr;
     }
 }
+
+/* =========================================
+   STUDENT INSTITUTIONAL IDENTITY CARD
+   ========================================= */
+
+.profile-student-card {
+    margin: 0 24px 20px;
+    padding: 20px 24px;
+    background: linear-gradient(135deg, rgba(0, 240, 255, 0.07) 0%, rgba(10, 22, 40, 0.6) 100%);
+    border: 1px solid rgba(0, 240, 255, 0.28);
+    border-radius: 14px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(0, 240, 255, 0.15);
+    position: relative;
+    overflow: hidden;
+}
+
+.profile-student-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: linear-gradient(180deg, #00f0ff, #0077ff);
+}
+
+.student-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.student-card-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.student-card-icon {
+    font-size: 1.1rem;
+}
+
+.student-card-title {
+    font-size: 0.8rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    color: #00f0ff;
+    text-transform: uppercase;
+}
+
+.academic-session-tag {
+    font-size: 0.74rem;
+    font-weight: 600;
+    color: #8c9ba8;
+    background: rgba(255, 255, 255, 0.06);
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.student-card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px 20px;
+}
+
+.student-info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.student-info-item .info-label {
+    font-size: 0.72rem;
+    color: #7a8b9e;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 600;
+}
+
+.student-info-item .info-value {
+    font-size: 0.98rem;
+    color: #ffffff;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.student-info-item .highlight-cyan {
+    color: #00f0ff;
+    font-weight: 700;
+}
+
+.student-info-item .highlight-year {
+    color: #ffd32a;
+    font-weight: 700;
+}
+
+.student-info-item .highlight-sem {
+    color: #0be881;
+    font-weight: 700;
+}
+
+.student-info-item .font-mono {
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    color: #67e6dc;
+}
+
+.sem-type-badge {
+    font-size: 0.65rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.sem-type-badge.odd {
+    background: rgba(11, 232, 129, 0.15);
+    color: #0be881;
+    border: 1px solid rgba(11, 232, 129, 0.3);
+}
+
+.sem-type-badge.even {
+    background: rgba(0, 240, 255, 0.15);
+    color: #00f0ff;
+    border: 1px solid rgba(0, 240, 255, 0.3);
+}
+
+.sem-type-badge.transition {
+    background: rgba(255, 170, 0, 0.15);
+    color: #ffaa00;
+    border: 1px solid rgba(255, 170, 0, 0.3);
+}
+
+.student-card-note {
+    margin-top: 14px;
+    padding-top: 10px;
+    border-top: 1px dashed rgba(255, 255, 255, 0.08);
+    font-size: 0.76rem;
+    color: #ffaa00;
+    font-style: italic;
+}
+
+@media (max-width: 620px) {
+    .profile-student-card {
+        margin: 0 16px 16px;
+        padding: 16px;
+    }
+    .student-card-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+

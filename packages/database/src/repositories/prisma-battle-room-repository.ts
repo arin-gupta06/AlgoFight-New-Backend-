@@ -2,12 +2,46 @@ import { prisma } from "../client/prisma";
 import { BattleRoomRepository, CreateBattleRoomInput } from "../contracts/battle-room.repository";
 import { BattleRoomEntity } from "../entities/battle-room.entity";
 
+const battleRoomInclude = {
+    host: {
+        select: {
+            id: true,
+            username: true,
+            rating: true,
+            email: true,
+        },
+    },
+    participants: {
+        include: {
+            user: {
+                select: {
+                    id: true,
+                    username: true,
+                    rating: true,
+                    email: true,
+                },
+            },
+        },
+    },
+    problems: {
+        include: {
+            testCases: true,
+        },
+    },
+};
+
 export class PrismaBattleRoomRepository implements BattleRoomRepository {
     private mapToEntity(room: any): BattleRoomEntity {
         return {
             id: room.id,
             roomCode: room.roomCode,
             hostId: room.hostId,
+            host: room.host ? {
+                id: room.host.id,
+                username: room.host.username,
+                rating: room.host.rating ?? 0,
+                email: room.host.email,
+            } : undefined,
             maxPlayers: room.maxPlayers,
             status: room.status,
             difficulty: room.difficulty,
@@ -17,16 +51,27 @@ export class PrismaBattleRoomRepository implements BattleRoomRepository {
             startedAt: room.startedAt,
             endedAt: room.endedAt,
             createdAt: room.createdAt,
-            participants: (room.participants || []).map((p: any) => ({
-                userId: p.userId,
-                roomId: p.roomId,
-                joinedAt: p.joinedAt,
-                isReady: p.isReady,
-                score: p.score,
-                rank: p.rank,
-                solvedAt: p.solvedAt,
-                solvedProblemIds: p.solvedProblemIds,
-            })),
+            participants: (room.participants || []).map((p: any) => {
+                const u = p.user;
+                return {
+                    userId: p.userId,
+                    roomId: p.roomId,
+                    joinedAt: p.joinedAt,
+                    isReady: p.isReady,
+                    score: p.score,
+                    rank: p.rank,
+                    solvedAt: p.solvedAt,
+                    solvedProblemIds: p.solvedProblemIds,
+                    user: u ? {
+                        id: u.id,
+                        username: u.username,
+                        rating: u.rating ?? 0,
+                        email: u.email,
+                    } : undefined,
+                    username: u?.username || p.username || undefined,
+                    rating: u?.rating ?? p.rating ?? 0,
+                };
+            }),
         };
     }
 
@@ -58,7 +103,7 @@ export class PrismaBattleRoomRepository implements BattleRoomRepository {
 
             return tx.battleRoom.findUniqueOrThrow({
                 where: { id: created.id },
-                include: { participants: true, problems: { include: { testCases: true } } },
+                include: battleRoomInclude,
             });
         });
 
@@ -68,7 +113,7 @@ export class PrismaBattleRoomRepository implements BattleRoomRepository {
     async getRoomById(roomId: string): Promise<BattleRoomEntity | null> {
         const room = await prisma.battleRoom.findUnique({
             where: { id: roomId },
-            include: { participants: true, problems: { include: { testCases: true } } },
+            include: battleRoomInclude,
         });
         return room ? this.mapToEntity(room) : null;
     }
@@ -76,7 +121,7 @@ export class PrismaBattleRoomRepository implements BattleRoomRepository {
     async getRoomByCode(roomCode: string): Promise<BattleRoomEntity | null> {
         const room = await prisma.battleRoom.findUnique({
             where: { roomCode },
-            include: { participants: true, problems: { include: { testCases: true } } },
+            include: battleRoomInclude,
         });
         return room ? this.mapToEntity(room) : null;
     }
@@ -109,7 +154,7 @@ export class PrismaBattleRoomRepository implements BattleRoomRepository {
 
             return tx.battleRoom.findUniqueOrThrow({
                 where: { id: roomId },
-                include: { participants: true, problems: { include: { testCases: true } } },
+                include: battleRoomInclude,
             });
         });
 
@@ -181,7 +226,7 @@ export class PrismaBattleRoomRepository implements BattleRoomRepository {
 
             return tx.battleRoom.findUniqueOrThrow({
                 where: { id: roomId },
-                include: { participants: true, problems: { include: { testCases: true } } },
+                include: battleRoomInclude,
             });
         });
 
@@ -195,7 +240,7 @@ export class PrismaBattleRoomRepository implements BattleRoomRepository {
                 status: "RUNNING",
                 startedAt: new Date(),
             },
-            include: { participants: true, problems: { include: { testCases: true } } },
+            include: battleRoomInclude,
         });
         return this.mapToEntity(room);
     }
@@ -208,7 +253,7 @@ export class PrismaBattleRoomRepository implements BattleRoomRepository {
                 status: "FINISHED",
                 endedAt: new Date(),
             },
-            include: { participants: true },
+            include: battleRoomInclude,
         });
 
         return this.mapToEntity(room);

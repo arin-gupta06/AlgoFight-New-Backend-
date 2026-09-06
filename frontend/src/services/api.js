@@ -96,6 +96,32 @@ export async function syncUserToBackend({ uid, email, displayName, photoURL, aut
 }
 
 /**
+ * Pre-auth student email validation and institute detection preview
+ */
+export async function resolveStudentEmail(email) {
+  return requestJson("/api/student/resolve", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  });
+}
+
+/**
+ * Dedicated Student Sync
+ */
+export async function syncStudentToBackend({ uid, email, displayName, authToken, githubUrl, linkedinUrl }) {
+  return requestJson("/api/student/sync", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+    },
+    body: JSON.stringify({ id: uid, uid, email, displayName, githubUrl, linkedinUrl }),
+    includeAuth: true,
+  });
+}
+
+/**
  * Fetch leaderboard data from backend
  */
 export async function fetchLeaderboard() {
@@ -105,16 +131,32 @@ export async function fetchLeaderboard() {
 /**
  * Fetch user profile by Firebase UID
  */
-// frontend/src/services/api.js
 export async function fetchUserProfile(uid) {
   try {
     const identifier = uid || auth.currentUser?.email || auth.currentUser?.uid;
     if (!identifier) return null;
-    return await requestJson(`/api/users/${encodeURIComponent(identifier)}?t=${Date.now()}`, {
+    let res = await requestJson(`/api/users/${encodeURIComponent(identifier)}?t=${Date.now()}`, {
       includeAuth: true,
       cache: "no-store",
     });
+    if (!res && auth.currentUser?.email && identifier !== auth.currentUser.email) {
+      res = await requestJson(`/api/users/${encodeURIComponent(auth.currentUser.email)}?t=${Date.now()}`, {
+        includeAuth: true,
+        cache: "no-store",
+      });
+    }
+    return res;
   } catch {
+    if (auth.currentUser?.email && uid !== auth.currentUser.email) {
+      try {
+        return await requestJson(`/api/users/${encodeURIComponent(auth.currentUser.email)}?t=${Date.now()}`, {
+          includeAuth: true,
+          cache: "no-store",
+        });
+      } catch {
+        return null;
+      }
+    }
     return null;
   }
 }
@@ -264,5 +306,42 @@ export async function uploadBroadcastMedia(adminKey, mediaPayload) {
     body: JSON.stringify(mediaPayload),
   });
 }
+
+export async function fetchAdminAuditLogs(adminKey, { category = "ALL", severity = "ALL", search = "", limit = 50 } = {}) {
+  const params = new URLSearchParams();
+  if (category && category !== "ALL") params.set("category", category);
+  if (severity && severity !== "ALL") params.set("severity", severity);
+  if (search) params.set("search", search);
+  if (limit) params.set("limit", String(limit));
+
+  const query = params.toString() ? `?${params.toString()}` : "";
+  return requestJson(`/api/admin/audit-logs${query}`, {
+    headers: { "x-admin-key": adminKey },
+  });
+}
+
+export async function probeAdminFleet(adminKey, payload = {}) {
+  return requestJson(`/api/admin/runtime-pool/probe-all`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-admin-key": adminKey,
+    },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function scaleAdminFleet(adminKey, direction = "out", reason = "") {
+  const endpoint = direction === "out" ? "/api/admin/runtime-pool/scale-out" : "/api/admin/runtime-pool/scale-in";
+  return requestJson(endpoint, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-admin-key": adminKey,
+    },
+    body: JSON.stringify({ reason }),
+  });
+}
+
 
 

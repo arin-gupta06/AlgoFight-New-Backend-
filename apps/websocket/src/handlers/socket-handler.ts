@@ -954,23 +954,35 @@ export class SocketHandler {
                                 timeLimitSeconds: room.timeLimitMinutes * 60,
                             };
 
-                            const battleState = {
-                                roomId: room.id,
-                                status: "RUNNING",
-                                timeLimitSeconds: room.timeLimitMinutes * 60,
-                                startTime: Date.now(),
-                                totalQuestions: problems.length,
-                                players: room.participants.map(p => {
-                                    const presence = this.connectionManager.getPresence(p.userId);
-                                    return {
-                                        userId: p.userId,
-                                        username: (p as any).user?.username || presence?.username || p.userId,
-                                        points: 0,
-                                        solvedProblems: [],
-                                        solvedCount: 0
-                                    };
-                                })
-                            };
+                                const playerProfiles = await Promise.all(
+                                    room.participants.map(async (p) => {
+                                        if (p.user?.username) return p.user;
+                                        if (p.username) return { id: p.userId, username: p.username, rating: p.rating ?? 0 };
+                                        const found = await this.userRepo.getUserById(p.userId);
+                                        return found || { id: p.userId, username: p.userId, rating: 0 };
+                                    })
+                                );
+
+                                const battleState = {
+                                    roomId: room.id,
+                                    status: "RUNNING",
+                                    timeLimitSeconds: room.timeLimitMinutes * 60,
+                                    startTime: Date.now(),
+                                    totalQuestions: problems.length,
+                                    players: room.participants.map((p, idx) => {
+                                        const profile = playerProfiles[idx];
+                                        const presence = this.connectionManager.getPresence(p.userId);
+                                        const resolvedName = profile?.username || p.user?.username || p.username || presence?.username || `Combatant ${idx + 1}`;
+                                        return {
+                                            userId: p.userId,
+                                            username: resolvedName,
+                                            rating: profile?.rating ?? p.user?.rating ?? p.rating ?? 0,
+                                            points: 0,
+                                            solvedProblems: [],
+                                            solvedCount: 0
+                                        };
+                                    })
+                                };
 
                             await this.redis.set(`battle_state:${room.id}`, JSON.stringify(battleState), "EX", (room.timeLimitMinutes * 60) + 300);
                             await battleTimerQueue.add(JOB_NAMES.BATTLE_TIMER, { roomId: room.id }, { delay: (room.timeLimitMinutes * 60) * 1000 });
@@ -1139,14 +1151,24 @@ export class SocketHandler {
                                 this.connectionManager.updatePresenceStatus(winner.userId, "AVAILABLE");
                             }
 
+                            // Mark the leaving player as forfeited in battle state
+                            const forfeitedPlayerObj = state.players?.find((p: any) => p.userId === userId);
+                            if (forfeitedPlayerObj) {
+                                forfeitedPlayerObj.forfeited = true;
+                                forfeitedPlayerObj.status = "FORFEITED";
+                            }
+
                             state.status = "FINISHED";
                             await this.battleService.finishBattle(roomId, "OPPONENT_FORFEIT", winner?.userId, userId);
 
                             this.connectionManager.broadcastToRoom(roomId, "battle_over", {
                                 roomId,
                                 winner: winner?.username || "Opponent",
+                                winnerId: winner?.userId,
+                                winnerUsername: winner?.username || "Opponent",
                                 reason: "OPPONENT_FORFEIT",
                                 forfeitedPlayer: username,
+                                forfeitedUserId: userId,
                                 finalState: state,
                             });
                         } else {
@@ -1305,8 +1327,11 @@ export class SocketHandler {
                                     this.connectionManager.broadcastToRoom(session.roomId!, "battle_over", {
                                         roomId: session.roomId,
                                         winner: winner?.username || "Opponent",
+                                        winnerId: winner?.userId,
+                                        winnerUsername: winner?.username || "Opponent",
                                         reason: "OPPONENT_FORFEIT",
                                         forfeitedPlayer: session.username,
+                                        forfeitedUserId: session.userId,
                                         finalState: currentState,
                                     });
                                 } else {

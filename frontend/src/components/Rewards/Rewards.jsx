@@ -26,7 +26,7 @@ import {
     RANK_TIERS,
     UNIVERSAL_EFFICIENCY_RULES,
 } from '../../utils/playerMetrics';
-import RankEmblem from '../Common/RankEmblem';
+import RankEmblem from '../Common/gamification/RankEmblem';
 import './Rewards.css';
 
 const rewardCatalog = [

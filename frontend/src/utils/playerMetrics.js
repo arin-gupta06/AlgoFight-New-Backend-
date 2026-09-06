@@ -1,6 +1,7 @@
-import { RANK_TIERS as OFFICIAL_RANK_TIERS, getRankTier } from "../components/Common/RankEmblem";
+import { RANK_TIERS as OFFICIAL_RANK_TIERS, getRankTier } from "../components/Common/gamification/RankEmblem";
 
 export const RANK_TIERS = OFFICIAL_RANK_TIERS.map((t) => ({
+  name: t.name,
   label: t.name,
   key: t.key,
   minRating: t.minRating,

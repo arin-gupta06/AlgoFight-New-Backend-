@@ -13,6 +13,7 @@
     "@algofight/database": "workspace:*",
     "@algofight/error-handling": "workspace:*",
     "@algofight/events": "workspace:*",
+    "@algofight/institutional-identity": "workspace:*",
     "@algofight/logger": "workspace:*",
     "@algofight/queue": "workspace:*",
     "@algofight/state-machine": "workspace:*",

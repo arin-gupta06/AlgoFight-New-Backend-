@@ -13,6 +13,12 @@ export interface CreateUserInput {
     platformCode?: string;
     githubUrl?: string | null;
     linkedinUrl?: string | null;
+    institutionId?: string | null;
+    institutionDomain?: string | null;
+    admissionYear?: number | null;
+    branch?: string | null;
+    enrollmentNumber?: string | null;
+    studentIdentityMetadata?: any | null;
 }
 
 export interface UpdateRatingAuditInput {

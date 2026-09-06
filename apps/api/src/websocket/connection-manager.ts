@@ -33,13 +33,52 @@ export class ConnectionManager {
     public readonly userSockets = new Map<string, WebSocket>();
 
     // Map of roomId -> Set of WebSockets
-    private readonly roomSockets = new Map<string, Set<WebSocket>>();
+    public readonly roomSockets = new Map<string, Set<WebSocket>>();
 
     // Real-time presence registry: userId -> UserPresence
     private readonly presenceMap = new Map<string, UserPresence>();
 
     // Active direct 1v1 challenges: challengeId -> DirectChallenge
     private readonly challenges = new Map<string, DirectChallenge>();
+
+    // Rolling timestamps of broadcast events for real-time fan-out telemetry
+    private readonly broadcastTimestamps: number[] = [];
+    public totalBroadcastEvents = 0;
+
+    private recordBroadcastEvents(count = 1): void {
+        const now = Date.now();
+        this.totalBroadcastEvents += count;
+        for (let i = 0; i < count; i++) {
+            this.broadcastTimestamps.push(now);
+        }
+        // Retain max 10,000 recent points to avoid memory growth
+        if (this.broadcastTimestamps.length > 10000) {
+            this.broadcastTimestamps.splice(0, this.broadcastTimestamps.length - 10000);
+        }
+    }
+
+    public getFanOutRate(windowMs = 60000): number {
+        const cutoff = Date.now() - windowMs;
+        let count = 0;
+        for (let i = this.broadcastTimestamps.length - 1; i >= 0; i--) {
+            if (this.broadcastTimestamps[i] < cutoff) break;
+            count++;
+        }
+        const seconds = Math.max(1, windowMs / 1000);
+        return Number((count / seconds).toFixed(1));
+    }
+
+    public getActiveSocketCount(): number {
+        let count = 0;
+        for (const ws of this.userSockets.values()) {
+            if (ws.readyState === WebSocket.OPEN) count++;
+        }
+        return count;
+    }
+
+    public getActiveRoomCount(): number {
+        return this.roomSockets.size;
+    }
 
     // Register user socket on connect/auth
     registerUser(userId: string, socket: WebSocket, metadata?: Partial<UserPresence>): void {
@@ -183,6 +222,7 @@ export class ConnectionManager {
         const found = this.getSocketByIdentifier(userId);
         if (found) {
             found.socket.send(JSON.stringify({ event, payload }));
+            this.recordBroadcastEvents(1);
             return true;
         }
         return false;
@@ -193,21 +233,31 @@ export class ConnectionManager {
         const sockets = this.roomSockets.get(roomId);
         if (!sockets) return;
 
+        let delivered = 0;
         const message = JSON.stringify({ event, payload });
         for (const socket of sockets) {
             if (socket !== excludeSocket && socket.readyState === WebSocket.OPEN) {
                 socket.send(message);
+                delivered++;
             }
+        }
+        if (delivered > 0) {
+            this.recordBroadcastEvents(delivered);
         }
     }
 
     // Broadcast an event to all globally connected users
     broadcastToAll<T>(event: string, payload: T, excludeSocket?: WebSocket): void {
+        let delivered = 0;
         const message = JSON.stringify({ event, payload });
         for (const socket of this.userSockets.values()) {
             if (socket !== excludeSocket && socket.readyState === WebSocket.OPEN) {
                 socket.send(message);
+                delivered++;
             }
+        }
+        if (delivered > 0) {
+            this.recordBroadcastEvents(delivered);
         }
     }
 
@@ -215,6 +265,7 @@ export class ConnectionManager {
     isUserOnline(userId: string): boolean {
         return !!this.getSocketByIdentifier(userId);
     }
+
 
     // ============================================
     // Direct Challenge System

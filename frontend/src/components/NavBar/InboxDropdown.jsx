@@ -15,7 +15,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import { getSocket } from '../../services/socket';
 import { useNotificationInbox } from '../../contexts/NotificationInboxContext';
-import SystemBroadcastCard from '../Common/SystemBroadcastCard.jsx';
+import SystemBroadcastCard from '../Common/broadcasts/SystemBroadcastCard.jsx';
 import './InboxDropdown.css';
 
 function formatTimeAgo(timestamp) {

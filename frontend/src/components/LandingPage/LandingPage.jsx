@@ -30,7 +30,7 @@ import logoIcon from '../../assets/algofight-logo.png';
 import BrandIntro from '../BrandIntro/BrandIntro';
 import HeroCodeEditor from './HeroCodeEditor';
 import CircularTestimonials from '../ui/circular-testimonials';
-import PublicInfoModal from '../Common/PublicInfoModal';
+import PublicInfoModal from '../Common/modals/PublicInfoModal';
 import './LandingPage.css';
 
 const testimonialsData = [

@@ -4,6 +4,7 @@ import { WebSocketServer, WebSocket } from "ws";
 import { ConnectionManager } from "./server/connection-manager";
 import { SocketHandler } from "./handlers/socket-handler";
 import { logger } from "@algofight/logger";
+import { syncBattleToTelemetry } from "./events/battle.events";
 
 const WS_PORT = config.wsPort || (process.env.WS_PORT ? parseInt(process.env.WS_PORT, 10) : 4001);
 
@@ -76,8 +77,20 @@ redisSubscriber.on("message", (channel, message) => {
             }
 
             if (payload.event === "BATTLE_FINISHED") {
+                const winnerPlayer = payload.finalState?.players?.find((p: any) => p.userId === payload.winnerId);
+                const winnerUsername = winnerPlayer?.username || payload.winnerUsername || payload.winnerId;
+                const forfeitedPlayer = payload.forfeitedPlayer || 
+                    (payload.reason === "OPPONENT_FORFEIT" && payload.forfeitedUserId
+                        ? payload.finalState?.players?.find((p: any) => p.userId === payload.forfeitedUserId)?.username
+                        : undefined);
+
                 connectionManager.broadcastToRoom(payload.roomId, "battle_over", {
-                    winner: payload.winnerId,
+                    roomId: payload.roomId,
+                    winner: winnerUsername,
+                    winnerId: payload.winnerId,
+                    winnerUsername,
+                    forfeitedPlayer,
+                    forfeitedUserId: payload.forfeitedUserId,
                     reason: payload.reason,
                     finalState: payload.finalState,
                 });
@@ -91,6 +104,23 @@ redisSubscriber.on("message", (channel, message) => {
                         connectionManager.updatePresenceStatus(player.userId, "AVAILABLE");
                     }
                 }
+
+                // 🛰️ Sync real battle event to Linux Telemetry Service
+                syncBattleToTelemetry({
+                    roomId: payload.roomId,
+                    battleType: payload.finalState?.players?.length <= 2 ? "1v1" : "FFA_MULTIPLAYER",
+                    durationSeconds: payload.finalState?.startTime ? Math.round((Date.now() - payload.finalState.startTime) / 1000) : 15,
+                    winnerId: payload.winnerId,
+                    participants: (payload.finalState?.players || []).map((p: any, idx: number) => ({
+                        userId: p.userId,
+                        username: p.username || `Player ${idx + 1}`,
+                        score: p.points || 0,
+                        rank: p.userId === payload.winnerId ? 1 : idx + 1,
+                        verdict: p.points > 0 ? "ACCEPTED" : "WRONG_ANSWER",
+                        testsPassed: p.solvedCount || (p.points > 0 ? 1 : 0),
+                        testsTotal: payload.finalState?.totalQuestions || 1,
+                    })),
+                }).catch(() => {});
             }
         } catch (error) {
             logger.error({ error }, "Error parsing battle-events message");

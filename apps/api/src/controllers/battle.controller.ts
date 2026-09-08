@@ -24,6 +24,12 @@ export class BattleController {
         );
     }
 
+    private async resolveUserId(identifier: string): Promise<string> {
+        const user = await this.userRepository.getUserById(identifier);
+        if (!user) throw new Error(`User not found: ${identifier}`);
+        return user.id;
+    }
+
     private async resolveUser(authUser: { id: string; email?: string; username?: string }): Promise<string> {
         let user = await this.userRepository.getUserById(authUser.id);
         if (!user) {

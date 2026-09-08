@@ -210,7 +210,22 @@ export default function LiveBattle() {
   const initialRoomCode = location.state?.roomCode;
 
   const [status, setStatus] = useState(initialMatch || initialRoomCode ? "matched" : "connecting");
+  const statusRef = useRef(status);
+  
+  useEffect(() => {
+      statusRef.current = status;
+  }, [status]);
+
   const [problems, setProblems] = useState(initialMatch?.problems || []);
+  const [mySolvedCount, setMySolvedCount] = useState(0);
+  const [opponentSolvedCount, setOpponentSolvedCount] = useState(0);
+  const [battleId, setBattleId] = useState(null);
+  const [myPerformanceScore, setMyPerformanceScore] = useState(0);
+  
+  const slowNotificationTimer = useRef(null);
+
+  // Gamification states
+  const [myRankBefore, setMyRankBefore] = useState("ROOKIE");
   const [activeProblemIndex, setActiveProblemIndex] = useState(0);
   const [opponentName, setOpponentName] = useState("");
   const [code, setCode] = useState("");
@@ -395,7 +410,7 @@ export default function LiveBattle() {
         const currentTarget = roomId || initialMatch?.roomId || initialMatch?.roomCode || initialRoomCode;
         if (currentTarget) {
           socket.emit("join_room_channel", { roomCode: currentTarget, userId: user?.uid, username });
-        } else if (status !== "matched") {
+        } else if (statusRef.current !== "matched") {
           setStatus("waiting");
           notify({ type: "info", title: "Matchmaking", message: "Searching for a 1v1 challenger...", duration: 2600 });
           socket.emit("find_match", {
@@ -408,9 +423,6 @@ export default function LiveBattle() {
       };
 
       socket.on("connect", initiateBattleQueue);
-      if (socket.connected || socket.ws?.readyState === WebSocket.OPEN) {
-        initiateBattleQueue();
-      }
 
       socket.on("waiting_for_opponent", (data) => {
         if (!roomId && !initialMatch) {
@@ -423,6 +435,11 @@ export default function LiveBattle() {
         if (data?.searchWindow) {
           setSearchWindow(data.searchWindow);
         }
+      });
+
+      socket.on("matchmaking_timeout", (data) => {
+        notify({ type: "warning", title: "Matchmaking Failed", message: data?.message || "No available player found for 1v1 battle.", duration: 5000 });
+        navigate("/battle");
       });
 
       socket.on("match_found", (data) => {
@@ -489,10 +506,15 @@ export default function LiveBattle() {
       });
 
       socket.on("code_result", (data) => {
-        const result = data?.result || data?.payload?.result || data;
         setRunning(false);
         setRunMode("idle");
+        
+        if (slowNotificationTimer.current) {
+            clearTimeout(slowNotificationTimer.current);
+            slowNotificationTimer.current = null;
+        }
 
+        const result = data.result || data;
         const isSuccess = result?.success || false;
         const testCases = result?.results || [];
         const passedCount = testCases.filter(tc => tc.passed).length;
@@ -643,7 +665,7 @@ export default function LiveBattle() {
     return () => {
       cancelled = true;
       const targetId = roomId || initialMatch?.roomId || initialMatch?.roomCode || initialRoomCode;
-      if (socketRef.current && targetId && status !== "finished") {
+      if (socketRef.current && targetId && statusRef.current !== "finished") {
         socketRef.current.emit("leave_battle", {
           roomId: targetId,
           userId: user?.uid,
@@ -665,9 +687,12 @@ export default function LiveBattle() {
         socketRef.current.off("opponent_disconnected");
         socketRef.current.off("opponent_reconnected");
         socketRef.current.off("rating_updates");
+        socketRef.current.off("matchmaking_timeout");
       }
+      
+      if (slowNotificationTimer.current) clearTimeout(slowNotificationTimer.current);
     };
-  }, [notify, user?.uid, username, roomId, initialMatch, initialRoomCode, status]);
+  }, [notify, user?.uid, username, roomId, initialMatch, initialRoomCode]);
 
   const onTestCode = () => {
     if (!roomId || !socketRef.current) return;
@@ -677,6 +702,16 @@ export default function LiveBattle() {
     setExecutionTests([]);
     setOutput("Testing against sample cases...");
     socketRef.current.emit("test_code", { code, language, roomId, problemId: problem.id });
+    
+    if (slowNotificationTimer.current) clearTimeout(slowNotificationTimer.current);
+    slowNotificationTimer.current = setTimeout(() => {
+        notify({
+            type: "info",
+            title: "Evaluating...",
+            message: "The platform is taking a little longer to get the result. Please hold on!",
+            autoClose: 5000
+        });
+    }, 5000);
   };
 
   const onSubmitCode = () => {
@@ -687,6 +722,16 @@ export default function LiveBattle() {
     setExecutionTests([]);
     setOutput("Testing against hidden and edge cases...");
     socketRef.current.emit("submit_code", { code, language, roomId, problemId: problem.id });
+    
+    if (slowNotificationTimer.current) clearTimeout(slowNotificationTimer.current);
+    slowNotificationTimer.current = setTimeout(() => {
+        notify({
+            type: "info",
+            title: "Evaluating...",
+            message: "The platform is taking a little longer to get the result. Please hold on!",
+            autoClose: 5000
+        });
+    }, 5000);
   };
 
   if (status === "connecting" || status === "waiting") {

@@ -9,6 +9,7 @@ export type CreateBattleRoomInput = {
     difficulty: string;
     questionCount: number;
     problemIds: string[];
+    isFriendly?: boolean;
 };
 
 export interface BattleRoomRepository {

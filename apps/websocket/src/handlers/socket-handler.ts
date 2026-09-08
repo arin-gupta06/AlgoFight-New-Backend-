@@ -447,7 +447,8 @@ export class SocketHandler {
                             maxPlayers: 2,
                             timeLimitMinutes: 15,
                             difficulty: "MIX",
-                            questionCount: 3
+                            questionCount: 3,
+                            isFriendly: true
                         });
 
                         await this.battleRoomService.joinRoom(room.id, challenge.targetUserId);
@@ -638,17 +639,18 @@ export class SocketHandler {
                             }
                         }, 12000);
 
-                        // 25s Timeout Fallback to Bot
+                        // 25s Timeout Cancel Queue
                         setTimeout(async () => {
                             try {
                                 if (await this.matchmakingService.isQueued(activeUserId)) {
-                                    logger.info({ userId: activeUserId }, "Matchmaking timed out (25s) -> Fallback to AlgoBot");
-                                    const botMatch = await this.matchmakingService.createBotMatch(activeUserId, activeUsername);
-                                    this.connectionManager.updatePresenceStatus(activeUserId, "IN_BATTLE", botMatch.roomId);
-                                    await this.dispatchMatch(botMatch);
+                                    logger.info({ userId: activeUserId }, "Matchmaking timed out (25s) -> Canceling queue");
+                                    await this.matchmakingService.cancelQueue(activeUserId);
+                                    this.send(socket, "matchmaking_timeout", {
+                                        message: "No available player in matchmaking for 1v1 battle."
+                                    });
                                 }
                             } catch (err: any) {
-                                logger.error({ err, userId: activeUserId }, "Failed to dispatch bot match");
+                                logger.error({ err, userId: activeUserId }, "Failed to timeout matchmaking");
                                 this.send(socket, "error", "Matchmaking error occurred");
                             }
                         }, 25000);
@@ -689,27 +691,63 @@ export class SocketHandler {
 
                 case "test_code": {
                     const { code, language } = data;
-                    const result = await this.mockExecutor.execute({
-                        submissionId: `test-${Date.now()}`,
-                        language: language || "javascript",
-                        code: code || "",
-                        testCases: [
-                            { input: "2 7", expectedOutput: "9" },
-                            { input: "3 2", expectedOutput: "5" },
-                        ],
-                        timeLimit: 2000,
-                        memoryLimit: 256,
-                    });
+                    const testSubmissionId = `test-${Date.now()}`;
+                    try {
+                        const result = await this.evaluationService.evaluateSubmission({
+                            submissionId: testSubmissionId,
+                            language: language || "javascript",
+                            code: code || "",
+                            testCases: [
+                                { id: "tc-1", input: "2 7", expectedOutput: "9" },
+                                { id: "tc-2", input: "3 2", expectedOutput: "5" },
+                            ],
+                            timeLimitMs: 2000,
+                            memoryLimitBytes: 256 * 1024 * 1024,
+                        }, undefined, "SAMPLE");
 
-                    this.send(socket, "code_result", {
-                        result: {
-                            passed: result.failedCount === 0,
-                            passedTestCases: result.passedCount,
-                            totalTestCases: result.passedCount + result.failedCount,
-                            output: result.stdout || (result.failedCount === 0 ? "Sample test cases passed!" : result.stderr || "Output mismatch."),
-                            executionTime: result.executionTime,
-                        },
-                    });
+                        const passed = result.verdict === "ACCEPTED";
+                        const passedCount = result.testCases?.filter(tc => tc.passed).length || 0;
+                        const totalCount = result.testCases?.length || 2;
+                        
+                        let output = result.compilation && !result.compilation.success 
+                            ? result.compilation.output || result.compilation.error
+                            : (result.testCases && result.testCases.length > 0 && result.testCases[0].actualOutput) 
+                                ? result.testCases[0].actualOutput 
+                                : (passed ? "Sample test cases passed!" : "Output mismatch or execution error.");
+
+                        this.send(socket, "code_result", {
+                            result: {
+                                passed: passed,
+                                passedTestCases: passedCount,
+                                totalTestCases: totalCount,
+                                output: output,
+                                executionTime: result.execution?.executionTime || 0,
+                            },
+                        });
+                    } catch (err: any) {
+                        logger.warn({ err, submissionId: testSubmissionId }, "Piston execution failed, falling back to mock executor");
+                        const result = await this.mockExecutor.execute({
+                            submissionId: testSubmissionId,
+                            language: language || "javascript",
+                            code: code || "",
+                            testCases: [
+                                { input: "2 7", expectedOutput: "9" },
+                                { input: "3 2", expectedOutput: "5" },
+                            ],
+                            timeLimit: 2000,
+                            memoryLimit: 256,
+                        });
+
+                        this.send(socket, "code_result", {
+                            result: {
+                                passed: result.failedCount === 0,
+                                passedTestCases: result.passedCount,
+                                totalTestCases: result.passedCount + result.failedCount,
+                                output: result.stdout || (result.failedCount === 0 ? "Sample test cases passed!" : result.stderr || "Output mismatch."),
+                                executionTime: result.executionTime,
+                            },
+                        });
+                    }
                     break;
                 }
 

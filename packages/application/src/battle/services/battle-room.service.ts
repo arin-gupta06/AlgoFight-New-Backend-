@@ -12,6 +12,7 @@ export interface CreateRoomDto {
     timeLimitMinutes?: number;
     difficulty?: string;
     questionCount?: number;
+    isFriendly?: boolean;
 }
 
 
@@ -58,6 +59,7 @@ export class BattleRoomService {
             difficulty: dto.difficulty || "MIX",
             questionCount: dto.questionCount ?? 3,
             problemIds: selectedProblems.map(p => p.id),
+            isFriendly: dto.isFriendly,
             status: "WAITING",
         });
     }
@@ -179,7 +181,7 @@ export class BattleRoomService {
         let eloResults: Record<string, EloResult> | undefined;
 
         if (this.ratingService) {
-            if (sorted.length >= 2) {
+            if (sorted.length >= 2 && !room.isFriendly) {
                 const shouldApplyElo = forfeitedUserId || sorted.some(p => p.score > 0 || p.solvedAt);
                 if (shouldApplyElo) {
                     const totalProblems = room.questionCount || room.problems?.length || 1;

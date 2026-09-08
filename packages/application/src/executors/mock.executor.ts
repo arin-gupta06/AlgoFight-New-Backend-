@@ -14,7 +14,7 @@ import { SubmissionStatus }
 
 import { Verdict } from "@algofight/types";
 
-const MOCK_EXECUTION_TIME = 3000;
+const MOCK_EXECUTION_TIME = 500;
 
 export class MockExecutor
     implements CodeExecutor {

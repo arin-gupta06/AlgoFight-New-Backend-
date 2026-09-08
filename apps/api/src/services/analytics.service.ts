@@ -330,7 +330,7 @@ export class AnalyticsService {
         for (const session of this.sessions.values()) {
             if (session.lastActive >= cutoff) count++;
         }
-        return Math.max(1, count); // Baseline 1 (the active admin)
+        return count;
     }
 
     /**
@@ -437,35 +437,26 @@ export class AnalyticsService {
             const bucket = this.hourlyBuckets.get(hourStr);
             hourlyTimeline.push({
                 hour: hourStr,
-                hits: bucket ? bucket.hits : Math.floor(Math.max(10, (12 - i) * 14 + (h * 3) % 25)),
-                activeUsers: bucket ? Math.max(1, bucket.users.size) : Math.floor(Math.max(2, (h % 7) + 3)),
+                hits: bucket ? bucket.hits : 0,
+                activeUsers: bucket ? bucket.users.size : 0,
             });
         }
 
         return {
-            activeUsersNow: Math.max(1, activeCount),
-            authenticatedUsers: Math.max(1, authCount),
+            activeUsersNow: activeCount,
+            authenticatedUsers: authCount,
             guestUsers: guestCount,
-            peakUsers24h: Math.max(this.peakActiveUsers, activeCount, 8),
+            peakUsers24h: Math.max(this.peakActiveUsers, activeCount),
             totalPageViews: this.totalPageViewsCount,
-            totalSessions: Math.max(1, this.totalSessionsCount),
+            totalSessions: this.totalSessionsCount,
             avgSurfingSeconds: avgSeconds,
             avgSurfingFormatted: this.formatDuration(avgSeconds),
             topPages,
             methodBreakdown: { ...this.methodCounters },
             topIpOrigins,
             hourlyTimeline,
-            deviceBreakdown: {
-                Desktop: 74,
-                Mobile: 22,
-                Tablet: 4,
-            },
-            browserBreakdown: {
-                Chrome: 62,
-                Firefox: 18,
-                Edge: 12,
-                Safari: 8,
-            },
+            deviceBreakdown: {},
+            browserBreakdown: {},
             recentSessions: recentSessions.slice(0, 8),
         };
     }
@@ -504,68 +495,7 @@ export class AnalyticsService {
      * and visual upon launching the Control Hub without requiring days of production traffic.
      */
     private seedBaselineTelemetry(): void {
-        const now = Date.now();
-        const initialPages = [
-            { path: "/practice", title: "Practice Problems Library", hits: 412, duration: 18 * 60 },
-            { path: "/battle", title: "Battle Arena & Matchmaking", hits: 368, duration: 14 * 60 },
-            { path: "/home", title: "Combatant Dashboard (Home)", hits: 285, duration: 4 * 60 },
-            { path: "/leaderboard", title: "Global Hall of Fame", hits: 194, duration: 3 * 60 },
-            { path: "/practice/two-sum", title: "Practice Workspace (IDE)", hits: 156, duration: 22 * 60 },
-            { path: "/profile", title: "Combatant Dossier & Profile", hits: 128, duration: 5 * 60 },
-            { path: "/login", title: "Combatant Access Gateway", hits: 98, duration: 1 * 60 },
-            { path: "/admin", title: "Central Control Hub", hits: 74, duration: 8 * 60 },
-            { path: "/about", title: "About AlgoFight", hits: 52, duration: 2 * 60 },
-        ];
-
-        let totalHits = 0;
-        let totalDwell = 0;
-
-        for (const p of initialPages) {
-            const stat: PageStat = {
-                path: p.path,
-                title: p.title,
-                hits: p.hits,
-                uniqueIps: new Set<string>(["127.0.0.1", "103.21.244.2", "152.58.12.90", "192.168.1.5"]),
-                totalDurationSeconds: p.hits * p.duration,
-                lastHit: now - Math.floor(Math.random() * 60000),
-            };
-            this.pageStats.set(p.path, stat);
-            totalHits += p.hits;
-            totalDwell += stat.totalDurationSeconds;
-        }
-
-        this.totalPageViewsCount = totalHits;
-        this.totalSessionsCount = 186;
-        this.cumulativeDwellSeconds = totalDwell;
-        this.peakActiveUsers = 28;
-
-        // Baseline HTTP method counters
-        this.methodCounters.GET = 1420;
-        this.methodCounters.POST = 485;
-        this.methodCounters.PUT = 34;
-        this.methodCounters.DELETE = 18;
-
-        // Baseline IP origins
-        this.recordIpActivity("127.0.0.1", "GET", "/admin", "Mozilla/5.0", "SuperAdmin");
-        this.recordIpActivity("103.21.244.2", "POST", "/battle", "Mozilla/5.0", "ShadowCoder");
-        this.recordIpActivity("152.58.12.90", "GET", "/practice", "Mozilla/5.0", "ByteMaster");
-        this.recordIpActivity("49.37.112.45", "POST", "/practice/two-sum", "Mozilla/5.0", "AlgoPro");
-        this.recordIpActivity("106.51.78.201", "GET", "/leaderboard", "Mozilla/5.0", "Vortex");
-
-        // Seed an initial active admin session
-        this.sessions.set("sess_admin_master", {
-            sessionId: "sess_admin_master",
-            ip: "127.0.0.1",
-            userId: "admin-root",
-            username: "SuperAdmin",
-            currentPath: "/admin",
-            currentTitle: "Central Control Hub",
-            device: "Desktop",
-            browser: "Chrome",
-            startTime: now - 12 * 60 * 1000,
-            lastActive: now,
-            totalDwellSeconds: 720,
-        });
+        // Seeding removed as per user request to only show authenticated/real content.
     }
 }
 

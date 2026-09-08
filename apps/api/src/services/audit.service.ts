@@ -167,43 +167,6 @@ export class AuditService {
                 });
             }
 
-            // Seed initial realistic page surfing and HTTP logs
-            this.entries.push(
-                {
-                    id: `aud_hist_surf_1`,
-                    timestamp: new Date(Date.now() - 45000).toISOString(),
-                    category: "PAGE_VIEW",
-                    severity: "INFO",
-                    action: "PAGE_SURF",
-                    actor: "ShadowCoder",
-                    ip: "103.21.244.2",
-                    method: "GET",
-                    details: "Surfing /battle (Battle Arena & Matchmaking) [Dwell: 14m]",
-                },
-                {
-                    id: `aud_hist_surf_2`,
-                    timestamp: new Date(Date.now() - 30000).toISOString(),
-                    category: "PAGE_VIEW",
-                    severity: "INFO",
-                    action: "PAGE_SURF",
-                    actor: "ByteMaster",
-                    ip: "152.58.12.90",
-                    method: "GET",
-                    details: "Surfing /practice (Practice Problems Library) [Dwell: 18m]",
-                },
-                {
-                    id: `aud_hist_surf_3`,
-                    timestamp: new Date(Date.now() - 15000).toISOString(),
-                    category: "HTTP_TRAFFIC",
-                    severity: "INFO",
-                    action: "GATEWAY_REQUEST",
-                    actor: "AlgoPro",
-                    ip: "49.37.112.45",
-                    method: "POST",
-                    details: "POST /api/submissions - Admitted via Context A (Latency: 12ms)",
-                }
-            );
-
             // Sort newest first
             this.entries.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
         } catch {

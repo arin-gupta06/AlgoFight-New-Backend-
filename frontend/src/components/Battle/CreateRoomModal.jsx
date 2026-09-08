@@ -16,6 +16,7 @@ export default function CreateRoomModal({ isOpen, onClose }) {
     const [timeLimit, setTimeLimit] = useState(15);
     const [difficulty, setDifficulty] = useState("MEDIUM");
     const [questionCount, setQuestionCount] = useState(3);
+    const [isFriendly, setIsFriendly] = useState(false);
     const [creating, setCreating] = useState(false);
 
     if (!isOpen) return null;
@@ -38,6 +39,7 @@ export default function CreateRoomModal({ isOpen, onClose }) {
                     timeLimitMinutes: Number(timeLimit),
                     difficulty,
                     questionCount: Number(questionCount),
+                    isFriendly,
                 }),
                 includeAuth: true,
             });
@@ -165,6 +167,17 @@ export default function CreateRoomModal({ isOpen, onClose }) {
                                 ))}
                             </div>
                             <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)', marginTop: '6px' }}>MIX will dynamically balance questions: ~30% Hard, 50% Medium, 20% Easy.</p>
+                        </div>
+
+                        <div className="form-group-hud" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <input 
+                                type="checkbox" 
+                                id="friendly-battle-toggle"
+                                checked={isFriendly}
+                                onChange={(e) => setIsFriendly(e.target.checked)}
+                                style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                            />
+                            <label htmlFor="friendly-battle-toggle" style={{ margin: 0, cursor: 'pointer' }}>Friendly Battle (Unranked)</label>
                         </div>
 
                         <div className="modal-actions">

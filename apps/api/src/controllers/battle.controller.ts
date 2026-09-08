@@ -24,20 +24,28 @@ export class BattleController {
         );
     }
 
-    private async resolveUserId(identifier: string): Promise<string> {
-        const user = await this.userRepository.getUserById(identifier);
-        if (!user) throw new Error(`User not found: ${identifier}`);
+    private async resolveUser(authUser: { id: string; email?: string; username?: string }): Promise<string> {
+        let user = await this.userRepository.getUserById(authUser.id);
+        if (!user) {
+            // Upsert user if they don't exist in the database (e.g., due to frontend sync failure)
+            user = await this.userRepository.upsertUser({
+                id: authUser.id,
+                email: authUser.email || "",
+                username: authUser.username || "Guest_" + Math.random().toString(36).substring(2, 8),
+            });
+        }
         return user.id;
     }
 
-    async createRoom(hostId: string, maxPlayers = 2, timeLimitMinutes = 15, difficulty = "MIX", questionCount = 3) {
-        const resolvedHostId = await this.resolveUserId(hostId);
+    async createRoom(authUser: { id: string; email?: string; username?: string }, maxPlayers = 2, timeLimitMinutes = 15, difficulty = "MIX", questionCount = 3, isFriendly?: boolean) {
+        const resolvedHostId = await this.resolveUser(authUser);
         return this.battleRoomService.createRoom({
             hostId: resolvedHostId,
             maxPlayers,
             timeLimitMinutes,
             difficulty,
             questionCount,
+            isFriendly,
         });
     }
 

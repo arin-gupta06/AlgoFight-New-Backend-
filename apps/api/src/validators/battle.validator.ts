@@ -6,6 +6,7 @@ export const CreateBattleRoomSchema = z.object({
     timeLimitMinutes: z.number().int().min(1).max(60).optional().default(15),
     difficulty: z.string().optional().default("Mix"),
     questionCount: z.number().int().min(1).max(10).optional().default(3),
+    isFriendly: z.boolean().optional(),
 });
 
 export const JoinRoomSchema = z.object({

@@ -348,23 +348,28 @@ export class AnalyticsService {
 
         for (const s of this.sessions.values()) {
             const isLive = s.lastActive >= cutoff;
+            const isAuthenticated = Boolean(s.username || s.userId);
+            
             if (isLive) {
                 activeCount++;
-                if (s.username || s.userId) authCount++;
+                if (isAuthenticated) authCount++;
                 else guestCount++;
             }
 
-            recentSessions.push({
-                sessionId: s.sessionId.slice(0, 14) + "...",
-                ip: s.ip,
-                currentPath: s.currentPath,
-                surfingDurationFormatted: this.formatDuration(s.totalDwellSeconds),
-                device: s.device,
-                browser: s.browser,
-                lastActiveAgoSeconds: Math.max(0, Math.floor((now - s.lastActive) / 1000)),
-                isAuthenticated: Boolean(s.username || s.userId),
-                username: s.username,
-            });
+            // Only include authenticated sessions as requested
+            if (isAuthenticated) {
+                recentSessions.push({
+                    sessionId: s.sessionId.slice(0, 14) + "...",
+                    ip: s.ip,
+                    currentPath: s.currentPath,
+                    surfingDurationFormatted: this.formatDuration(s.totalDwellSeconds),
+                    device: s.device,
+                    browser: s.browser,
+                    lastActiveAgoSeconds: Math.max(0, Math.floor((now - s.lastActive) / 1000)),
+                    isAuthenticated: true,
+                    username: s.username,
+                });
+            }
         }
 
         // Sort sessions by recency
@@ -393,8 +398,9 @@ export class AnalyticsService {
             .sort((a, b) => b.hits - a.hits)
             .slice(0, 10);
 
-        // Top IP origins
+        // Top IP origins (Only Authenticated IPs as requested)
         const topIpOrigins = Array.from(this.ipRecords.values())
+            .filter(rec => rec.username)
             .map((rec) => {
                 // Determine dominant method
                 let primaryMethod = "GET";

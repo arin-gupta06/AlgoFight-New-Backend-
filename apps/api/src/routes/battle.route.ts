@@ -16,13 +16,13 @@ export async function battleRoutes(app: FastifyInstance) {
     // 1. Create room
     app.post("/battle/rooms", { preHandler: [requireAuth] }, async (req) => {
         const body = CreateBattleRoomSchema.parse(req.body);
-        const hostId = req.user!.id;
         return battleController.createRoom(
-            hostId,
+            req.user!,
             body.maxPlayers,
             body.timeLimitMinutes,
             body.difficulty,
             body.questionCount,
+            body.isFriendly,
         );
     });
 

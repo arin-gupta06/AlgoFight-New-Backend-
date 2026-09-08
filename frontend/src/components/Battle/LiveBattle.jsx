@@ -23,7 +23,9 @@ import {
   faBolt,
   faChartBar,
   faChevronLeft,
-  faChevronRight
+  faChevronRight,
+  faExpand,
+  faCompress
 } from "@fortawesome/free-solid-svg-icons";
 import {
   SUPPORTED_LANGUAGES,
@@ -246,6 +248,48 @@ export default function LiveBattle() {
   const [isSubmitPanelOpen, setIsSubmitPanelOpen] = useState(true);
   const [searchElapsed, setSearchElapsed] = useState(0);
   const [searchWindow, setSearchWindow] = useState("±50 ELO");
+
+  // Fullscreen Mode State & Auto-Trigger
+  const [isFullscreen, setIsFullscreen] = useState(!!document.fullscreenElement);
+
+  const toggleFullScreen = () => {
+    if (!document.fullscreenElement) {
+      if (document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else if (document.documentElement.webkitRequestFullscreen) {
+        document.documentElement.webkitRequestFullscreen().catch(() => {});
+      }
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+      } else if (document.webkitExitFullscreen) {
+        document.webkitExitFullscreen().catch(() => {});
+      }
+    }
+  };
+
+  useEffect(() => {
+    const handleFsChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener("fullscreenchange", handleFsChange);
+    document.addEventListener("webkitfullscreenchange", handleFsChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFsChange);
+      document.removeEventListener("webkitfullscreenchange", handleFsChange);
+    };
+  }, []);
+
+  // Auto trigger fullscreen mode when battle status becomes "matched"
+  useEffect(() => {
+    if (status === "matched") {
+      try {
+        if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+          document.documentElement.requestFullscreen().catch(() => {});
+        }
+      } catch (e) {}
+    }
+  }, [status]);
 
   // Panel Resizing State
   const gridRef = useRef(null);
@@ -898,7 +942,7 @@ export default function LiveBattle() {
 
   return (
     <BackgroundPaths>
-      <div className="livebattle-page">
+      <div className={`livebattle-page ${isFullscreen ? "is-fullscreen-mode" : ""}`}>
         {showSummary && (
            <PostBattleSummaryModal 
              battleResult={battleResult} 
@@ -975,6 +1019,13 @@ export default function LiveBattle() {
           </div>
 
           <div className="livebattle-header-right">
+            <button 
+              className="livebattle-fullscreen-btn" 
+              onClick={toggleFullScreen}
+              title={isFullscreen ? "Exit Fullscreen" : "Full Screen Mode"}
+            >
+              <FontAwesomeIcon icon={isFullscreen ? faCompress : faExpand} />
+            </button>
             <div
               className={`livebattle-timer calm-timer ${timeLeft <= 60 && timeLeft > 0 ? "timer-warning" : ""}`}
               aria-label={`Time remaining: ${formatTime(timeLeft)}`}
@@ -1230,7 +1281,7 @@ export default function LiveBattle() {
         )}
       </div>
     </div>
-    <Footer />
+    {!isFullscreen && status !== "matched" && <Footer />}
   </BackgroundPaths>
 );
 }

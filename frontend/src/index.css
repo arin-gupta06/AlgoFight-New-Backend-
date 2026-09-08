@@ -525,3 +525,60 @@ p {
     --card-padding: var(--spacing-sm);
   }
 }
+
+/* ===== GLOBAL BUTTON UTILITIES ===== */
+.btn-primary-glow {
+  min-height: 46px;
+  padding: 0 24px;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 229, 255, 0.4);
+  background: linear-gradient(135deg, rgba(0, 229, 255, 0.22), rgba(0, 167, 255, 0.12));
+  color: #00e5ff !important;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.92rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  box-shadow: 0 0 20px rgba(0, 229, 255, 0.22);
+  transition: all 0.25s ease;
+  width: 100%;
+}
+
+.btn-primary-glow:hover {
+  background: linear-gradient(135deg, rgba(0, 229, 255, 0.35), rgba(0, 167, 255, 0.24));
+  border-color: rgba(0, 229, 255, 0.7);
+  box-shadow: 0 0 30px rgba(0, 229, 255, 0.45);
+  transform: translateY(-2px);
+  color: #ffffff !important;
+}
+
+.btn-secondary-glass {
+  min-height: 46px;
+  padding: 0 24px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.05);
+  color: #f1f5f9 !important;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.92rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: all 0.25s ease;
+  width: 100%;
+}
+
+.btn-secondary-glass:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.35);
+  color: #ffffff !important;
+  transform: translateY(-2px);
+}

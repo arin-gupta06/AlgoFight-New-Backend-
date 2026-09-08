@@ -15,6 +15,51 @@ import {
 } from "../../services/api.js";
 import SystemBroadcastCard from "../Common/broadcasts/SystemBroadcastCard.jsx";
 import { generatePdfThumbnail } from "../../utils/pdfThumbnail.js";
+import BackgroundPaths from "../BackgroundPaths/BackgroundPaths";
+import "../BackgroundPaths/BackgroundPaths.css";
+import Footer from "../Common/Footer/Footer";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+    faServer,
+    faCubes,
+    faUsers,
+    faBullhorn,
+    faChartColumn,
+    faShieldHalved,
+    faDesktop,
+    faRotate,
+    faLock,
+    faUnlock,
+    faMagnifyingGlass,
+    faPlus,
+    faMinus,
+    faEye,
+    faEyeSlash,
+    faPaperPlane,
+    faBan,
+    faClock,
+    faMicrochip,
+    faGlobe,
+    faGraduationCap,
+    faBuildingColumns,
+    faLaptop,
+    faCheck,
+    faCopy,
+    faTerminal,
+    faFire,
+    faBolt,
+    faArrowUpRightFromSquare,
+    faTrophy,
+    faChartLine,
+    faUser,
+    faCircleCheck,
+    faCircleXmark,
+    faCircleInfo,
+    faFileCode,
+    faLayerGroup,
+    faStar,
+    faBox,
+} from "@fortawesome/free-solid-svg-icons";
 
 const SERVICE_NAMES = {
     apiGateway: "API Gateway",
@@ -23,6 +68,51 @@ const SERVICE_NAMES = {
     redisCluster: "Redis Cluster",
     pistonSandbox: "Piston Sandbox",
 };
+
+const SIDEBAR_ITEMS = [
+    {
+        id: "overview",
+        icon: faServer,
+        title: "Platform Fleet",
+        desc: "Services & Gateway SLAs",
+    },
+    {
+        id: "sandbox",
+        icon: faCubes,
+        title: "Elastic Sandbox",
+        desc: "BullMQ Lanes & Scaling",
+    },
+    {
+        id: "users",
+        icon: faUsers,
+        title: "Users & Batches",
+        desc: "Institutions & Registry",
+    },
+    {
+        id: "broadcasts",
+        icon: faBullhorn,
+        title: "System Broadcasts",
+        desc: "Global Announcer & CTAs",
+    },
+    {
+        id: "analytics",
+        icon: faChartColumn,
+        title: "Data Analytics",
+        desc: "Heatmaps & Origin IPs",
+    },
+    {
+        id: "audit_trail",
+        icon: faShieldHalved,
+        title: "Audit Stream",
+        desc: "Live Event Telemetry Logs",
+    },
+    {
+        id: "linux_telemetry",
+        icon: faDesktop,
+        title: "Linux Host Live",
+        desc: "WSL FastAPI Vitals",
+    },
+];
 
 const STAT_LABELS = {
     uptime: "Uptime",
@@ -57,9 +147,18 @@ export default function ControlHub() {
     const [isSyncing, setIsSyncing] = useState(false);
     const [secondsSinceSync, setSecondsSinceSync] = useState(0);
 
-    // Active Navigation Tabs
-    const [activeTab, setActiveTab] = useState("overview"); // "overview" | "analytics" | "audit_trail" | "linux_telemetry"
+    // Active Navigation Tabs (Sidebar Page Views)
+    const [activeTab, setActiveTab] = useState("overview"); // "overview" | "sandbox" | "users" | "broadcasts" | "analytics" | "audit_trail" | "linux_telemetry"
     const [linuxStatus, setLinuxStatus] = useState("CHECKING");
+
+    const handleTabSwitch = (tabId) => {
+        setActiveTab(tabId);
+        if (tabId === "analytics") fetchAnalytics();
+        if (tabId === "audit_trail") fetchAuditLogs();
+        if (tabId === "linux_telemetry") checkLinuxStatus();
+        if (tabId === "users") fetchUsers(search);
+        if (tabId === "broadcasts") fetchBroadcasts();
+    };
 
     // 📊 Data & Surfing Analytics State
     const [analyticsData, setAnalyticsData] = useState(null);
@@ -566,137 +665,161 @@ export default function ControlHub() {
     // 🔒 Render Security Clearance Gate if locked
     if (!isUnlocked) {
         return (
-            <div className="admin-lock-screen">
-                <motion.div
-                    initial={{ opacity: 0, scale: 0.96 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.3 }}
-                    className="lock-terminal"
-                >
-                    <div className="pre-heading">RESTRICTED ACCESS</div>
-                    <h2>SuperAdmin Clearance</h2>
-                    <p>Authenticate with your master administrative credentials to access platform telemetry and fleet controls.</p>
+            <BackgroundPaths>
+                <div className="admin-lock-screen">
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.96 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.3 }}
+                        className="lock-terminal"
+                    >
+                        <div className="pre-heading">RESTRICTED ACCESS</div>
+                        <h2>SuperAdmin Clearance</h2>
+                        <p>Authenticate with your master administrative credentials to access platform telemetry and fleet controls.</p>
 
-                    <form onSubmit={handleUnlock} className="lock-form">
-                        <div className="lock-input-wrap">
-                            <input
-                                type="password"
-                                placeholder="Enter SuperAdmin Passkey..."
-                                value={passInput}
-                                onChange={(e) => setPassInput(e.target.value)}
-                                autoFocus
-                            />
-                        </div>
-                        {authError && <p className="lock-error">{authError}</p>}
-                        <button type="submit" className="lock-btn">
-                            Verify Clearance
-                        </button>
-                    </form>
-                </motion.div>
-            </div>
+                        <form onSubmit={handleUnlock} className="lock-form">
+                            <div className="lock-input-wrap">
+                                <input
+                                    type="password"
+                                    placeholder="Enter SuperAdmin Passkey..."
+                                    value={passInput}
+                                    onChange={(e) => setPassInput(e.target.value)}
+                                    autoFocus
+                                />
+                            </div>
+                            {authError && <p className="lock-error">{authError}</p>}
+                            <button type="submit" className="lock-btn">
+                                Verify Clearance
+                            </button>
+                        </form>
+                    </motion.div>
+                </div>
+                <Footer />
+            </BackgroundPaths>
         );
     }
 
     // 🎛️ Render Full SuperAdmin Control Hub once unlocked
     return (
-        <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-            className="admin-control-hub"
-        >
-            {/* Header */}
-            <div className="admin-header">
-                <div className="admin-header-title">
-                    <div className="pre-heading">ADMINISTRATION CONSOLE</div>
-                    <h1>Central Control & <span className="text-cyan-gradient">Telemetry Hub</span></h1>
-                    <p className="admin-subtext">Real-time infrastructure monitoring, fan-in/fan-out telemetry, live audit trails & college sub-batches</p>
-                </div>
-                <div className="admin-header-actions">
-                    <button className="lock-hub-btn" onClick={handleLock}>
-                        🔒 Lock Terminal
-                    </button>
-                </div>
-            </div>
-
-            {/* 🔴 Live Telemetry Control Bar Ribbon */}
-            <div className="telemetry-control-bar glass-panel">
-                <div className="sync-status-group">
-                    <div className="pulse-indicator online" />
-                    <span className="sync-status-text">FLEET STATUS: OPTIMAL • TELEMETRY SYNCHRONIZED</span>
-                    <span className="last-sync-badge">Updated: {secondsSinceSync}s ago</span>
-                </div>
-
-                <div className="sync-actions-group">
-                    <div className="interval-selector-wrap">
-                        <span className="interval-label">Auto-Sync:</span>
-                        <select
-                            value={refreshInterval}
-                            onChange={(e) => setRefreshInterval(Number(e.target.value))}
-                            className="sync-select"
-                        >
-                            <option value={10}>10s (High-Frequency)</option>
-                            <option value={30}>30s (Default / Balanced)</option>
-                            <option value={60}>60s (Low-Bandwidth)</option>
-                            <option value={0}>Manual Only</option>
-                        </select>
+        <BackgroundPaths>
+            <div className="admin-layout-container">
+                {/* Left Sidebar Navigation */}
+                <aside className="admin-sidebar glass-panel">
+                    <div className="sidebar-top-brand">
+                        <div className="admin-badge">
+                            <span className="shield-icon"><FontAwesomeIcon icon={faShieldHalved} /></span>
+                            <span className="badge-text">SUPERADMIN CONSOLE</span>
+                        </div>
+                        <h2 className="sidebar-title">Control Hub</h2>
+                        <div className="sidebar-clearance">
+                            <span className="clearance-dot" />
+                            <span>LEVEL 5 CLEARANCE</span>
+                        </div>
                     </div>
 
-                    <button
-                        type="button"
-                        className={`manual-sync-btn ${isSyncing ? "is-spinning" : ""}`}
-                        onClick={handleManualSync}
-                        disabled={isSyncing}
-                        title="Force immediate telemetry & audit sync"
-                    >
-                        🔄 {isSyncing ? "Syncing..." : "Sync Now"}
-                    </button>
-                </div>
-            </div>
+                    {/* Sidebar Navigation Items */}
+                    <nav className="sidebar-nav">
+                        {SIDEBAR_ITEMS.map((item) => (
+                            <button
+                                key={item.id}
+                                type="button"
+                                className={`sidebar-nav-btn ${activeTab === item.id ? "active" : ""}`}
+                                onClick={() => handleTabSwitch(item.id)}
+                            >
+                                <span className="nav-icon-wrap">
+                                    <FontAwesomeIcon icon={item.icon} className="nav-icon" />
+                                </span>
+                                <div className="nav-text-group">
+                                    <span className="nav-title">{item.title}</span>
+                                    <span className="nav-desc">{item.desc}</span>
+                                </div>
+                                {item.id === "linux_telemetry" && (
+                                    <span className={`sidebar-status-pill ${linuxStatus.toLowerCase()}`}>
+                                        {linuxStatus === "ONLINE" ? "LIVE" : "OFF"}
+                                    </span>
+                                )}
+                                {item.id === "audit_trail" && (
+                                    <span className="sidebar-count-pill">{auditTotal || auditLogs.length}</span>
+                                )}
+                            </button>
+                        ))}
+                    </nav>
 
-            {/* Navigation Tabs */}
-            <div className="admin-tabs-bar">
-                <button
-                    className={`admin-tab-btn ${activeTab === "overview" ? "active" : ""}`}
-                    onClick={() => setActiveTab("overview")}
-                >
-                    ⚡ Platform Fleet & Registry
-                </button>
-                <button
-                    className={`admin-tab-btn ${activeTab === "analytics" ? "active" : ""}`}
-                    onClick={() => {
-                        setActiveTab("analytics");
-                        fetchAnalytics();
-                    }}
-                >
-                    📊 Live Data & Surfing Analytics
-                </button>
-                <button
-                    className={`admin-tab-btn ${activeTab === "audit_trail" ? "active" : ""}`}
-                    onClick={() => {
-                        setActiveTab("audit_trail");
-                        fetchAuditLogs();
-                    }}
-                >
-                    🛡️ Live Audit Trail & Logs ({auditTotal || auditLogs.length})
-                </button>
-                <button
-                    className={`admin-tab-btn ${activeTab === "linux_telemetry" ? "active" : ""}`}
-                    onClick={() => {
-                        setActiveTab("linux_telemetry");
-                        checkLinuxStatus();
-                    }}
-                >
-                    🖥️ Linux Host Telemetry Live
-                    <span className={`linux-status-pill ${linuxStatus.toLowerCase()}`}>
-                        {linuxStatus === "ONLINE" ? "🟢 LIVE" : "🔴 OFFLINE"}
-                    </span>
-                </button>
-            </div>
+                    {/* Sidebar Footer Controls */}
+                    <div className="sidebar-footer">
+                        <div className="sync-widget">
+                            <div className="sync-widget-head">
+                                <div className="pulse-indicator online" />
+                                <span className="sync-widget-status">FLEET OPTIMAL</span>
+                            </div>
+                            <span className="sync-widget-time">Updated: {secondsSinceSync}s ago</span>
 
-            {/* Tab 1: Platform Fleet & Registry Overview */}
-            {activeTab === "overview" && (
-                <>
+                            <div className="sidebar-sync-row">
+                                <select
+                                    value={refreshInterval}
+                                    onChange={(e) => setRefreshInterval(Number(e.target.value))}
+                                    className="sidebar-sync-select"
+                                >
+                                    <option value={10}>10s Sync</option>
+                                    <option value={30}>30s Sync</option>
+                                    <option value={60}>60s Sync</option>
+                                    <option value={0}>Manual</option>
+                                </select>
+                                <button
+                                    type="button"
+                                    className={`sidebar-sync-btn ${isSyncing ? "is-spinning" : ""}`}
+                                    onClick={handleManualSync}
+                                    disabled={isSyncing}
+                                    title="Force immediate telemetry & audit sync"
+                                >
+                                    <FontAwesomeIcon icon={faRotate} className={isSyncing ? "fa-spin" : ""} /> Sync
+                                </button>
+                            </div>
+                        </div>
+
+                        <button type="button" className="sidebar-lock-btn" onClick={handleLock}>
+                            <FontAwesomeIcon icon={faLock} /> Lock Terminal
+                        </button>
+                    </div>
+                </aside>
+
+                {/* Main Dashboard Content Area */}
+                <main className="admin-main-content">
+                    {/* View Header */}
+                    <div className="main-view-header glass-panel">
+                        <div>
+                            <div className="view-preheading">ADMINISTRATION CONSOLE</div>
+                            <h1 className="view-title">
+                                {SIDEBAR_ITEMS.find((i) => i.id === activeTab)?.icon && (
+                                    <FontAwesomeIcon
+                                        icon={SIDEBAR_ITEMS.find((i) => i.id === activeTab).icon}
+                                        className="view-title-icon"
+                                    />
+                                )}{" "}
+                                {SIDEBAR_ITEMS.find((i) => i.id === activeTab)?.title}
+                            </h1>
+                            <p className="view-subtitle">{SIDEBAR_ITEMS.find((i) => i.id === activeTab)?.desc}</p>
+                        </div>
+                        <div className="view-actions">
+                            <span className="live-status-chip">
+                                <span className="pulse-indicator online" /> TELEMETRY SYNCHRONIZED ({secondsSinceSync}s)
+                            </span>
+                        </div>
+                    </div>
+
+                    {/* Page Content Rendered per Active Sidebar Tab */}
+                    <AnimatePresence mode="wait">
+                        <motion.div
+                            key={activeTab}
+                            initial={{ opacity: 0, y: 8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -8 }}
+                            transition={{ duration: 0.2 }}
+                            className="active-page-view"
+                        >
+                            {/* Page 1: Infrastructure Fleet & Services */}
+                            {activeTab === "overview" && (
+                                <div className="page-view-stack">
                     {/* 1. Microservice Fleet Grid */}
                     <div className="admin-section">
                         <h3 className="section-title">Infrastructure Fleet & Services</h3>
@@ -816,7 +939,11 @@ export default function ControlHub() {
                                 <div className="vitals-header">
                                     <span className="vitals-title">WSL Host Vitals (localhost:8000)</span>
                                     <span className={`vitals-pill ${metrics?.linuxTelemetry?.status === "ONLINE" ? "online" : "offline"}`}>
-                                        {metrics?.linuxTelemetry?.status === "ONLINE" ? "🟢 ONLINE" : "⚪ STANDBY"}
+                                        {metrics?.linuxTelemetry?.status === "ONLINE" ? (
+                                            <><FontAwesomeIcon icon={faCircleCheck} /> ONLINE</>
+                                        ) : (
+                                            <><FontAwesomeIcon icon={faClock} /> STANDBY</>
+                                        )}
                                     </span>
                                 </div>
                                 {metrics?.linuxTelemetry?.vitals ? (
@@ -846,12 +973,18 @@ export default function ControlHub() {
                             </div>
                         </div>
                     </div>
+                </div>
+            )}
 
-                    {/* 3. Elastic Sandbox Fleet & Workload Queue Lanes */}
-                    <div className="admin-section" style={{ marginTop: '24px' }}>
+            {/* Page 2: Elastic Sandbox Fleet & Workload Queue Lanes */}
+            {activeTab === "sandbox" && (
+                <div className="page-view-stack">
+                    <div className="admin-section">
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
                             <div>
-                                <h3 className="section-title" style={{ margin: 0 }}>⚡ Elastic Sandbox Fleet & Workload Queue Lanes</h3>
+                                <h3 className="section-title" style={{ margin: 0 }}>
+                                    <FontAwesomeIcon icon={faCubes} className="section-icon" /> Elastic Sandbox Fleet & Workload Queue Lanes
+                                </h3>
                                 <p style={{ fontSize: '0.82rem', color: '#94a3b8', margin: '4px 0 0' }}>
                                     Asymmetric BullMQ dispatch (Light Concurrency 4 vs Heavy Concurrency 2) + Programmatic Dynamic Scaling
                                 </p>
@@ -863,7 +996,8 @@ export default function ControlHub() {
                                     onClick={handleRunFleetProbe}
                                     disabled={isProbingFleet}
                                 >
-                                    🔍 {isProbingFleet ? "Probing Fleet..." : "Run Fleet Diagnostics"}
+                                    <FontAwesomeIcon icon={isProbingFleet ? faRotate : faMagnifyingGlass} className={isProbingFleet ? "fa-spin" : ""} />{" "}
+                                    {isProbingFleet ? "Probing Fleet..." : "Run Fleet Diagnostics"}
                                 </button>
                                 <button
                                     type="button"
@@ -871,7 +1005,7 @@ export default function ControlHub() {
                                     onClick={() => handleScaleFleet("out")}
                                     disabled={isScalingFleet}
                                 >
-                                    ➕ Scale Out
+                                    <FontAwesomeIcon icon={faPlus} /> Scale Out
                                 </button>
                                 <button
                                     type="button"
@@ -879,7 +1013,7 @@ export default function ControlHub() {
                                     onClick={() => handleScaleFleet("in")}
                                     disabled={isScalingFleet}
                                 >
-                                    ➖ Scale In
+                                    <FontAwesomeIcon icon={faMinus} /> Scale In
                                 </button>
                             </div>
                         </div>
@@ -890,7 +1024,7 @@ export default function ControlHub() {
                             <div style={{ background: 'linear-gradient(135deg, rgba(56, 189, 248, 0.08), rgba(0, 0, 0, 0.4))', border: '1px solid rgba(56, 189, 248, 0.25)', borderRadius: '14px', padding: '16px' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                                     <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#38bdf8', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                                        ⚡ LIGHT LANE
+                                        <FontAwesomeIcon icon={faBolt} /> LIGHT LANE
                                     </span>
                                     <span style={{ fontSize: '0.7rem', color: '#94a3b8', background: 'rgba(255,255,255,0.05)', padding: '2px 8px', borderRadius: '4px' }}>
                                         Fast-Track Script Runner
@@ -914,7 +1048,7 @@ export default function ControlHub() {
                             <div style={{ background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.08), rgba(0, 0, 0, 0.4))', border: '1px solid rgba(245, 158, 11, 0.25)', borderRadius: '14px', padding: '16px' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                                     <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                                        🛡️ HEAVY LANE
+                                        <FontAwesomeIcon icon={faShieldHalved} /> HEAVY LANE
                                     </span>
                                     <span style={{ fontSize: '0.7rem', color: '#94a3b8', background: 'rgba(255,255,255,0.05)', padding: '2px 8px', borderRadius: '4px' }}>
                                         Isolated Compiler Sandbox
@@ -942,7 +1076,8 @@ export default function ControlHub() {
                                     <div key={inst.id || i} style={{ background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '12px', padding: '14px' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                                             <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#f8fafc' }}>
-                                                📦 {inst.id || `piston-${i + 1}`}
+                                                <FontAwesomeIcon icon={faCubes} style={{ marginRight: '6px', color: '#38bdf8' }} />
+                                                {inst.id || `piston-${i + 1}`}
                                             </span>
                                             <span style={{ fontSize: '0.68rem', padding: '2px 6px', borderRadius: '4px', background: inst.healthy ? 'rgba(74, 222, 128, 0.15)' : 'rgba(239, 68, 68, 0.15)', color: inst.healthy ? '#4ade80' : '#ef4444' }}>
                                                 {inst.state || (inst.healthy ? "ONLINE" : "OFFLINE")}
@@ -951,7 +1086,11 @@ export default function ControlHub() {
                                         <div style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
                                             <span>Type:</span>
                                             <strong style={{ color: inst.type === "DYNAMIC_EPHEMERAL" ? '#f59e0b' : '#38bdf8' }}>
-                                                {inst.type === "DYNAMIC_EPHEMERAL" ? "⚡ Dynamic Scaled" : "🔒 Prewarmed"}
+                                                {inst.type === "DYNAMIC_EPHEMERAL" ? (
+                                                    <><FontAwesomeIcon icon={faBolt} /> Dynamic Scaled</>
+                                                ) : (
+                                                    <><FontAwesomeIcon icon={faLock} /> Prewarmed</>
+                                                )}
                                             </strong>
                                         </div>
                                         <div style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
@@ -972,7 +1111,8 @@ export default function ControlHub() {
                                 <div className="standalone-header">
                                     <div>
                                         <h4 style={{ margin: '0 0 4px', color: '#f8fafc', fontSize: '0.95rem' }}>
-                                            🔒 Standalone Baseline Sandbox Active
+                                            <FontAwesomeIcon icon={faLock} style={{ marginRight: '6px', color: '#4ade80' }} />
+                                            Standalone Baseline Sandbox Active
                                         </h4>
                                         <p style={{ margin: 0, fontSize: '0.8rem', color: '#94a3b8' }}>
                                             Operating in zero-cost baseline mode. Dynamic ephemeral containers will spawn automatically under burst workload pressure.
@@ -988,9 +1128,14 @@ export default function ControlHub() {
                             </div>
                         )}
                     </div>
+                </div>
+            )}
 
-                    {/* 4. User Identity Breakdown */}
-                    <div className="admin-section" style={{ marginTop: '24px' }}>
+            {/* Page 3: Users & Batches */}
+            {activeTab === "users" && (
+                <div className="page-view-stack">
+                    {/* User Identity Breakdown */}
+                    <div className="admin-section">
                         <div className="telemetry-card">
                             <div className="card-header">
                                 <h3>Combatant Identity & Community Distribution</h3>
@@ -998,17 +1143,17 @@ export default function ControlHub() {
                             </div>
                             <div className="user-ratio-grid">
                                 <div className="ratio-box">
-                                    <span className="role-icon">🎓</span>
+                                    <span className="role-icon"><FontAwesomeIcon icon={faGraduationCap} /></span>
                                     <span className="role-count">{metrics?.users?.students || 0}</span>
                                     <span className="role-label">College Students</span>
                                 </div>
                                 <div className="ratio-box">
-                                    <span className="role-icon">🏛️</span>
+                                    <span className="role-icon"><FontAwesomeIcon icon={faBuildingColumns} /></span>
                                     <span className="role-count">{metrics?.users?.faculty || 0}</span>
                                     <span className="role-label">Faculty / Instructors</span>
                                 </div>
                                 <div className="ratio-box">
-                                    <span className="role-icon">💻</span>
+                                    <span className="role-icon"><FontAwesomeIcon icon={faLaptop} /></span>
                                     <span className="role-count">{metrics?.users?.independent || 0}</span>
                                     <span className="role-label">Independent Coders</span>
                                 </div>
@@ -1016,7 +1161,7 @@ export default function ControlHub() {
                         </div>
                     </div>
 
-                    {/* 5. Student Sub-Batches & Institutions */}
+                    {/* Student Sub-Batches & Institutions */}
                     <div className="admin-section" style={{ marginTop: '24px' }}>
                         <h3 className="section-title">Top Registered Institutions & Sub-Batches</h3>
                         <div className="institutions-grid">
@@ -1036,8 +1181,61 @@ export default function ControlHub() {
                         </div>
                     </div>
 
-                    {/* 6. System Broadcast Dispatcher Suite */}
-                    <div className="admin-section broadcast-dispatcher-section" style={{ marginTop: '24px' }}>
+                    {/* Combatant Code & User Registry Search */}
+                    <div className="admin-section" style={{ marginTop: '24px' }}>
+                        <div className="registry-header">
+                            <h3 className="section-title">Combatant Code & User Registry</h3>
+                            <form className="registry-search" onSubmit={handleSearch}>
+                                <input
+                                    type="text"
+                                    placeholder="Search by Platform Code, Username, or Email..."
+                                    value={search}
+                                    onChange={(e) => setSearch(e.target.value)}
+                                />
+                                <button type="submit">Search</button>
+                            </form>
+                        </div>
+
+                        <div className="registry-table-wrapper">
+                            <table className="registry-table">
+                                <thead>
+                                    <tr>
+                                        <th>Platform Code</th>
+                                        <th>Username</th>
+                                        <th>Role</th>
+                                        <th>Institution</th>
+                                        <th>Primary Email</th>
+                                        <th>Elo Rating</th>
+                                        <th>Record (W/L)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {users.map((u) => (
+                                        <tr key={u.id}>
+                                            <td><span className="code-chip">{u.platformCode || `AF-USR-${u.id.slice(0, 5)}`}</span></td>
+                                            <td className="user-cell"><strong>{u.username}</strong></td>
+                                            <td>
+                                                <span className={`role-badge ${u.userType?.toLowerCase() || "individual"}`}>
+                                                    {u.userType || "INDIVIDUAL"}
+                                                </span>
+                                            </td>
+                                            <td>{u.institutionName || "—"}</td>
+                                            <td>{u.primaryEmail || u.email}</td>
+                                            <td className="rating-cell">{u.rating}</td>
+                                            <td>{u.wins}W - {u.losses}L</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Page 4: System Broadcasts */}
+            {activeTab === "broadcasts" && (
+                <div className="page-view-stack">
+                    <div className="admin-section broadcast-dispatcher-section">
                         <div className="dispatcher-header">
                             <div>
                                 <h3 className="section-title">Global System Broadcast Dispatcher</h3>
@@ -1048,7 +1246,7 @@ export default function ControlHub() {
                             <div className="dispatcher-quick-presets">
                                 <span className="preset-label">Quick Presets:</span>
                                 <button type="button" className="preset-btn preset-alpha" onClick={() => handleApplyPreset("ALPHA")}>
-                                    ⭐ Alpha Testing (10 Sep 2026)
+                                    <FontAwesomeIcon icon={faStar} /> Alpha Testing (10 Sep 2026)
                                 </button>
                                 <button type="button" className="preset-btn" onClick={() => handleApplyPreset("24H")}>
                                     +24 Hours
@@ -1071,7 +1269,7 @@ export default function ControlHub() {
                                             <label>Broadcast Title *</label>
                                             <input
                                                 type="text"
-                                                placeholder="e.g. Hey Coders! 👋 / Alpha Testing Notice"
+                                                placeholder="e.g. Hey Coders! / Alpha Testing Notice"
                                                 value={broadcastForm.title}
                                                 onChange={(e) => setBroadcastForm({ ...broadcastForm, title: e.target.value })}
                                                 required
@@ -1140,7 +1338,11 @@ export default function ControlHub() {
                                                 />
                                                 <span className="cyber-toggle-slider" />
                                                 <span className="toggle-text">
-                                                    {broadcastForm.flashBanner ? "⚡ Flash Banner Active" : "Inbox Only"}
+                                                    {broadcastForm.flashBanner ? (
+                                                        <><FontAwesomeIcon icon={faBolt} /> Flash Banner Active</>
+                                                    ) : (
+                                                        "Inbox Only"
+                                                    )}
                                                 </span>
                                             </label>
                                         </div>
@@ -1290,10 +1492,18 @@ export default function ControlHub() {
                                     className={`preview-toggle-btn ${showPreview ? "active" : ""}`}
                                     onClick={() => setShowPreview(!showPreview)}
                                 >
-                                    {showPreview ? "👁️ Hide Preview" : "👁️ Show Live Preview"}
+                                    {showPreview ? (
+                                        <><FontAwesomeIcon icon={faEyeSlash} /> Hide Preview</>
+                                    ) : (
+                                        <><FontAwesomeIcon icon={faEye} /> Show Live Preview</>
+                                    )}
                                 </button>
                                 <button type="submit" className="broadcast-dispatch-btn" disabled={isDispatching}>
-                                    {isDispatching ? "⚡ Broadcasting..." : "🚀 Dispatch Global Broadcast"}
+                                    {isDispatching ? (
+                                        <><FontAwesomeIcon icon={faRotate} spin /> Broadcasting...</>
+                                    ) : (
+                                        <><FontAwesomeIcon icon={faPaperPlane} /> Dispatch Global Broadcast</>
+                                    )}
                                 </button>
                             </div>
                         </form>
@@ -1376,65 +1586,16 @@ export default function ControlHub() {
                             )}
                         </div>
                     </div>
-
-                    {/* 7. Combatant Code & User Registry Search */}
-                    <div className="admin-section" style={{ marginTop: '24px' }}>
-                        <div className="registry-header">
-                            <h3 className="section-title">Combatant Code & User Registry</h3>
-                            <form className="registry-search" onSubmit={handleSearch}>
-                                <input
-                                    type="text"
-                                    placeholder="Search by Platform Code, Username, or Email..."
-                                    value={search}
-                                    onChange={(e) => setSearch(e.target.value)}
-                                />
-                                <button type="submit">Search</button>
-                            </form>
-                        </div>
-
-                        <div className="registry-table-wrapper">
-                            <table className="registry-table">
-                                <thead>
-                                    <tr>
-                                        <th>Platform Code</th>
-                                        <th>Username</th>
-                                        <th>Role</th>
-                                        <th>Institution</th>
-                                        <th>Primary Email</th>
-                                        <th>Elo Rating</th>
-                                        <th>Record (W/L)</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {users.map((u) => (
-                                        <tr key={u.id}>
-                                            <td><span className="code-chip">{u.platformCode || `AF-USR-${u.id.slice(0, 5)}`}</span></td>
-                                            <td className="user-cell"><strong>{u.username}</strong></td>
-                                            <td>
-                                                <span className={`role-badge ${u.userType?.toLowerCase() || "individual"}`}>
-                                                    {u.userType || "INDIVIDUAL"}
-                                                </span>
-                                            </td>
-                                            <td>{u.institutionName || "—"}</td>
-                                            <td>{u.primaryEmail || u.email}</td>
-                                            <td className="rating-cell">{u.rating}</td>
-                                            <td>{u.wins}W - {u.losses}L</td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </>
+                </div>
             )}
 
-            {/* Tab 2: Dedicated Live Data & Surfing Analytics Section */}
+            {/* Page 5: Dedicated Live Data & Surfing Analytics Section */}
             {activeTab === "analytics" && (
                 <div className="admin-analytics-section">
                     <div className="analytics-header-panel glass-panel">
                         <div className="analytics-title-wrap">
                             <div className="pre-heading">REAL-TIME TRAFFIC & USER BEHAVIOR INTELLIGENCE</div>
-                            <h3>📊 Live Platform Surfing & Traffic Analytics</h3>
+                            <h3><FontAwesomeIcon icon={faChartColumn} /> Live Platform Surfing & Traffic Analytics</h3>
                             <p>Real-time active users, route hit volume, user surfing/dwell times, and origin IP telemetry.</p>
                         </div>
                         <div className="analytics-controls-wrap">
@@ -1444,7 +1605,11 @@ export default function ControlHub() {
                                 onClick={fetchAnalytics}
                                 disabled={isAnalyticsLoading}
                             >
-                                {isAnalyticsLoading ? "Syncing..." : "🔄 Refresh Analytics"}
+                                {isAnalyticsLoading ? (
+                                    <><FontAwesomeIcon icon={faRotate} spin /> Syncing...</>
+                                ) : (
+                                    <><FontAwesomeIcon icon={faRotate} /> Refresh Analytics</>
+                                )}
                             </button>
                         </div>
                     </div>
@@ -1466,7 +1631,7 @@ export default function ControlHub() {
                         <div className="analytics-kpi-card glass-panel kpi-dwell">
                             <div className="kpi-card-header">
                                 <span className="kpi-label">Avg Surfing Time</span>
-                                <span className="kpi-icon">⏱️</span>
+                                <span className="kpi-icon"><FontAwesomeIcon icon={faClock} /></span>
                             </div>
                             <div className="kpi-value emerald">{analyticsData?.avgSurfingFormatted || "9m 42s"}</div>
                             <div className="kpi-subtext">Average session surfing duration</div>
@@ -1476,7 +1641,7 @@ export default function ControlHub() {
                         <div className="analytics-kpi-card glass-panel kpi-views">
                             <div className="kpi-card-header">
                                 <span className="kpi-label">Total Page Views</span>
-                                <span className="kpi-icon">📄</span>
+                                <span className="kpi-icon"><FontAwesomeIcon icon={faFileCode} /></span>
                             </div>
                             <div className="kpi-value gold">{analyticsData?.totalPageViews?.toLocaleString() || "2,485"}</div>
                             <div className="kpi-subtext">Cumulative route hits tracked</div>
@@ -1486,7 +1651,7 @@ export default function ControlHub() {
                         <div className="analytics-kpi-card glass-panel kpi-ips">
                             <div className="kpi-card-header">
                                 <span className="kpi-label">Tracked Client IPs</span>
-                                <span className="kpi-icon">🌐</span>
+                                <span className="kpi-icon"><FontAwesomeIcon icon={faGlobe} /></span>
                             </div>
                             <div className="kpi-value purple">{analyticsData?.topIpOrigins?.length || 5} Origin Nodes</div>
                             <div className="kpi-subtext">Cloudflare & Proxy-aware resolution</div>
@@ -1500,7 +1665,7 @@ export default function ControlHub() {
                         <div className="telemetry-card glass-panel top-pages-card">
                             <div className="card-header">
                                 <div>
-                                    <h3>🏆 Route Hits & Surfing Engagement</h3>
+                                    <h3><FontAwesomeIcon icon={faTrophy} /> Route Hits & Surfing Engagement</h3>
                                     <span className="telemetry-subtext">Ranked platform page visits, percentage share & average dwell time per route</span>
                                 </div>
                                 <span className="telemetry-tag">PAGE VOLUME</span>
@@ -1529,9 +1694,9 @@ export default function ControlHub() {
                                         </div>
 
                                         <div className="page-meta-chips">
-                                            <span className="meta-chip-item">⏱️ Avg Dwell: <strong style={{ color: '#38bdf8' }}>{page.avgSurfingFormatted}</strong></span>
-                                            <span className="meta-chip-item">🌐 Unique IPs: <strong style={{ color: '#a855f7' }}>{page.uniqueIpsCount}</strong></span>
-                                            <span className="meta-chip-item">🕒 Last Hit: {page.lastHit}</span>
+                                            <span className="meta-chip-item"><FontAwesomeIcon icon={faClock} /> Avg Dwell: <strong style={{ color: '#38bdf8' }}>{page.avgSurfingFormatted}</strong></span>
+                                            <span className="meta-chip-item"><FontAwesomeIcon icon={faGlobe} /> Unique IPs: <strong style={{ color: '#a855f7' }}>{page.uniqueIpsCount}</strong></span>
+                                            <span className="meta-chip-item"><FontAwesomeIcon icon={faClock} /> Last Hit: {page.lastHit}</span>
                                         </div>
                                     </div>
                                 ))}
@@ -1544,7 +1709,7 @@ export default function ControlHub() {
                             <div className="telemetry-card glass-panel timeline-card">
                                 <div className="card-header">
                                     <div>
-                                        <h3>📈 24-Hour Surfing & Traffic Timeline</h3>
+                                        <h3><FontAwesomeIcon icon={faChartLine} /> 24-Hour Surfing & Traffic Timeline</h3>
                                         <span className="telemetry-subtext">Hourly page hits & active concurrent users distribution</span>
                                     </div>
                                     <span className="telemetry-tag">HOURLY TREND</span>
@@ -1608,7 +1773,7 @@ export default function ControlHub() {
                             <div className="telemetry-card glass-panel method-breakdown-card">
                                 <div className="card-header">
                                     <div>
-                                        <h3>⚡ HTTP Method Platform Breakdown</h3>
+                                        <h3><FontAwesomeIcon icon={faLayerGroup} /> HTTP Method Platform Breakdown</h3>
                                         <span className="telemetry-subtext">Proportion of API mutations vs static queries</span>
                                     </div>
                                     <span className="telemetry-tag">VERB BREAKDOWN</span>
@@ -1665,7 +1830,7 @@ export default function ControlHub() {
                         <div className="telemetry-card glass-panel ip-origins-card">
                             <div className="card-header">
                                 <div>
-                                    <h3>🌐 Client Origin IP Distribution ("From Where They Are Coming")</h3>
+                                    <h3><FontAwesomeIcon icon={faGlobe} /> Client Origin IP Distribution</h3>
                                     <span className="telemetry-subtext">Active remote IP addresses surfing deployed & managed nodes, dominant method & latest route</span>
                                 </div>
                                 <span className="telemetry-tag">ORIGIN TELEMETRY</span>
@@ -1693,8 +1858,8 @@ export default function ControlHub() {
                                                         onClick={(e) => handleCopyIp(rec.ip, e)}
                                                         title="Click to copy IP"
                                                     >
-                                                        🌐 {rec.ip}
-                                                        {copiedIp === rec.ip && <span className="copied-tag">✓</span>}
+                                                        <FontAwesomeIcon icon={faGlobe} /> {rec.ip}
+                                                        {copiedIp === rec.ip && <span className="copied-tag"><FontAwesomeIcon icon={faCheck} /></span>}
                                                     </span>
                                                 </td>
                                                 <td><strong style={{ color: '#00e5ff' }}>{rec.totalRequests}</strong> hits</td>
@@ -1707,7 +1872,7 @@ export default function ControlHub() {
                                                 <td>{rec.lastSeen}</td>
                                                 <td>
                                                     {rec.username ? (
-                                                        <strong style={{ color: '#4ade80' }}>👤 {rec.username}</strong>
+                                                        <strong style={{ color: '#4ade80' }}><FontAwesomeIcon icon={faUser} /> {rec.username}</strong>
                                                     ) : (
                                                         <span style={{ color: '#94a3b8' }}>Guest Visitor</span>
                                                     )}
@@ -1718,7 +1883,7 @@ export default function ControlHub() {
                                                         className="inspect-ip-btn"
                                                         onClick={() => handleFilterByIp(rec.ip)}
                                                     >
-                                                        🔍 Filter Logs
+                                                        <FontAwesomeIcon icon={faMagnifyingGlass} /> Filter Logs
                                                     </button>
                                                 </td>
                                             </tr>
@@ -1736,7 +1901,7 @@ export default function ControlHub() {
                 <div className="admin-audit-section">
                     <div className="audit-header-panel glass-panel">
                         <div className="audit-title-wrap">
-                            <h3>🛡️ Platform Event Audit Trail & Telemetry Stream</h3>
+                            <h3><FontAwesomeIcon icon={faShieldHalved} /> Platform Event Audit Trail & Telemetry Stream</h3>
                             <p>Real-time chronological telemetry logs across authentication, battles, submissions, and fleet orchestration.</p>
                         </div>
                         <div className="audit-controls-wrap">
@@ -1756,7 +1921,11 @@ export default function ControlHub() {
                                 onClick={() => fetchAuditLogs()}
                                 disabled={auditLoading}
                             >
-                                {auditLoading ? "Refreshing..." : "Refresh Audit"}
+                                {auditLoading ? (
+                                    <><FontAwesomeIcon icon={faRotate} spin /> Refreshing...</>
+                                ) : (
+                                    <><FontAwesomeIcon icon={faRotate} /> Refresh Audit</>
+                                )}
                             </button>
                         </div>
                     </div>
@@ -1856,8 +2025,8 @@ export default function ControlHub() {
                                                         title="Click to copy IP / inspect origin"
                                                         onClick={(e) => handleCopyIp(entry.ip || "127.0.0.1", e)}
                                                     >
-                                                        🌐 {entry.ip || "127.0.0.1"}
-                                                        {copiedIp === entry.ip && <span className="copied-tag">✓</span>}
+                                                        <FontAwesomeIcon icon={faGlobe} /> {entry.ip || "127.0.0.1"}
+                                                        {copiedIp === entry.ip && <span className="copied-tag"><FontAwesomeIcon icon={faCheck} /></span>}
                                                     </span>
                                                 </td>
                                                 <td>
@@ -1888,7 +2057,7 @@ export default function ControlHub() {
                                                                     className="filter-by-ip-btn"
                                                                     onClick={(e) => handleFilterByIp(entry.ip || "127.0.0.1", e)}
                                                                 >
-                                                                    🔍 Filter All Events for this IP
+                                                                    <FontAwesomeIcon icon={faMagnifyingGlass} /> Filter All Events for this IP
                                                                 </button>
                                                             </div>
                                                             {entry.metadata && (
@@ -1920,7 +2089,7 @@ export default function ControlHub() {
                         </div>
                         <div className="toolbar-actions">
                             <button type="button" className="retry-probe-btn" onClick={checkLinuxStatus}>
-                                🔄 Check Connectivity
+                                <FontAwesomeIcon icon={faRotate} /> Check Connectivity
                             </button>
                             <a
                                 href={linuxTelemetryUrl}
@@ -1928,7 +2097,7 @@ export default function ControlHub() {
                                 rel="noreferrer"
                                 className="external-window-btn"
                             >
-                                Open in New Window ↗
+                                Open in New Window <FontAwesomeIcon icon={faArrowUpRightFromSquare} />
                             </a>
                         </div>
                     </div>
@@ -1943,7 +2112,7 @@ export default function ControlHub() {
                         </div>
                     ) : (
                         <div className="linux-offline-guide-card glass-panel">
-                            <div className="guide-icon">🖥️</div>
+                            <div className="guide-icon"><FontAwesomeIcon icon={faDesktop} /></div>
                             <h3>WSL Linux Telemetry Service is Offline</h3>
                             <p>
                                 The dedicated FastAPI Telemetry and Evaluation Service (<code>AlgoFight_Linux</code>) is not running on <code>http://localhost:8000</code>.
@@ -1959,7 +2128,7 @@ export default function ControlHub() {
                             </p>
 
                             <button type="button" className="retry-btn-large" onClick={checkLinuxStatus}>
-                                🔄 Reconnect to Service
+                                <FontAwesomeIcon icon={faRotate} /> Reconnect to Service
                             </button>
                         </div>
                     )}
@@ -1984,7 +2153,7 @@ export default function ControlHub() {
                             onClick={(e) => e.stopPropagation()}
                         >
                             <div className="modal-header">
-                                <h4>🔍 Fleet Diagnostics Probe Results</h4>
+                                <h4><FontAwesomeIcon icon={faMagnifyingGlass} /> Fleet Diagnostics Probe Results</h4>
                                 <button type="button" className="modal-close-btn" onClick={() => setIsProbeModalOpen(false)}>
                                     ✕
                                 </button>
@@ -1998,7 +2167,7 @@ export default function ControlHub() {
                                     {probeResults.results?.map((res) => (
                                         <div key={res.id} className={`probe-result-card ${res.status.toLowerCase()}`}>
                                             <div className="probe-card-head">
-                                                <strong>📦 {res.id} ({res.url})</strong>
+                                                <strong><FontAwesomeIcon icon={faBox} /> {res.id} ({res.url})</strong>
                                                 <span className={`status-pill ${res.status.toLowerCase()}`}>{res.status} ({res.latencyMs}ms)</span>
                                             </div>
                                             {res.output && (
@@ -2021,6 +2190,11 @@ export default function ControlHub() {
                     </motion.div>
                 )}
             </AnimatePresence>
-        </motion.div>
+                        </motion.div>
+                    </AnimatePresence>
+                </main>
+            </div>
+            <Footer />
+        </BackgroundPaths>
     );
 }

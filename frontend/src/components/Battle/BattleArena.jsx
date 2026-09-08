@@ -22,6 +22,9 @@ import {
   faKey,
   faUsers,
   faGamepad,
+  faRobot,
+  faShieldHalved,
+  faSignal,
 } from "@fortawesome/free-solid-svg-icons";
 import "./BattleArena.css";
 
@@ -87,15 +90,23 @@ export default function BattleArena({ defaultTab }) {
             transition={{ duration: 0.4 }}
             className="arena-header"
           >
-            <div className="hero-badge">
-              <span className="badge-pulse-dot" />
-              <span>COMPETITIVE ARENA</span>
+            <div className="arena-header-top">
+              <div className="hero-badge">
+                <span className="badge-pulse-dot" />
+                <span>COMPETITIVE ARENA</span>
+              </div>
+              <div className="telemetry-bar">
+                <span><FontAwesomeIcon icon={faSignal} className="text-cyan" /> 24ms Low Latency</span>
+                <span className="telemetry-divider">•</span>
+                <span><FontAwesomeIcon icon={faShieldHalved} className="text-purple" /> Anti-Cheat Secured</span>
+              </div>
             </div>
+
             <h1 className="arena-title">
               Real-Time <span className="text-cyan-gradient">Algorithmic</span> <span className="text-purple">Battles</span>
             </h1>
             <p className="arena-subtitle">
-              Compete in live head-to-head duels, challenge online players, host private multiplayer rooms, or join custom code arenas.
+              Compete in live head-to-head duels, challenge online players, host private multiplayer rooms, or battle AlgoBot AI.
             </p>
           </motion.div>
 
@@ -103,13 +114,15 @@ export default function BattleArena({ defaultTab }) {
           <section className="arena-stats">
             <div className="stat-card tone-gold">
               <div className="stat-icon-wrapper">
-                <RankEmblem rating={rating} size={28} glow={false} />
+                <RankEmblem rating={rating} size={30} glow={false} />
               </div>
               <div className="stat-info">
                 <div className="stat-number stat-yellow">{rating}</div>
                 <div className="stat-label">Global Rating</div>
               </div>
+              <div className="stat-pill-badge">ELO RANKED</div>
             </div>
+
             <div className="stat-card tone-pink">
               <div className="stat-icon-wrapper">
                 <FontAwesomeIcon icon={faBullseye} />
@@ -118,7 +131,9 @@ export default function BattleArena({ defaultTab }) {
                 <div className="stat-number stat-pink">{matchesWon}</div>
                 <div className="stat-label">Battles Won</div>
               </div>
+              <div className="stat-pill-badge pink">VICTORIES</div>
             </div>
+
             <div className="stat-card tone-cyan">
               <div className="stat-icon-wrapper">
                 <FontAwesomeIcon icon={faBolt} />
@@ -127,6 +142,7 @@ export default function BattleArena({ defaultTab }) {
                 <div className="stat-number stat-cyan">{winRate}%</div>
                 <div className="stat-label">Win Rate</div>
               </div>
+              <div className="stat-pill-badge cyan">ACCURACY</div>
             </div>
           </section>
 
@@ -143,7 +159,7 @@ export default function BattleArena({ defaultTab }) {
                 className={`arena-nav-btn ${activeTab === "players" ? "active" : ""}`}
                 onClick={() => handleTabChange("players")}
               >
-                <FontAwesomeIcon icon={faUsers} /> Available Players
+                <FontAwesomeIcon icon={faUsers} /> Available Combatants
                 {onlineCount > 0 && (
                   <span className="arena-tab-badge">
                     {onlineCount} Online
@@ -153,7 +169,7 @@ export default function BattleArena({ defaultTab }) {
             </div>
           </div>
 
-          {/* Tab 1: 3 Game Modes Grid */}
+          {/* Tab 1: 4 Game Modes Grid */}
           {activeTab === "modes" && (
             <motion.section
               className="arena-modes-section"
@@ -161,19 +177,22 @@ export default function BattleArena({ defaultTab }) {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.2 }}
             >
-              <div className="modes-grid">
+              <div className="modes-grid-4">
                 {/* Mode 1: Quick 1v1 Match */}
                 <motion.div
                   className="mode-card featured"
-                  whileHover={{ y: -5 }}
+                  whileHover={{ y: -6 }}
                   transition={{ duration: 0.2 }}
                 >
                   <div className="mode-card-header">
                     <span className="mode-tag ranked">Ranked Matchmaking</span>
-                    <div className="mode-icon-accent"><FontAwesomeIcon icon={faBolt} /></div>
+                    <span className="capacity-chip">1v1 ELO</span>
                   </div>
-                  <h3>Quick 1v1 Duel</h3>
-                  <p>Instant automated matchmaking against players of similar rating. Win rating points and climb the global leaderboard.</p>
+                  <div className="mode-card-title-row">
+                    <div className="mode-icon-accent"><FontAwesomeIcon icon={faBolt} /></div>
+                    <h3>Ranked 1v1 Duel</h3>
+                  </div>
+                  <p>Instant automated matchmaking against coders of equal rating. Earn ELO points and climb global leaderboards.</p>
                   <button className="btn-primary-glow w-full" onClick={() => navigate("/battle/live")}>
                     <FontAwesomeIcon icon={faMagnifyingGlass} /> Find 1v1 Match
                   </button>
@@ -182,16 +201,19 @@ export default function BattleArena({ defaultTab }) {
                 {/* Mode 2: Create Custom Room */}
                 <motion.div
                   className="mode-card"
-                  whileHover={{ y: -5 }}
+                  whileHover={{ y: -6 }}
                   transition={{ duration: 0.2 }}
                 >
                   <div className="mode-card-header">
                     <span className="mode-tag custom">Custom Lobby</span>
-                    <div className="mode-icon-accent custom"><FontAwesomeIcon icon={faPlus} /></div>
+                    <span className="capacity-chip purple">Up to 100</span>
                   </div>
-                  <h3>Create Private Room</h3>
-                  <p>Host a private battle room or classroom tournament for up to 100 players. Customize question counts, dynamic difficulty mixing (MIX), and time limits.</p>
-                  <button className="btn-secondary-glass w-full" onClick={() => setShowCreateModal(true)}>
+                  <div className="mode-card-title-row">
+                    <div className="mode-icon-accent custom"><FontAwesomeIcon icon={faPlus} /></div>
+                    <h3>Host Custom Room</h3>
+                  </div>
+                  <p>Host private lobbies or classroom tournaments for up to 100 players. Configure question counts and custom time limits.</p>
+                  <button className="btn-secondary-glass custom-purple w-full" onClick={() => setShowCreateModal(true)}>
                     <FontAwesomeIcon icon={faPlus} /> Host Custom Room
                   </button>
                 </motion.div>
@@ -199,17 +221,40 @@ export default function BattleArena({ defaultTab }) {
                 {/* Mode 3: Join Room with Code */}
                 <motion.div
                   className="mode-card"
-                  whileHover={{ y: -5 }}
+                  whileHover={{ y: -6 }}
                   transition={{ duration: 0.2 }}
                 >
                   <div className="mode-card-header">
-                    <span className="mode-tag direct">Direct Join</span>
-                    <div className="mode-icon-accent direct"><FontAwesomeIcon icon={faKey} /></div>
+                    <span className="mode-tag direct">Direct Access</span>
+                    <span className="capacity-chip gold">Passcode Required</span>
                   </div>
-                  <h3>Join with Code</h3>
-                  <p>Have a room passcode from a friend or classmate? Enter your code to enter their lobby instantly and join the group battle.</p>
-                  <button className="btn-secondary-glass w-full" onClick={() => setShowJoinModal(true)}>
+                  <div className="mode-card-title-row">
+                    <div className="mode-icon-accent direct"><FontAwesomeIcon icon={faKey} /></div>
+                    <h3>Join with Code</h3>
+                  </div>
+                  <p>Have a room passcode from a classmate or instructor? Enter your code to join their live battle lobby instantly.</p>
+                  <button className="btn-secondary-glass custom-gold w-full" onClick={() => setShowJoinModal(true)}>
                     <FontAwesomeIcon icon={faKey} /> Enter Room Code
+                  </button>
+                </motion.div>
+
+                {/* Mode 4: Play vs Bot AI */}
+                <motion.div
+                  className="mode-card"
+                  whileHover={{ y: -6 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <div className="mode-card-header">
+                    <span className="mode-tag bot">Solo Practice</span>
+                    <span className="capacity-chip emerald">Vs AlgoBot</span>
+                  </div>
+                  <div className="mode-card-title-row">
+                    <div className="mode-icon-accent bot"><FontAwesomeIcon icon={faRobot} /></div>
+                    <h3>Play vs AlgoBot</h3>
+                  </div>
+                  <p>Warm up or hone your competitive speed in a 1v1 duel against our adaptive AI engine with instant response times.</p>
+                  <button className="btn-secondary-glass custom-emerald w-full" onClick={() => navigate("/battle/live", { state: { autoBot: true } })}>
+                    <FontAwesomeIcon icon={faRobot} /> Play vs AlgoBot
                   </button>
                 </motion.div>
               </div>

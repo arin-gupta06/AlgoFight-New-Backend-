@@ -75,112 +75,101 @@ export default function CreateRoomModal({ isOpen, onClose }) {
                         </button>
                     </div>
 
-                    <form onSubmit={handleCreate} className="modal-form">
-                        <div className="form-group-hud">
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <label><FontAwesomeIcon icon={faUsers} /> Max Participants (Classroom / Arena)</label>
-                                <span style={{ fontSize: '0.85rem', color: '#00e5ff', fontWeight: 700, fontFamily: 'Space Grotesk' }}>
-                                    {maxPlayers} Students
-                                </span>
-                            </div>
-                            <div className="pill-grid-4">
-                                {[2, 4, 8, 16, 25, 50, 75, 100].map((num) => (
-                                    <button
-                                        key={num}
-                                        type="button"
-                                        className={`pill-btn ${maxPlayers === num ? "active" : ""}`}
-                                        onClick={() => setMaxPlayers(num)}
+                    <form onSubmit={handleCreate} className="modal-form-compact">
+                        <div className="modal-form-grid">
+                            {/* Left Column: Participants & Time Limit Dropdowns */}
+                            <div className="modal-form-col">
+                                {/* Max Participants Dropdown */}
+                                <div className="form-group-hud">
+                                    <div className="form-group-header">
+                                        <label><FontAwesomeIcon icon={faUsers} /> Max Participants</label>
+                                        <span className="form-group-value-badge">{maxPlayers} Seats</span>
+                                    </div>
+                                    <select
+                                        className="hud-select"
+                                        value={maxPlayers}
+                                        onChange={(e) => setMaxPlayers(Number(e.target.value))}
                                     >
-                                        {num} Players
-                                    </button>
-                                ))}
+                                        <option value={2}>2 Participants (1v1 Duel)</option>
+                                        <option value={4}>4 Participants (Small Team)</option>
+                                        <option value={8}>8 Participants (Group Tournament)</option>
+                                        <option value={16}>16 Participants (Classroom Round)</option>
+                                        <option value={25}>25 Participants (Medium Arena)</option>
+                                        <option value={50}>50 Participants (Large Arena)</option>
+                                        <option value={75}>75 Participants (Mega Tournament)</option>
+                                        <option value={100}>100 Participants (Full Hall)</option>
+                                    </select>
+                                </div>
+
+                                {/* Time Limit Dropdown */}
+                                <div className="form-group-hud">
+                                    <div className="form-group-header">
+                                        <label><FontAwesomeIcon icon={faClock} /> Time Limit</label>
+                                        <span className="form-group-value-badge">{timeLimit} Mins</span>
+                                    </div>
+                                    <select
+                                        className="hud-select"
+                                        value={timeLimit}
+                                        onChange={(e) => setTimeLimit(Number(e.target.value))}
+                                    >
+                                        <option value={5}>5 Minutes (Blitz Duel)</option>
+                                        <option value={10}>10 Minutes (Rapid Round)</option>
+                                        <option value={15}>15 Minutes (Standard Match)</option>
+                                        <option value={20}>20 Minutes (Extended Round)</option>
+                                        <option value={30}>30 Minutes (Deep Challenge)</option>
+                                        <option value={45}>45 Minutes (Classroom Session)</option>
+                                        <option value={60}>60 Minutes (1 Hour Match)</option>
+                                        <option value={90}>90 Minutes (1.5 Hour Marathon)</option>
+                                        <option value={120}>120 Minutes (2 Hour Grand Finals)</option>
+                                    </select>
+                                </div>
                             </div>
-                            <div className="custom-size-row">
-                                <div className="custom-size-left">
-                                    <span className="custom-size-label">Custom Class Size:</span>
-                                    <div className="custom-size-input-wrapper">
-                                        <input
-                                            type="number"
-                                            min="2"
-                                            max="100"
-                                            value={maxPlayers}
-                                            onChange={(e) => setMaxPlayers(Math.max(2, Math.min(100, Number(e.target.value) || 2)))}
-                                            className="custom-size-input"
-                                        />
-                                        <span className="custom-size-unit">Seats</span>
+
+                            {/* Right Column: Questions & Difficulty */}
+                            <div className="modal-form-col">
+                                {/* Question Count */}
+                                <div className="form-group-hud">
+                                    <div className="form-group-header">
+                                        <label><FontAwesomeIcon icon={faPlus} /> Questions</label>
+                                        <span className="form-group-value-badge">{questionCount} Qs</span>
+                                    </div>
+                                    <div className="pill-grid-3">
+                                        {[1, 3, 5].map((num) => (
+                                            <button
+                                                key={num}
+                                                type="button"
+                                                className={`pill-btn ${questionCount === num ? "active" : ""}`}
+                                                onClick={() => setQuestionCount(num)}
+                                            >
+                                                {num} Qs
+                                            </button>
+                                        ))}
                                     </div>
                                 </div>
-                                <span className="custom-size-hint">Direct Entry (2–100)</span>
+
+                                {/* Problem Difficulty */}
+                                <div className="form-group-hud">
+                                    <div className="form-group-header">
+                                        <label><FontAwesomeIcon icon={faFire} /> Difficulty</label>
+                                        <span className="form-group-value-badge">{difficulty}</span>
+                                    </div>
+                                    <div className="pill-grid-4">
+                                        {["EASY", "MEDIUM", "HARD", "MIX"].map((diff) => (
+                                            <button
+                                                key={diff}
+                                                type="button"
+                                                className={`pill-btn ${difficulty === diff ? "active" : ""}`}
+                                                onClick={() => setDifficulty(diff)}
+                                            >
+                                                {diff}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
-                        <div className="form-group-hud">
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <label><FontAwesomeIcon icon={faClock} /> Time Limit</label>
-                                <span style={{ fontSize: '0.85rem', color: '#00e5ff', fontWeight: 700, fontFamily: 'Space Grotesk' }}>
-                                    {timeLimit} Mins
-                                </span>
-                            </div>
-                            <div className="pill-grid-3">
-                                {[5, 10, 15, 30, 45, 60].map((mins) => (
-                                    <button
-                                        key={mins}
-                                        type="button"
-                                        className={`pill-btn ${timeLimit === mins ? "active" : ""}`}
-                                        onClick={() => setTimeLimit(mins)}
-                                    >
-                                        {mins} Mins
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div className="form-group-hud">
-                            <label><FontAwesomeIcon icon={faPlus} /> Number of Questions</label>
-                            <div className="pill-grid-3">
-                                {[1, 3, 5].map((num) => (
-                                    <button
-                                        key={num}
-                                        type="button"
-                                        className={`pill-btn ${questionCount === num ? "active" : ""}`}
-                                        onClick={() => setQuestionCount(num)}
-                                    >
-                                        {num} {num === 1 ? 'Question' : 'Questions'}
-                                    </button>
-                                ))}
-                            </div>
-                            <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)', marginTop: '6px' }}>The battle ends strictly when the time expires or a participant completes all questions.</p>
-                        </div>
-
-                        <div className="form-group-hud">
-                            <label><FontAwesomeIcon icon={faFire} /> Problem Difficulty</label>
-                            <div className="pill-grid-4">
-                                {["EASY", "MEDIUM", "HARD", "MIX"].map((diff) => (
-                                    <button
-                                        key={diff}
-                                        type="button"
-                                        className={`pill-btn ${difficulty === diff ? "active" : ""}`}
-                                        onClick={() => setDifficulty(diff)}
-                                    >
-                                        {diff}
-                                    </button>
-                                ))}
-                            </div>
-                            <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)', marginTop: '6px' }}>MIX will dynamically balance questions: ~30% Hard, 50% Medium, 20% Easy.</p>
-                        </div>
-
-                        <div className="form-group-hud" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                            <input 
-                                type="checkbox" 
-                                id="friendly-battle-toggle"
-                                checked={isFriendly}
-                                onChange={(e) => setIsFriendly(e.target.checked)}
-                                style={{ width: '18px', height: '18px', cursor: 'pointer' }}
-                            />
-                            <label htmlFor="friendly-battle-toggle" style={{ margin: 0, cursor: 'pointer' }}>Friendly Battle (Unranked)</label>
-                        </div>
-
-                        <div className="modal-actions">
+                        <div className="modal-actions" style={{ marginTop: '20px' }}>
                             <button type="button" className="btn-hud-secondary" onClick={onClose} disabled={creating}>
                                 Cancel
                             </button>

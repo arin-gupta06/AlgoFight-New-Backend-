@@ -34,7 +34,7 @@ export class PrismaSubmissionRepository implements SubmissionRepository {
       },
       select: { id: true },
     });
-    return submissions.map((s) => s.id);
+    return submissions.map((s: any) => s.id);
   }
 
   async findById(submissionId: string) {

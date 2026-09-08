@@ -64,7 +64,7 @@ export default function JoinRoomModal({ isOpen, onClose }) {
                     <div className="modal-header">
                         <div className="modal-title-group">
                             <span className="modal-tag">Direct Access</span>
-                            <h2>Join Private Battle</h2>
+                            <h2>Enter Room Code</h2>
                         </div>
                         <button className="modal-close-btn" onClick={onClose}>
                             <FontAwesomeIcon icon={faTimes} />
@@ -73,19 +73,25 @@ export default function JoinRoomModal({ isOpen, onClose }) {
 
                     <form onSubmit={handleJoin} className="modal-form">
                         <div className="form-group-hud">
-                            <label><FontAwesomeIcon icon={faKey} /> Room Passcode</label>
+                            <div className="form-group-header">
+                                <label><FontAwesomeIcon icon={faKey} /> Room Passcode</label>
+                                <span className="form-group-value-badge">
+                                    {roomCode.trim() ? `${roomCode.trim().length} Chars` : 'Required'}
+                                </span>
+                            </div>
                             <input
                                 type="text"
-                                className="input-hud code-input"
+                                className="code-input"
                                 placeholder="e.g. BTL-8492"
                                 value={roomCode}
                                 onChange={(e) => setRoomCode(e.target.value)}
                                 autoFocus
                                 maxLength={12}
                             />
+                            <p className="form-group-hint">Have a room code from a friend or instructor? Enter it here to join their live battle lobby.</p>
                         </div>
 
-                        <div className="modal-actions">
+                        <div className="modal-actions" style={{ marginTop: '16px' }}>
                             <button type="button" className="btn-hud-secondary" onClick={onClose} disabled={joining}>
                                 Cancel
                             </button>

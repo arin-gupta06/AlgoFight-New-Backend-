@@ -57,8 +57,8 @@
 
 /* Room Meta Strip */
 .lobby-card-main {
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    background: rgba(18, 20, 28, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 20px;
     padding: 24px 32px;
     backdrop-filter: blur(20px);
@@ -174,19 +174,21 @@
 }
 
 .participant-card {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    background: rgba(18, 20, 28, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 16px;
     padding: 18px 20px;
     display: flex;
     align-items: center;
     gap: 16px;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     transition: all 0.2s ease;
 }
 
 .participant-card.me {
-    border-color: rgba(0, 229, 255, 0.4);
-    background: rgba(0, 229, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.25);
+    background: rgba(255, 255, 255, 0.07);
 }
 
 .participant-avatar {

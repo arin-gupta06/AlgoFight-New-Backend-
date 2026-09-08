@@ -1,57 +1,49 @@
 /* ===== PRACTICE ARCHIVE STYLES ===== */
 
-
 .archive-root {
   width: 100%;
-  max-width: 1400px;
+  max-width: 1360px;
   margin: 0 auto;
-  padding: 72px 5% 84px;
-  min-height: calc(100vh - 80px);
+  padding: 72px 5% 100px;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 36px;
+  position: relative;
+  z-index: 1;
   font-family: 'Inter', sans-serif;
-  color: #f2f7ff;
+  color: #ffffff;
+  box-sizing: border-box;
 }
 
 .archive-panel {
-  border-radius: 20px;
-  border: 1px solid rgba(0, 229, 255, 0.14);
-  background: linear-gradient(160deg, rgba(0, 0, 0, 0.5), rgba(4, 18, 34, 0.68));
-  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.36);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(18, 20, 28, 0.55);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
 }
 
 .archive-header {
-  margin-bottom: 2px;
-}
-
-.archive-header .pre-heading {
-  font-size: 0.86rem;
-  letter-spacing: 0.2em;
-  color: #8a93a6;
-  margin-bottom: 12px;
-  text-transform: uppercase;
-  font-weight: 600;
+  margin-bottom: 4px;
 }
 
 .archive-header h1 {
   margin: 0;
   font-family: 'Space Grotesk', sans-serif;
   font-size: clamp(2.4rem, 5vw, 4.2rem);
+  font-weight: 900;
   letter-spacing: -0.02em;
   line-height: 1.05;
-  text-transform: none;
-  color: #f4f9ff;
+  color: #ffffff;
 }
 
 .archive-header p {
   margin-top: 14px;
-  max-width: 760px;
-  color: #9ca9bf;
-  font-size: 1rem;
-  line-height: 1.6;
+  max-width: 780px;
+  color: #94a3b8;
+  font-size: 1.05rem;
+  line-height: 1.65;
 }
 
 .archive-controls {

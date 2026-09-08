@@ -22,10 +22,12 @@
   max-width: min(1240px, 94vw);
   max-height: 90vh;
   height: 90vh;
-  background: linear-gradient(165deg, rgba(6, 14, 26, 0.98) 0%, rgba(2, 6, 14, 0.99) 100%);
-  border: 1px solid rgba(0, 229, 255, 0.28);
+  background: rgba(18, 20, 28, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 22px;
-  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.95), 0 0 50px rgba(0, 229, 255, 0.12), inset 0 0 30px rgba(0, 229, 255, 0.03);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   display: flex;
   flex-direction: column;
   overflow: hidden;

@@ -1,12 +1,15 @@
 /* frontend/src/components/About/About.css */
 
 .learn-page {
-  max-width: 1400px;
+  width: 100%;
+  max-width: 1360px;
   margin: 0 auto;
-  padding: 84px 6% 120px;
-  min-height: calc(100vh - 80px);
-  color: #ffffff;
+  padding: 72px 5% 100px;
+  position: relative;
+  z-index: 1;
   font-family: 'Inter', sans-serif;
+  color: #ffffff;
+  box-sizing: border-box;
 }
 
 .about-content-wrapper {
@@ -49,49 +52,33 @@
 .learn-arch-panel,
 .learn-flow-section,
 .learn-team-section {
-  margin-bottom: 64px;
+  margin-bottom: 48px;
 }
 
 .learn-hero {
-  padding: 44px 40px;
-  border-radius: 24px;
-  border: 1px solid rgba(0, 229, 255, 0.16);
-  background: linear-gradient(160deg, rgba(0, 0, 0, 0.55), rgba(4, 18, 34, 0.75));
-  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-}
-
-.learn-pre-heading {
-  font-size: 0.84rem;
-  letter-spacing: 0.2em;
-  color: #8a93a6;
-  margin-bottom: 16px;
-  text-transform: uppercase;
-  font-weight: 700;
+  padding: 48px 40px;
+  border-radius: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(18, 20, 28, 0.55);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
 }
 
 .learn-hero h1 {
   margin: 0 0 16px;
   font-family: 'Space Grotesk', sans-serif;
   font-size: clamp(2.4rem, 5.2vw, 4.4rem);
+  font-weight: 900;
   line-height: 1.08;
-  text-transform: none;
   letter-spacing: -0.02em;
-}
-
-.learn-hero h1 span {
-  background: linear-gradient(90deg, #00e5ff 0%, #ff6ea8 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  color: transparent;
+  color: #ffffff;
 }
 
 .learn-hero p {
   margin: 0;
   max-width: 820px;
-  color: #9ca9bf;
+  color: #94a3b8;
   font-size: 1.08rem;
   line-height: 1.75;
 }
@@ -100,42 +87,49 @@
   margin-top: 36px;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 18px;
+  gap: 20px;
 }
 
 .hero-stat-card {
-  border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.015));
+  border-radius: 18px;
+  border: 1px solid rgba(0, 229, 255, 0.2);
+  background: rgba(255, 255, 255, 0.025);
   padding: 22px 20px;
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.hero-stat-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(0, 229, 255, 0.4);
+  background: rgba(0, 229, 255, 0.05);
 }
 
 .hero-stat-value {
   font-family: 'Space Grotesk', sans-serif;
-  font-size: clamp(1.4rem, 2.2vw, 1.85rem);
+  font-size: clamp(1.6rem, 2.4vw, 2.2rem);
   line-height: 1;
-  color: #f5f8ff;
-  margin-bottom: 10px;
-  font-weight: 800;
+  color: #00e5ff;
+  margin-bottom: 8px;
+  font-weight: 900;
 }
 
 .hero-stat-label {
   font-size: 0.8rem;
-  color: #8390a8;
+  color: #94a3b8;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-weight: 600;
+  letter-spacing: 0.1em;
+  font-weight: 700;
 }
 
 /* Mission Panel */
 .learn-mission-panel {
   border-radius: 24px;
-  border: 1px solid rgba(0, 229, 255, 0.16);
-  background: linear-gradient(160deg, rgba(0, 0, 0, 0.55), rgba(4, 18, 34, 0.75));
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(18, 20, 28, 0.55);
   box-shadow: 0 14px 36px rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   padding: 44px 40px;
 }
 
@@ -231,11 +225,11 @@
 /* Architecture Panel & Grid */
 .learn-arch-panel {
   border-radius: 24px;
-  border: 1px solid rgba(0, 229, 255, 0.16);
-  background: linear-gradient(160deg, rgba(0, 0, 0, 0.55), rgba(4, 18, 34, 0.75));
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(18, 20, 28, 0.55);
   box-shadow: 0 14px 36px rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   padding: 44px 40px;
   margin-bottom: 64px;
 }
@@ -248,17 +242,33 @@
 }
 
 .arch-card {
-  border-radius: 16px;
+  border-radius: 18px;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(255, 255, 255, 0.025);
   padding: 26px 22px;
-  transition: all 0.2s ease;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
 }
 
 .arch-card:hover {
   border-color: rgba(0, 229, 255, 0.4);
   background: rgba(0, 229, 255, 0.04);
-  transform: translateY(-3px);
+  transform: translateY(-4px);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.4), 0 0 20px rgba(0, 229, 255, 0.1);
+}
+
+.step-badge {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #00e5ff;
+  background: rgba(0, 229, 255, 0.1);
+  border: 1px solid rgba(0, 229, 255, 0.25);
+  padding: 2px 8px;
+  border-radius: 999px;
 }
 
 .arch-icon-wrap {
@@ -298,11 +308,11 @@
 
 .learn-flow-card {
   border-radius: 24px;
-  border: 1px solid rgba(0, 229, 255, 0.16);
-  background: linear-gradient(160deg, rgba(0, 0, 0, 0.55), rgba(4, 18, 34, 0.75));
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(18, 20, 28, 0.55);
   box-shadow: 0 14px 36px rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   padding: 40px 36px;
 }
 

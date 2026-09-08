@@ -1,5 +1,6 @@
 // frontend/src/components/Home/Home.jsx
 import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import './Home.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
@@ -16,45 +17,54 @@ import {
     faCodeBranch,
     faBuildingColumns,
     faMicrochip,
-    faLock
+    faLock,
+    faFire,
+    faCheckCircle
 } from "@fortawesome/free-solid-svg-icons";
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import BackgroundPaths from '../BackgroundPaths/BackgroundPaths';
 import '../BackgroundPaths/BackgroundPaths.css';
 import { fetchPracticeProblems } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
-import logoIcon from '../../assets/algofight-logo.png';
+import Footer from '../Common/Footer/Footer';
+import HeroCodeEditor from '../LandingPage/HeroCodeEditor';
 
 const featureCards = [
     {
         title: 'Real-Time 1v1 Duels',
         copy: 'Head-to-head algorithmic combat with synchronized room lifecycles, live opponent progress, and dynamic Elo ratings.',
         icon: faBolt,
+        tone: 'tone-cyan',
     },
     {
-        title: 'Multiplayer Room Lobbies',
+        title: 'Multiplayer Lobbies',
         copy: 'Host private arenas for up to 100 players with configurable problem sets, dynamic difficulty, and live scoreboards.',
         icon: faBuildingColumns,
+        tone: 'tone-purple',
     },
     {
-        title: 'Anti-Cheat & Fair Play',
-        copy: 'Strict competitive integrity with automated plagiarism detection, sealed judge test suites, and fair-play rating enforcement.',
+        title: 'Anti-Cheat Integrity',
+        copy: 'Strict competitive integrity with automated plagiarism detection, sealed judge test suites, and fair-play enforcement.',
         icon: faLock,
+        tone: 'tone-pink',
     },
     {
-        title: 'Lightning-Fast Sandboxes',
-        copy: 'Hardware-isolated execution environments supporting C++, Python, Java, and JavaScript with sub-second test feedback.',
+        title: 'Execution Sandboxes',
+        copy: 'Hardware-isolated execution environments supporting C++, Python, Java, and JavaScript with sub-second feedback.',
         icon: faMicrochip,
+        tone: 'tone-green',
     },
     {
-        title: 'Verified Combatant Badges',
+        title: 'Combatant Badges',
         copy: 'Showcase your achievements, custom title banners, verified match credentials, and seasonal victory emblems.',
         icon: faShieldHalved,
+        tone: 'tone-gold',
     },
     {
-        title: 'Global Ranks & Leaderboards',
-        copy: 'Climb through official competitive tiers from Rookie to Supreme with live match analytics and Hall of Fame standings.',
+        title: 'Global Leaderboards',
+        copy: 'Climb through official competitive tiers from Rookie to Grandmaster with live match analytics and Hall of Fame standings.',
         icon: faTrophy,
+        tone: 'tone-yellow',
     },
 ];
 
@@ -62,17 +72,20 @@ function Home() {
     const { user } = useAuth();
     const navigate = useNavigate();
     const [featuredProblems, setFeaturedProblems] = useState([]);
+    const [loadingProblems, setLoadingProblems] = useState(true);
 
     useEffect(() => {
         const getProblems = async () => {
             try {
-                // Fetch problems and pick 3 at random
+                setLoadingProblems(true);
                 const data = await fetchPracticeProblems({ limit: 50, mode: 'practice' });
                 const problemsList = data?.problems || [];
                 const shuffled = [...problemsList].sort(() => 0.5 - Math.random());
                 setFeaturedProblems(shuffled.slice(0, 3));
             } catch (err) {
                 console.error("Error fetching featured problems:", err);
+            } finally {
+                setLoadingProblems(false);
             }
         };
         getProblems();
@@ -82,47 +95,48 @@ function Home() {
         <BackgroundPaths>
             <div className="home-container">
                 {/* Hero Section */}
-                <div className="hero-section">
+                <motion.div
+                    className="hero-section"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6 }}
+                >
                     <div className="hero-left">
-                        <div className="pre-heading">COMPETITIVE PROGRAMMING REDEFINED</div>
+                        <div className="hero-badge">
+                            <span className="badge-pulse-dot" />
+                            <span>COMPETITIVE PROGRAMMING ARENA</span>
+                        </div>
                         <h1 className="hero-heading">
-                            <span className="text-white" style={{ textShadow: '0 0 25px rgba(0, 229, 255, 0.7)' }}>CODE</span>
+                            <span className="text-white">CODE</span>
                             <span className="text-purple">BATTLE</span>
-                            <span className="text-white" style={{ textShadow: '0 0 25px rgba(0, 229, 255, 0.7)' }}>DOMINATE</span>
+                            <span className="text-white">DOMINATE</span>
                         </h1>
                         <p className="hero-description">
-                            Join 50,000+ developers competing in real-time algorithmic battles. Sub-millisecond judging, cryptographic trust, and live multiplayer duels.
+                            Join 50,000+ developers competing in real-time algorithmic battles. Sub-second judging, cryptographic anti-cheat, and live multiplayer duels.
                         </p>
                         <div className="hero-buttons">
-                            <button className="btn-primary" onClick={() => navigate("/battle")}>
+                            <button className="btn-primary-glow" onClick={() => navigate("/battle")}>
                                 Start Competing <FontAwesomeIcon icon={faArrowRight} className="btn-icon" />
                             </button>
-                            <button className="btn-secondary" onClick={() => navigate("/about")}>
+                            <button className="btn-secondary-glass" onClick={() => navigate("/about")}>
                                 <FontAwesomeIcon icon={faUsers} className="btn-icon-left" /> About System
                             </button>
                         </div>
                     </div>
 
                     <div className="hero-right">
-                        <div className="stat-card-glass">
-                            <div className="stat-block">
-                                <h2 className="stat-number stat-pink">50K+</h2>
-                                <p className="stat-label">Active Combatants</p>
-                            </div>
-                            <div className="stat-block">
-                                <h2 className="stat-number stat-cyan">2M+</h2>
-                                <p className="stat-label">Submissions Judged</p>
-                            </div>
-                            <div className="stat-block">
-                                <h2 className="stat-number stat-yellow">&lt; 6ms</h2>
-                                <p className="stat-label">Gateway Latency</p>
-                            </div>
-                        </div>
+                        <HeroCodeEditor />
                     </div>
-                </div>
+                </motion.div>
 
                 {/* Featured Problems Section */}
-                <section className="competitions-section home-panel">
+                <motion.section
+                    className="competitions-section home-panel"
+                    initial={{ opacity: 0, y: 30 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.5 }}
+                >
                     <div className="comp-header-row">
                         <div>
                             <div className="pre-heading">HANDPICKED CHALLENGES</div>
@@ -133,124 +147,111 @@ function Home() {
                         </button>
                     </div>
 
-                    <div className="comp-grid" style={{ minHeight: '260px' }}>
-                        {featuredProblems.length > 0 ? featuredProblems.map((problem) => {
+                    <div className="comp-grid">
+                        {!loadingProblems && featuredProblems.length > 0 ? featuredProblems.map((problem) => {
                             const problemId = problem.id || problem._id;
+                            const diff = (problem.difficulty || "Medium").toLowerCase();
                             return (
-                                <article key={problemId} className="comp-card" style={{ display: 'flex', flexDirection: 'column' }}>
-                                    <h3 className="comp-title">{problem.title}</h3>
-                                    <div style={{ marginBottom: '1rem', marginTop: '0.4rem' }}>
-                                        <span className={`comp-tag diff-${(problem.difficulty || "medium").toLowerCase()}`} style={{ display: 'inline-block', fontWeight: 'bold' }}>
-                                            {(problem.difficulty || "Medium").toUpperCase()}
+                                <motion.article
+                                    key={problemId}
+                                    className="comp-card"
+                                    whileHover={{ y: -5 }}
+                                    transition={{ duration: 0.2 }}
+                                >
+                                    <div className="comp-card-top">
+                                        <h3 className="comp-title">{problem.title}</h3>
+                                        <span className={`comp-tag diff-${diff}`}>
+                                            {problem.difficulty || "Medium"}
                                         </span>
                                     </div>
 
-                                    <div className="comp-details" style={{ flexGrow: 1, marginBottom: '1.5rem', color: '#a0a0a0', fontSize: '0.95rem', lineHeight: '1.5' }}>
-                                        {problem.statement || problem.description ? (problem.statement || problem.description).substring(0, 100) + '...' : 'Challenge your algorithmic thinking with this classic problem designed to test your limits.'}
-                                    </div>
+                                    <p className="comp-snippet">
+                                        {problem.statement || problem.description 
+                                            ? (problem.statement || problem.description).substring(0, 110) + '...'
+                                            : 'Challenge your algorithmic thinking with this classic problem designed to test speed and accuracy.'}
+                                    </p>
 
                                     <button
-                                        className="btn-primary w-100"
+                                        className="btn-card-action"
                                         onClick={() => navigate('/practice/' + problemId)}
                                     >
-                                        Solve Problem
+                                        <span>Solve Problem</span>
+                                        <FontAwesomeIcon icon={faArrowRight} />
                                     </button>
-                                </article>
+                                </motion.article>
                             );
                         }) : (
-                            <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '4rem 0', color: '#888' }}>
-                                <div className="loader" style={{ fontSize: '1rem', marginBottom: '1rem' }}>...</div>
-                                <p>Loading challenges...</p>
+                            <div className="problems-loading-box">
+                                <div className="loader-ring" />
+                                <p>Scanning battle archives for challenges...</p>
                             </div>
                         )}
                     </div>
-                </section>
+                </motion.section>
 
                 {/* Features Section */}
-                <section className="features-section home-panel">
+                <motion.section
+                    className="features-section home-panel"
+                    initial={{ opacity: 0, y: 30 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.5 }}
+                >
                     <div className="pre-heading">PLATFORM CAPABILITIES</div>
                     <h2 className="home-section-title">Engineered For <span className="text-cyan-gradient">Champions</span></h2>
 
                     <div className="features-grid">
-                        {featureCards.map((feature) => (
-                            <article key={feature.title} className="feature-card">
-                                <div className="feature-icon"><FontAwesomeIcon icon={feature.icon} /></div>
+                        {featureCards.map((feature, idx) => (
+                            <motion.article
+                                key={feature.title}
+                                className="feature-card"
+                                whileHover={{ y: -5 }}
+                                transition={{ duration: 0.2 }}
+                            >
+                                <div className={`feature-icon ${feature.tone}`}>
+                                    <FontAwesomeIcon icon={feature.icon} />
+                                </div>
                                 <h3>{feature.title}</h3>
                                 <p>{feature.copy}</p>
-                            </article>
+                            </motion.article>
                         ))}
                     </div>
-                </section>
+                </motion.section>
 
                 {/* CTA Section */}
-                <section className="cta-section">
+                <motion.section
+                    className="cta-section"
+                    initial={{ opacity: 0, scale: 0.98 }}
+                    whileInView={{ opacity: 1, scale: 1 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.5 }}
+                >
                     <div className="cta-glass">
+                        <div className="cta-glow-bg" />
                         <h2 className="cta-heading">Ready to <span className="text-purple">Level Up?</span></h2>
-                        <p className="cta-description">Join thousands of developers sharpening their algorithmic instincts and climbing the ranks in real time.</p>
+                        <p className="cta-description">Join thousands of developers sharpening their algorithmic instincts and climbing global leaderboards in real time.</p>
                         <div className="cta-buttons">
                             {user ? (
-                                <button className="btn-primary" onClick={() => navigate('/developer')}>
-                                    Meet our developers <FontAwesomeIcon icon={faArrowRight} style={{ marginLeft: "8px" }} />
+                                <button className="btn-primary-glow" onClick={() => navigate('/developer')}>
+                                    Meet Our Developers <FontAwesomeIcon icon={faArrowRight} />
                                 </button>
                             ) : (
-                                <button className="btn-primary" onClick={() => navigate('/signup')}>
-                                    Create Free Account <FontAwesomeIcon icon={faArrowRight} style={{ marginLeft: "8px" }} />
+                                <button className="btn-primary-glow" onClick={() => navigate('/signup')}>
+                                    Create Free Account <FontAwesomeIcon icon={faArrowRight} />
                                 </button>
                             )}
-                            <button className="btn-dark" onClick={() => navigate('/practice')}>Explore Problems</button>
+                            <button className="btn-secondary-glass" onClick={() => navigate('/practice')}>
+                                Explore Problems
+                            </button>
                         </div>
-                        <p className="cta-subtext">Instant access. Start solving and dueling in seconds.</p>
+                        <p className="cta-subtext">⚡ Instant access. Start dueling in seconds.</p>
                     </div>
-                </section>
+                </motion.section>
 
             </div>
 
-            {/* Footer */}
-            <footer className="footer-home">
-                <div className="footer-content">
-                    <div className="footer-brand">
-                        <div className="footer-brand-header">
-                            <img src={logoIcon} alt="AlgoFight Logo" className="footer-logo-img" />
-                            <h2>AlgoFight</h2>
-                        </div>
-                        <p>The ultimate real-time platform for competitive programming, institutional arenas, and technical duels.</p>
-                    </div>
-                    <div className="footer-links">
-                        <div className="link-col">
-                            <h4>Platform</h4>
-                            <Link to="/practice">Problems</Link>
-                            <Link to="/battle">1v1 Arenas</Link>
-                            <Link to="/leaderboard">Leaderboard</Link>
-                        </div>
-                        <div className="link-col">
-                            <h4>Architecture</h4>
-                            <Link to="/about">About System</Link>
-                            <Link to="/developer">Architects</Link>
-                            <Link to="/admin">Control Hub</Link>
-                        </div>
-                        <div className="link-col">
-                            <h4>Support</h4>
-                            <Link to="/help">Help Center</Link>
-                            <Link to="/contact">Contact Us</Link>
-                            <Link to="/blog">DevLog</Link>
-                        </div>
-                        <div className="link-col">
-                            <h4>Legal</h4>
-                            <Link to="/terms">Terms</Link>
-                            <Link to="/privacy">Privacy</Link>
-                            <Link to="/cookies">Cookies</Link>
-                        </div>
-                    </div>
-                </div>
-                <div className="footer-bottom">
-                    <p>&copy; 2026 AlgoFight. All rights reserved.</p>
-                    <div className="footer-dev-avatars">
-                        <Link to="/developer" className="dev-avatar-circle dev-a" title="Arin Gupta">A</Link>
-                        <Link to="/developer" className="dev-avatar-circle dev-v" title="Vivek Chaurasiya">V</Link>
-                        <Link to="/developer" className="dev-avatar-circle dev-k" title="Krish Dargar">K</Link>
-                    </div>
-                </div>
-            </footer>
+            {/* Shared Unified Footer */}
+            <Footer />
         </BackgroundPaths>
     );
 }

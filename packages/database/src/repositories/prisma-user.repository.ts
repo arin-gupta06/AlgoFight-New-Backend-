@@ -183,7 +183,7 @@ export class PrismaUserRepository implements UserRepository {
         highestRank?: string;
         metadata?: Record<string, any>;
     }): Promise<UserEntity> {
-        return prisma.$transaction(async (tx) => {
+        return prisma.$transaction(async (tx: any) => {
             const currentUser = await tx.user.findUnique({
                 where: { id: input.userId },
                 select: { highestRating: true, highestRank: true },
@@ -258,10 +258,10 @@ export class PrismaUserRepository implements UserRepository {
         });
 
         const solvedProblemIds = Array.from(
-            new Set(
+            new Set<string>(
                 submissions
-                    .filter((s) => s.verdict === "ACCEPTED")
-                    .map((s) => s.problemId)
+                    .filter((s: any) => s.verdict === "ACCEPTED")
+                    .map((s: any) => s.problemId)
             )
         );
 

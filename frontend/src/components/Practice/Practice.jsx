@@ -12,6 +12,9 @@ import {
 import { fetchPracticeProblems, fetchUserProfile, toApiUrl } from "../../services/api";
 import { useAuth } from "../../contexts/AuthContext.jsx";
 import ProblemReadPanel from "./ProblemReadPanel.jsx";
+import BackgroundPaths from "../BackgroundPaths/BackgroundPaths.jsx";
+import "../BackgroundPaths/BackgroundPaths.css";
+import Footer from "../Common/Footer/Footer.jsx";
 import "./Practice.css";
 
 const DIFFICULTY_OPTIONS = ["all", "easy", "medium", "hard"];
@@ -251,197 +254,205 @@ export default function Practice() {
   }, []);
 
   return (
-    <div className="archive-root">
-      <div className="archive-header">
-        <div className="pre-heading">PROBLEM ARCHIVE</div>
-        <h1>{headingLabel}</h1>
-        <p>Pick a challenge, test your logic, and track your solved progress. Hone your coding skills in this offline practice workspace before joining the Live Competitive Arena.</p>
-      </div>
+    <BackgroundPaths>
+      <div className="archive-root">
+        <div className="archive-header">
+          <div className="hero-badge">
+            <span className="badge-pulse-dot" />
+            <span>PROBLEM ARCHIVE</span>
+          </div>
+          <h1>
+            Handpicked <span className="text-cyan-gradient">Algorithmic</span> <span className="text-yellow-gradient">Challenges</span>
+          </h1>
+          <p>Pick a challenge, test your logic, and track your solved progress. Hone your coding skills in this offline practice workspace before joining the Live Competitive Arena.</p>
+        </div>
 
-      <div className="archive-controls archive-panel">
-        <div className="archive-filters-wrap">
-          <div className="archive-filters">
-            <select
-              value={difficulty}
-              onChange={handleDifficultyChange}
-              className="filter-select"
-            >
-              {DIFFICULTY_OPTIONS.map((level) => (
-                <option key={level} value={level}>
-                  {level === "all" ? "All Difficulties" : level.charAt(0).toUpperCase() + level.slice(1)}
-                </option>
-              ))}
-            </select>
+        <div className="archive-controls archive-panel">
+          <div className="archive-filters-wrap">
+            <div className="archive-filters">
+              <select
+                value={difficulty}
+                onChange={handleDifficultyChange}
+                className="filter-select"
+              >
+                {DIFFICULTY_OPTIONS.map((level) => (
+                  <option key={level} value={level}>
+                    {level === "all" ? "All Difficulties" : level.charAt(0).toUpperCase() + level.slice(1)}
+                  </option>
+                ))}
+              </select>
 
-            <select
-              value={selectedTag}
-              onChange={handleTagChange}
-              className="filter-select"
-            >
-              {availableTags.map((tag) => (
-                <option key={tag} value={tag}>
-                  {tag === "all" ? "All Types" : getFormattedTagName(tag)}
-                </option>
-              ))}
-            </select>
+              <select
+                value={selectedTag}
+                onChange={handleTagChange}
+                className="filter-select"
+              >
+                {availableTags.map((tag) => (
+                  <option key={tag} value={tag}>
+                    {tag === "all" ? "All Types" : getFormattedTagName(tag)}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="archive-meta-pills">
+            <span className="archive-pill">{totalProblems} Total</span>
+            <span className="archive-pill archive-pill-solved">{solvedProblemSet.size} Solved</span>
           </div>
         </div>
 
-        <div className="archive-meta-pills">
-          <span className="archive-pill">{totalProblems} Total</span>
-          <span className="archive-pill archive-pill-solved">{solvedProblemSet.size} Solved</span>
-        </div>
-      </div>
+        {error ? <div className="archive-error">{error}</div> : null}
 
-      {error ? <div className="archive-error">{error}</div> : null}
+        <div className="archive-panel archive-table-wrap">
+          <div className="archive-list-head" aria-hidden="true">
+            <div>#</div>
+            <div>Status</div>
+            <div>Title</div>
+            <div>Tags</div>
+            <div>Acceptance</div>
+            <div>Difficulty</div>
+            <div>Action</div>
+          </div>
 
-      <div className="archive-panel archive-table-wrap">
-        <div className="archive-list-head" aria-hidden="true">
-          <div>#</div>
-          <div>Status</div>
-          <div>Title</div>
-          <div>Tags</div>
-          <div>Acceptance</div>
-          <div>Difficulty</div>
-          <div>Action</div>
-        </div>
+          <div className="archive-list">
+            {loadingList ? <div className="loading-state">Loading problems...</div> : null}
+            {!loadingList && problems.length === 0 ? (
+              <div className="empty-state">No practice problems found.</div>
+            ) : null}
 
-        <div className="archive-list">
-          {loadingList ? <div className="loading-state">Loading problems...</div> : null}
-          {!loadingList && problems.length === 0 ? (
-            <div className="empty-state">No practice problems found.</div>
-          ) : null}
+            {!loadingList &&
+              problems.map((problem, index) => {
+                const problemId = problem.id || problem._id;
+                const absoluteIndex = (currentPage - 1) * PAGE_SIZE + index + 1;
+                const numberStr = `#${String(absoluteIndex).padStart(3, "0")}`;
+                const acceptanceRate = getDeterministicAcceptanceRate(problemId);
+                const isSolved = solvedProblemSet.has(String(problemId));
+                const difficultyLabel = problem.difficulty || "easy";
 
-          {!loadingList &&
-            problems.map((problem, index) => {
-              const problemId = problem.id || problem._id;
-              const absoluteIndex = (currentPage - 1) * PAGE_SIZE + index + 1;
-              const numberStr = `#${String(absoluteIndex).padStart(3, "0")}`;
-              const acceptanceRate = getDeterministicAcceptanceRate(problemId);
-              const isSolved = solvedProblemSet.has(String(problemId));
-              const difficultyLabel = problem.difficulty || "easy";
+                return (
+                  <div
+                    key={problemId}
+                    className="archive-row"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => navigate(`/practice/${problemId}`)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        navigate(`/practice/${problemId}`);
+                      }
+                    }}
+                    aria-label={`Open practice problem ${problem.title}`}
+                  >
+                    <div className="col-num">{numberStr}</div>
 
-              return (
-                <div
-                  key={problemId}
-                  className="archive-row"
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => navigate(`/practice/${problemId}`)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter" || event.key === " ") {
-                      event.preventDefault();
-                      navigate(`/practice/${problemId}`);
-                    }
-                  }}
-                  aria-label={`Open practice problem ${problem.title}`}
-                >
-                  <div className="col-num">{numberStr}</div>
+                    <div className="col-status">
+                      {isSolved ? (
+                        <FontAwesomeIcon icon={faCheckCircle} className="status-icon solved" />
+                      ) : (
+                        <FontAwesomeIcon icon={faCircle} className="status-icon unsolved" />
+                      )}
+                    </div>
 
-                  <div className="col-status">
-                    {isSolved ? (
-                      <FontAwesomeIcon icon={faCheckCircle} className="status-icon solved" />
-                    ) : (
-                      <FontAwesomeIcon icon={faCircle} className="status-icon unsolved" />
-                    )}
-                  </div>
+                    <div className="col-title">{problem.title}</div>
 
-                  <div className="col-title">{problem.title}</div>
+                    <div className="col-tags">
+                      {(() => {
+                        const rawTags = [];
+                        if (problem.category) rawTags.push(problem.category);
+                        if (Array.isArray(problem.tags)) rawTags.push(...problem.tags);
 
-                  <div className="col-tags">
-                    {(() => {
-                      const rawTags = [];
-                      if (problem.category) rawTags.push(problem.category);
-                      if (Array.isArray(problem.tags)) rawTags.push(...problem.tags);
-
-                      const uniqueTags = [];
-                      const seen = new Set();
-                      for (const tag of rawTags) {
-                        if (typeof tag === "string" && tag.trim()) {
-                          const key = tag.trim().toLowerCase();
-                          if (!seen.has(key)) {
-                            seen.add(key);
-                            uniqueTags.push(tag.trim());
+                        const uniqueTags = [];
+                        const seen = new Set();
+                        for (const tag of rawTags) {
+                          if (typeof tag === "string" && tag.trim()) {
+                            const key = tag.trim().toLowerCase();
+                            if (!seen.has(key)) {
+                              seen.add(key);
+                              uniqueTags.push(tag.trim());
+                            }
                           }
                         }
-                      }
-                      if (uniqueTags.length === 0) uniqueTags.push("Algorithms");
-                      return uniqueTags.slice(0, 2);
-                    })().map((tag, tagIndex) => (
-                      <span key={`${problemId}-tag-${tagIndex}`} className="tag-pill">
-                        {tag.toUpperCase()}
+                        if (uniqueTags.length === 0) uniqueTags.push("Algorithms");
+                        return uniqueTags.slice(0, 2);
+                      })().map((tag, tagIndex) => (
+                        <span key={`${problemId}-tag-${tagIndex}`} className="tag-pill">
+                          {tag.toUpperCase()}
+                        </span>
+                      ))}
+                    </div>
+
+                    <div className="col-acc">{acceptanceRate}</div>
+
+                    <div className={`col-diff diff-${difficultyLabel.toLowerCase()}`}>
+                      <span>
+                        {difficultyLabel.charAt(0).toUpperCase() + difficultyLabel.slice(1)}
                       </span>
-                    ))}
+                    </div>
+
+                    <div className="col-action">
+                      <button
+                        type="button"
+                        className="read-problem-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setReadingProblemId(problemId);
+                        }}
+                        aria-label={`Read problem ${problem.title}`}
+                        title={`Read ${problem.title}`}
+                      >
+                        <FontAwesomeIcon icon={faBookOpen} />
+                        <span>Read</span>
+                      </button>
+                    </div>
                   </div>
-
-                  <div className="col-acc">{acceptanceRate}</div>
-
-                  <div className={`col-diff diff-${difficultyLabel.toLowerCase()}`}>
-                    <span>
-                      {difficultyLabel.charAt(0).toUpperCase() + difficultyLabel.slice(1)}
-                    </span>
-                  </div>
-
-                  <div className="col-action">
-                    <button
-                      type="button"
-                      className="read-problem-btn"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setReadingProblemId(problemId);
-                      }}
-                      aria-label={`Read problem ${problem.title}`}
-                      title={`Read ${problem.title}`}
-                    >
-                      <FontAwesomeIcon icon={faBookOpen} />
-                      <span>Read</span>
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-        </div>
-
-        <div className="archive-pagination">
-          <button
-            type="button"
-            className="archive-nav-btn"
-            onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-            disabled={!canGoPrev || loadingList}
-            aria-label="Go to previous page"
-          >
-            <FontAwesomeIcon icon={faChevronLeft} />
-            Previous
-          </button>
-
-          <div className="archive-page-display" aria-live="polite">
-            <strong>Page {currentPage} of {totalPages}</strong>
-            <span>
-              {hasProblems
-                ? `${rangeStart}-${rangeEnd} of ${totalProblems} problems`
-                : `0 of ${totalProblems} problems`}
-            </span>
+                );
+              })}
           </div>
 
-          <button
-            type="button"
-            className="archive-nav-btn"
-            onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-            disabled={!canGoNext || loadingList}
-            aria-label="Go to next page"
-          >
-            Next
-            <FontAwesomeIcon icon={faChevronRight} />
-          </button>
-        </div>
-      </div>
+          <div className="archive-pagination">
+            <button
+              type="button"
+              className="archive-nav-btn"
+              onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+              disabled={!canGoPrev || loadingList}
+              aria-label="Go to previous page"
+            >
+              <FontAwesomeIcon icon={faChevronLeft} />
+              Previous
+            </button>
 
-      {/* Reusable Notion-Style Read Problem Drawer */}
-      <ProblemReadPanel
-        problemId={readingProblemId}
-        onClose={() => setReadingProblemId(null)}
-        initialProblem={problems.find((p) => (p.id || p._id) === readingProblemId)}
-      />
-    </div>
+            <div className="archive-page-display" aria-live="polite">
+              <strong>Page {currentPage} of {totalPages}</strong>
+              <span>
+                {hasProblems
+                  ? `${rangeStart}-${rangeEnd} of ${totalProblems} problems`
+                  : `0 of ${totalProblems} problems`}
+              </span>
+            </div>
+
+            <button
+              type="button"
+              className="archive-nav-btn"
+              onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+              disabled={!canGoNext || loadingList}
+              aria-label="Go to next page"
+            >
+              Next
+              <FontAwesomeIcon icon={faChevronRight} />
+            </button>
+          </div>
+        </div>
+
+        {/* Reusable Notion-Style Read Problem Drawer */}
+        <ProblemReadPanel
+          problemId={readingProblemId}
+          onClose={() => setReadingProblemId(null)}
+          initialProblem={problems.find((p) => (p.id || p._id) === readingProblemId)}
+        />
+      </div>
+      <Footer />
+    </BackgroundPaths>
   );
 }

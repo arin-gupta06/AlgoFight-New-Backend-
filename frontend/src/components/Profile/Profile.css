@@ -1,46 +1,65 @@
 
 .profile-page {
-    max-width: 1400px;
+    max-width: 1360px;
     margin: 0 auto;
-    padding: 64px 5% 84px;
+    padding: 72px 5% 100px;
     min-height: calc(100vh - 80px);
     color: #ffffff;
     font-family: 'Inter', sans-serif;
+    position: relative;
+    z-index: 1;
 }
 
 .profile-overview-shell {
-    border-radius: 20px;
-    border: 1px solid rgba(0, 229, 255, 0.16);
-    background: linear-gradient(160deg, rgba(0, 0, 0, 0.5), rgba(4, 18, 34, 0.68));
-    box-shadow: 0 14px 32px rgba(0, 0, 0, 0.36);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    margin-bottom: 16px;
+    position: relative;
+    border-radius: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(18, 20, 28, 0.55);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    margin-bottom: 24px;
     overflow: hidden;
 }
 
+.profile-overview-shell::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #00e5ff 0%, #a252ff 50%, #ff007f 100%);
+    z-index: 2;
+}
+
 .profile-loading {
-    border-radius: 18px;
-    border: 1px solid rgba(0, 229, 255, 0.18);
-    background: linear-gradient(160deg, rgba(0, 0, 0, 0.5), rgba(4, 18, 34, 0.68));
-    padding: 22px;
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(18, 20, 28, 0.55);
+    padding: 28px;
     color: #8fdff8;
+    font-size: 1.05rem;
     font-weight: 600;
+    text-align: center;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
 }
 
 .profile-hero-card,
 .profile-panel,
 .profile-stat-card {
-    border-radius: 20px;
-    border: 1px solid rgba(0, 229, 255, 0.16);
-    background: linear-gradient(160deg, rgba(0, 0, 0, 0.5), rgba(4, 18, 34, 0.68));
-    box-shadow: 0 14px 32px rgba(0, 0, 0, 0.36);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    border-radius: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(18, 20, 28, 0.55);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
 }
 
 .profile-hero-card {
-    padding: 24px;
+    padding: 32px 36px;
     margin-bottom: 0;
     border: 0;
     background: transparent;
@@ -51,22 +70,23 @@
 .profile-identity-row {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 24px;
 }
 
 .profile-avatar-shell {
-    width: 72px;
-    height: 72px;
-    border-radius: 20px;
-    border: 1px solid rgba(0, 229, 255, 0.35);
-    background: linear-gradient(145deg, rgba(0, 229, 255, 0.16), rgba(255, 110, 168, 0.12));
+    width: 84px;
+    height: 84px;
+    border-radius: 22px;
+    border: 2px solid rgba(0, 240, 255, 0.4);
+    background: linear-gradient(145deg, rgba(0, 240, 255, 0.2), rgba(168, 85, 247, 0.15));
     display: inline-flex;
     align-items: center;
     justify-content: center;
     color: #73ebff;
-    font-size: 1.4rem;
+    font-size: 1.8rem;
     overflow: hidden;
     flex-shrink: 0;
+    box-shadow: 0 0 24px rgba(0, 240, 255, 0.25);
 }
 
 .profile-avatar-image {
@@ -88,14 +108,17 @@
     font-weight: 700;
 }
 
+.profile-display-name,
 .profile-identity-copy h1 {
-    margin: 0 0 5px;
+    margin: 0 0 4px;
     font-family: 'Space Grotesk', sans-serif;
-    font-size: clamp(1.5rem, 3vw, 2.2rem);
+    font-size: clamp(1.8rem, 3.5vw, 2.5rem);
+    font-weight: 800;
     line-height: 1.1;
-    text-transform: none;
+    background: linear-gradient(135deg, #ffffff 0%, #94a3b8 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
     letter-spacing: -0.02em;
-    text-shadow: none;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -103,8 +126,8 @@
 
 .profile-identity-copy p {
     margin: 0;
-    color: #92a0b7;
-    font-size: 0.93rem;
+    color: #94a3b8;
+    font-size: 0.95rem;
 }
 
 .profile-code-badge {
@@ -221,10 +244,17 @@
 }
 
 .profile-stat-card {
-    padding: 16px;
+    padding: 18px 16px;
     display: flex;
     gap: 12px;
     align-items: flex-start;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.profile-stat-card:hover {
+    transform: translateY(-3px);
+    border-color: rgba(255, 255, 255, 0.25);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.4);
 }
 
 .profile-stat-icon {
@@ -315,9 +345,9 @@
 
 .profile-chip {
     border-radius: 999px;
-    border: 1px solid rgba(0, 229, 255, 0.35);
-    background: rgba(0, 229, 255, 0.08);
-    color: #70e9ff;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(255, 255, 255, 0.05);
+    color: #c4d0e2;
     padding: 5px 10px;
     font-size: 0.7rem;
     letter-spacing: 0.09em;
@@ -519,10 +549,12 @@
 .profile-student-card {
     margin: 0 24px 20px;
     padding: 20px 24px;
-    background: linear-gradient(135deg, rgba(0, 240, 255, 0.07) 0%, rgba(10, 22, 40, 0.6) 100%);
-    border: 1px solid rgba(0, 240, 255, 0.28);
+    background: rgba(18, 20, 28, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 14px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(0, 240, 255, 0.15);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     position: relative;
     overflow: hidden;
 }

@@ -15,88 +15,97 @@ import {
   faArrowRight,
   faServer,
   faLock,
-  faBuildingColumns
+  faBuildingColumns,
+  faGamepad,
+  faLightbulb,
+  faTrophy,
+  faCheckCircle,
+  faGift
 } from '@fortawesome/free-solid-svg-icons';
 
-export const missionPillars = [
+export const beginnerPillars = [
   {
-    title: 'Real-Time Competitive Duels',
-    copy: '1v1 algorithmic battles with live opponent progress sync, sub-second test execution, and dynamic Elo ratings.',
-    icon: faBolt,
+    title: 'Real-Time 1v1 Duels',
+    copy: 'Match with players of similar skill and race head-to-head to solve a coding puzzle first. See live opponent progress as you code!',
+    icon: faGamepad,
     tone: 'cyan'
   },
   {
-    title: 'Anti-Cheat & Fair Play',
-    copy: 'Protected by real-time anti-cheat detection, HMAC-SHA256 test attestations, and strict fair-play rating enforcement.',
+    title: '100% Fair & Anti-Cheat',
+    copy: 'Smart background checks prevent copy-pasting so every battle is 100% fair and your rating reflects your true coding skill.',
     icon: faShieldHalved,
     tone: 'pink'
   },
   {
-    title: 'Institutional & Batch Arenas',
-    copy: 'Custom tournament sub-batches for universities and student labs with isolated capacity and batch leaderboards.',
+    title: 'Custom Private Rooms',
+    copy: 'Create private battle rooms for your classmates, friends, or study groups. Customize time limits and difficulty settings.',
     icon: faBuildingColumns,
     tone: 'yellow'
   },
   {
-    title: 'Skill-Accelerated Practice',
-    copy: 'Curated problem archives across all major paradigms with multi-language compiler support and instant test feedback.',
+    title: 'Solo Practice Archive',
+    copy: 'Master coding step-by-step with handpicked problems organized by topic (Arrays, Strings, Math) and difficulty levels.',
     icon: faBrain,
     tone: 'green'
   },
 ];
 
+export const gettingStartedSteps = [
+  {
+    step: '01',
+    icon: faLightbulb,
+    title: 'Pick a Language & Challenge',
+    desc: 'Choose your favorite programming language (Python, JavaScript, C++, or Java) and select a problem or 1v1 duel.',
+  },
+  {
+    step: '02',
+    icon: faCode,
+    title: 'Write & Test Code',
+    desc: 'Code right inside your browser with clean syntax highlighting and built-in starter templates for every challenge.',
+  },
+  {
+    step: '03',
+    icon: faBolt,
+    title: 'Get Instant Feedback',
+    desc: 'Click "Run Code" or "Submit" to see instant test results, memory usage, and execution speed in under 1 second.',
+  },
+  {
+    step: '04',
+    icon: faTrophy,
+    title: 'Rank Up & Claim Rewards',
+    desc: 'Win battles to climb from Rookie to Grandmaster tier. Earn Arena Points to redeem gift cards and badges!',
+  },
+];
+
 export const learningTracks = [
   {
-    title: 'Data Structures & Foundations',
-    summary: 'Arrays, Strings, Hash Maps, Stacks, and Two-Pointer sliding windows.',
+    title: 'Beginner: Data Foundations',
+    summary: 'Arrays, Strings, Hash Maps, Loops & Basic Logic. Perfect for newcomers starting out.',
     level: 'Beginner',
-    pace: '2 Weeks',
+    pace: 'Step 1',
     icon: faCode,
   },
   {
-    title: '1v1 Battle Mastery',
-    summary: 'Greedy heuristics, Binary Search variants, Graph traversals, and Speed tactics.',
+    title: 'Intermediate: Battle Tactics',
+    summary: 'Two Pointers, Stacks, Binary Search, and Greedy Problem Solving strategies.',
     level: 'Intermediate',
-    pace: '3 Weeks',
+    pace: 'Step 2',
     icon: faClock,
   },
   {
-    title: 'Grandmaster Championship',
-    summary: 'Dynamic Programming, Trie trees, Segment Trees, and Contest-grade time optimizations.',
+    title: 'Advanced: Algorithm Mastery',
+    summary: 'Dynamic Programming, Trees, Graphs & Contest-grade time optimization.',
     level: 'Advanced',
-    pace: '4 Weeks',
+    pace: 'Step 3',
     icon: faChartBar,
   },
 ];
 
 export const platformStats = [
-  { value: '50K+', label: 'Active Combatants' },
+  { value: '50K+', label: 'Active Coders' },
   { value: '2M+', label: 'Submissions Judged' },
-  { value: '< 6ms', label: 'Gateway Latency' },
-  { value: '99.99%', label: 'Platform Reliability' },
-];
-
-export const architecturalHighlights = [
-  {
-    icon: faShieldHalved,
-    title: 'Logical User Gateway',
-    desc: 'Requests are validated and authenticated with HMAC-SHA256 tokens at the perimeter before reaching domain services.',
-  },
-  {
-    icon: faServer,
-    title: 'Elastic Multi-Runtime Fleet',
-    desc: 'Workload-classified light & heavy execution lanes with dynamic Docker Piston scaling and hardware isolation.',
-  },
-  {
-    icon: faBolt,
-    title: 'Reactive WebSocket Fabric',
-    desc: 'High-frequency broadcast bus dispatching room state updates, keystroke telemetry, and Elo shifts under 5ms.',
-  },
-  {
-    icon: faLock,
-    title: 'Anti-Abuse Jails & Limits',
-    desc: 'Multi-dimensional token bucket rate limiters, anti-cheat detection, and instant session revocation for bad actors.',
-  },
+  { value: '< 1 sec', label: 'Instant Feedback' },
+  { value: '100%', label: 'Free to Join' },
 ];
 
 export default function AboutContent({ isModal = false, onCloseModal }) {
@@ -116,12 +125,15 @@ export default function AboutContent({ isModal = false, onCloseModal }) {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
       >
-        <div className="learn-pre-heading">COMPETITIVE SYSTEM & ARCHITECTURE</div>
+        <div className="hero-badge">
+          <span className="badge-pulse-dot" />
+          <span>ABOUT ALGOFIGHT</span>
+        </div>
         <h1>
-          About <span>AlgoFight</span>
+          The Fun Way to <span className="text-cyan-gradient">Learn, Practice & Battle</span> in Code
         </h1>
         <p>
-          AlgoFight is the next-generation competitive coding arena where developers practice with intent, duel in real-time under pressure, and accelerate algorithmic mastery through deterministic, zero-lag grading.
+          Whether you are writing your very first lines of code or sharpening your skills for tech interviews, AlgoFight makes learning data structures and algorithms interactive, competitive, and rewarding.
         </p>
 
         <div className="learn-hero-stats">
@@ -134,7 +146,7 @@ export default function AboutContent({ isModal = false, onCloseModal }) {
         </div>
       </motion.section>
 
-      {/* Core Mission Grid */}
+      {/* Core Features Grid */}
       <motion.section
         className="learn-mission-panel"
         initial={{ opacity: 0, y: 16 }}
@@ -142,14 +154,15 @@ export default function AboutContent({ isModal = false, onCloseModal }) {
         transition={{ duration: 0.35 }}
       >
         <div className="learn-panel-header">
-          <h2>Platform Pillars</h2>
+          <div className="pre-heading">WHY CODERS LOVE ALGOFIGHT</div>
+          <h2>Everything You Need to Grow Your Skills</h2>
           <p>
-            Combining cryptographic edge security with real-time multiplayer combat to push algorithmic thinking under pressure.
+            From casual solo practice to intense 1v1 live duels, AlgoFight provides a supportive and fun environment for programmers of all levels.
           </p>
         </div>
 
         <div className="mission-grid">
-          {missionPillars.map((pillar) => (
+          {beginnerPillars.map((pillar) => (
             <article key={pillar.title} className={`mission-card tone-${pillar.tone}`}>
               <div className="mission-icon">
                 <FontAwesomeIcon icon={pillar.icon} />
@@ -161,7 +174,7 @@ export default function AboutContent({ isModal = false, onCloseModal }) {
         </div>
       </motion.section>
 
-      {/* Architecture DNA Row */}
+      {/* How It Works Step-By-Step */}
       <motion.section
         className="learn-arch-panel"
         initial={{ opacity: 0, y: 16 }}
@@ -169,20 +182,22 @@ export default function AboutContent({ isModal = false, onCloseModal }) {
         transition={{ duration: 0.4 }}
       >
         <div className="learn-panel-header">
-          <h2>Engineered for High-Frequency Combat</h2>
+          <div className="pre-heading">SIMPLE & EASY START</div>
+          <h2>How AlgoFight Works in 4 Steps</h2>
           <p>
-            Designed with enterprise-grade resilience, zero-leak memory buffers, and distributed state machines.
+            Getting started takes less than 30 seconds. Here is how you can jump in and begin improving your code today:
           </p>
         </div>
 
         <div className="arch-grid">
-          {architecturalHighlights.map((arch) => (
-            <div key={arch.title} className="arch-card">
+          {gettingStartedSteps.map((stepItem) => (
+            <div key={stepItem.title} className="arch-card">
+              <div className="step-badge">{stepItem.step}</div>
               <div className="arch-icon-wrap">
-                <FontAwesomeIcon icon={arch.icon} />
+                <FontAwesomeIcon icon={stepItem.icon} />
               </div>
-              <h4>{arch.title}</h4>
-              <p>{arch.desc}</p>
+              <h4>{stepItem.title}</h4>
+              <p>{stepItem.desc}</p>
             </div>
           ))}
         </div>
@@ -192,8 +207,8 @@ export default function AboutContent({ isModal = false, onCloseModal }) {
       <section className="learn-flow-section">
         <article className="learn-flow-card">
           <div className="learn-flow-title-row">
-            <h2>Algorithmic Progression Tracks</h2>
-            <span className="chip">Curated</span>
+            <h2>Skill Progression Pathways</h2>
+            <span className="chip">Step-by-Step</span>
           </div>
 
           <ul className="track-list">
@@ -211,7 +226,6 @@ export default function AboutContent({ isModal = false, onCloseModal }) {
 
                 <div className="track-meta">
                   <span className="level-pill">{track.level}</span>
-                  <span className="pace-pill">{track.pace}</span>
                 </div>
               </li>
             ))}
@@ -220,40 +234,40 @@ export default function AboutContent({ isModal = false, onCloseModal }) {
 
         <article className="learn-flow-card">
           <div className="learn-flow-title-row">
-            <h2>The AlgoFight Advantage</h2>
-            <span className="chip">Competitive Edge</span>
+            <h2>Why Practice on AlgoFight?</h2>
+            <span className="chip">Beginner Friendly</span>
           </div>
 
           <ul className="why-list">
             <li>
               <div className="why-icon cyan"><FontAwesomeIcon icon={faShieldHalved} /></div>
               <div>
-                <strong>Fair Play & Anti-Cheat Engine</strong>
-                <p>Tamper-proof HMAC trust verification and sandboxed execution ensure fair competitive rankings.</p>
+                <strong>Fair & Supportive Environment</strong>
+                <p>Anti-cheat protections ensure ratings are earned honestly. Matchmaking pairs you with peers at your exact skill level.</p>
               </div>
             </li>
             <li>
               <div className="why-icon yellow"><FontAwesomeIcon icon={faRocket} /></div>
               <div>
                 <strong>Instant Sub-Second Feedback</strong>
-                <p>Zero-lag test case evaluation with real-time pass/fail indicators during live battles.</p>
+                <p>Test your code in real-time and see friendly error messages to help you fix bugs quickly.</p>
               </div>
             </li>
             <li>
-              <div className="why-icon pink"><FontAwesomeIcon icon={faStar} /></div>
+              <div className="why-icon pink"><FontAwesomeIcon icon={faGift} /></div>
               <div>
-                <strong>Elo Rating Progression</strong>
-                <p>Transparent matchmaking with rank tiers from Silver to Grandmaster.</p>
+                <strong>Real Rewards & Recognition</strong>
+                <p>Earn Arena Points as you practice and battle, and redeem them for gift cards, entry passes, and badges.</p>
               </div>
             </li>
           </ul>
 
           <div className="about-cta-box">
-            <button className="btn-primary-about" onClick={() => handleAction('/battle')}>
-              Enter Live Arena <FontAwesomeIcon icon={faArrowRight} />
+            <button className="btn-primary-glow" onClick={() => handleAction('/battle')}>
+              Start Competing <FontAwesomeIcon icon={faArrowRight} />
             </button>
-            <button className="btn-secondary-about" onClick={() => handleAction('/practice')}>
-              Explore Practice Archive
+            <button className="btn-secondary-glass" onClick={() => handleAction('/practice')}>
+              Explore Practice Problems
             </button>
           </div>
         </article>

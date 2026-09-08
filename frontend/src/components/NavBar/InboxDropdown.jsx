@@ -142,6 +142,14 @@ export default function InboxDropdown({ isOpen, onClose }) {
                                     <FontAwesomeIcon icon={faTrash} /> Clear
                                 </button>
                             )}
+                            <button
+                                className="inbox-close-btn"
+                                onClick={onClose}
+                                title="Close notification inbox"
+                                aria-label="Close"
+                            >
+                                <FontAwesomeIcon icon={faTimes} />
+                            </button>
                         </div>
                     </div>
 

@@ -25,6 +25,9 @@ import { useNotification } from '../../contexts/NotificationContext';
 import { fetchUserProfile } from '../../services/api';
 import { connectSocket, getSocket } from '../../services/socket';
 import { calculateArenaPointBreakdown, normalizeUserStats, getRankProgressByRating } from '../../utils/playerMetrics';
+import BackgroundPaths from '../BackgroundPaths/BackgroundPaths';
+import '../BackgroundPaths/BackgroundPaths.css';
+import Footer from '../Common/Footer/Footer';
 import RankEmblem from '../Common/gamification/RankEmblem';
 
 function Profile() {
@@ -447,33 +450,39 @@ function Profile() {
 
     if (authLoading || isLoadingProfile) {
         return (
-            <div className="profile-page">
-                <div className="profile-loading">Loading profile...</div>
-            </div>
+            <BackgroundPaths>
+                <div className="profile-page">
+                    <div className="profile-loading">Loading profile...</div>
+                </div>
+            </BackgroundPaths>
         );
     }
 
     return (
-        <div className="profile-page">
-            <section className="profile-overview-shell">
-                <section className="profile-hero-card">
-                    <div className="profile-identity-row">
-                        <div className="profile-avatar-shell">
-                            {photoURL && !avatarError ? (
-                                <img
-                                    src={photoURL}
-                                    alt="Profile avatar"
-                                    className="profile-avatar-image"
-                                    onError={() => setAvatarError(true)}
-                                />
-                            ) : (
-                                <FontAwesomeIcon icon={faUser} />
-                            )}
-                        </div>
+        <BackgroundPaths>
+            <div className="profile-page">
+                <section className="profile-overview-shell">
+                    <section className="profile-hero-card">
+                        <div className="profile-identity-row">
+                            <div className="profile-avatar-shell">
+                                {photoURL && !avatarError ? (
+                                    <img
+                                        src={photoURL}
+                                        alt="Profile avatar"
+                                        className="profile-avatar-image"
+                                        onError={() => setAvatarError(true)}
+                                    />
+                                ) : (
+                                    <FontAwesomeIcon icon={faUser} />
+                                )}
+                            </div>
 
-                        <div className="profile-identity-copy">
-                            <div className="profile-pre-heading">{isOwnProfile ? "PLAYER PROFILE" : "COMPETITOR PROFILE"}</div>
-                            <h1>{displayName}</h1>
+                            <div className="profile-identity-copy">
+                                <div className="hero-badge">
+                                    <span className="badge-pulse-dot" />
+                                    <span>{isOwnProfile ? "PLAYER PROFILE" : "COMPETITOR PROFILE"}</span>
+                                </div>
+                                <h1 className="profile-display-name">{displayName}</h1>
                             <p>{email || 'Competitor'}</p>
                             {(profile?.platformCode || user?.platformCode) && (
                                 <div
@@ -795,7 +804,9 @@ function Profile() {
                     </motion.div>
                 )}
             </AnimatePresence>
-        </div>
+            </div>
+            <Footer />
+        </BackgroundPaths>
     );
 }
 

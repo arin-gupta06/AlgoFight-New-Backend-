@@ -16,9 +16,10 @@
 }
 
 .ap-stat-card {
-    background: rgba(14, 20, 32, 0.7);
-    backdrop-filter: blur(14px);
-    border: 1px solid rgba(0, 229, 255, 0.14);
+    background: rgba(18, 20, 28, 0.55);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 12px;
     padding: 1.1rem 1.4rem;
     display: flex;
@@ -135,9 +136,10 @@
 
 /* ================= Filter & Search Bar ================= */
 .ap-toolbar {
-    background: rgba(14, 20, 32, 0.65);
-    backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(18, 20, 28, 0.55);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 14px;
     padding: 1rem 1.25rem;
     display: flex;
@@ -278,8 +280,8 @@
 }
 
 .ap-card {
-    background: linear-gradient(160deg, rgba(16, 23, 38, 0.85), rgba(10, 15, 26, 0.95));
-    border: 1px solid rgba(0, 229, 255, 0.12);
+    background: rgba(18, 20, 28, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 14px;
     padding: 1.3rem;
     display: flex;
@@ -287,7 +289,8 @@
     justify-content: space-between;
     gap: 1.1rem;
     position: relative;
-    backdrop-filter: blur(12px);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     transition: all 0.25s ease;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
 }

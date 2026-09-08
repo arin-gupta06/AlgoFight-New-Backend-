@@ -1,3 +1,4 @@
+/* ================= INBOX NOTIFICATION DROPDOWN ================= */
 .inbox-dropdown-overlay {
     position: fixed;
     top: 0;
@@ -5,32 +6,51 @@
     right: 0;
     bottom: 0;
     z-index: 1200;
-    background: rgba(2, 8, 18, 0.45);
-    backdrop-filter: blur(4px);
+    background: rgba(2, 8, 20, 0.55);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     display: flex;
     justify-content: flex-end;
     padding-top: 72px;
-    padding-right: 4%;
+    padding-right: 3.5%;
 }
 
 .inbox-dropdown-panel {
-    width: 450px;
-    max-width: 92vw;
-    max-height: 84vh;
+    width: 480px;
+    max-width: 94vw;
+    max-height: 85vh;
     height: auto;
     border-radius: 20px;
-    border: 1px solid rgba(0, 229, 255, 0.28);
-    background: linear-gradient(165deg, rgba(6, 18, 36, 0.96), rgba(2, 10, 22, 0.98));
-    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.65), 0 0 30px rgba(0, 229, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: rgba(18, 20, 28, 0.94);
+    box-shadow: 
+        0 24px 60px rgba(0, 0, 0, 0.8),
+        inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
     display: flex;
     flex-direction: column;
     overflow: hidden;
     color: #ffffff;
     font-family: 'Inter', sans-serif;
+    position: relative;
 }
 
+/* Glowing Top Accent Line */
+.inbox-dropdown-panel::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, #00e5ff, #ff007f, #00e5ff);
+    z-index: 10;
+}
+
+/* ================= HEADER ================= */
 .inbox-panel-header {
-    padding: 18px 20px;
+    padding: 18px 22px;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -41,32 +61,47 @@
 .inbox-header-title {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
 }
 
 .inbox-bell-icon {
     color: #00e5ff;
-    font-size: 1.1rem;
-    filter: drop-shadow(0 0 8px rgba(0, 229, 255, 0.6));
+    font-size: 1.15rem;
+    filter: drop-shadow(0 0 10px rgba(0, 229, 255, 0.7));
+    animation: bellGlowPulse 3s infinite ease-in-out;
+}
+
+@keyframes bellGlowPulse {
+    0%, 100% { filter: drop-shadow(0 0 8px rgba(0, 229, 255, 0.6)); transform: scale(1); }
+    50% { filter: drop-shadow(0 0 16px rgba(0, 229, 255, 0.9)); transform: scale(1.08); }
 }
 
 .inbox-header-title h3 {
     margin: 0;
     font-family: 'Space Grotesk', sans-serif;
     font-size: 0.95rem;
-    letter-spacing: 0.06em;
-    color: #f0f7ff;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    color: #ffffff;
+    text-transform: uppercase;
 }
 
 .inbox-unread-pill {
-    padding: 3px 8px;
+    padding: 3px 10px;
     border-radius: 999px;
-    background: rgba(255, 110, 168, 0.18);
-    border: 1px solid rgba(255, 110, 168, 0.45);
-    color: #ff75ac;
+    background: rgba(255, 0, 127, 0.18);
+    border: 1px solid rgba(255, 0, 127, 0.5);
+    color: #ff52a0;
     font-size: 0.68rem;
     font-weight: 800;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.08em;
+    box-shadow: 0 0 12px rgba(255, 0, 127, 0.3);
+    animation: pulseBadge 2s infinite ease-in-out;
+}
+
+@keyframes pulseBadge {
+    0%, 100% { opacity: 0.9; }
+    50% { opacity: 1; box-shadow: 0 0 16px rgba(255, 0, 127, 0.5); }
 }
 
 .inbox-header-actions {
@@ -76,7 +111,7 @@
 }
 
 .inbox-action-btn {
-    padding: 5px 10px;
+    padding: 6px 12px;
     border-radius: 8px;
     border: 1px solid rgba(0, 229, 255, 0.3);
     background: rgba(0, 229, 255, 0.08);
@@ -86,78 +121,117 @@
     cursor: pointer;
     display: inline-flex;
     align-items: center;
-    gap: 5px;
-    transition: all 0.2s ease;
+    gap: 6px;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .inbox-action-btn:hover {
-    background: rgba(0, 229, 255, 0.22);
+    background: rgba(0, 229, 255, 0.25);
     border-color: #00e5ff;
     color: #ffffff;
+    transform: translateY(-1px);
+    box-shadow: 0 0 12px rgba(0, 229, 255, 0.3);
 }
 
 .inbox-action-btn.tone-danger {
-    border-color: rgba(255, 80, 80, 0.3);
+    border-color: rgba(255, 80, 80, 0.35);
     background: rgba(255, 80, 80, 0.08);
     color: #ff7878;
 }
 
 .inbox-action-btn.tone-danger:hover {
-    background: rgba(255, 80, 80, 0.22);
+    background: rgba(255, 80, 80, 0.25);
     border-color: #ff5050;
     color: #ffffff;
+    box-shadow: 0 0 12px rgba(255, 80, 80, 0.3);
 }
 
+.inbox-close-btn {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.04);
+    color: #94a3b8;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-left: 2px;
+}
+
+.inbox-close-btn:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(0, 229, 255, 0.4);
+    color: #00e5ff;
+    transform: scale(1.05);
+}
+
+/* ================= FILTER TAB BAR ================= */
 .inbox-filter-bar {
     display: flex;
     gap: 8px;
     padding: 12px 20px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(2, 10, 22, 0.5);
     overflow-x: auto;
 }
 
+.inbox-filter-bar::-webkit-scrollbar {
+    height: 3px;
+}
+
+.inbox-filter-bar::-webkit-scrollbar-thumb {
+    background: rgba(0, 229, 255, 0.2);
+    border-radius: 3px;
+}
+
 .inbox-filter-chip {
-    padding: 5px 12px;
+    padding: 6px 14px;
     border-radius: 999px;
     border: 1px solid rgba(255, 255, 255, 0.1);
     background: rgba(255, 255, 255, 0.03);
-    color: #92a1b8;
+    color: #94a3b8;
     font-size: 0.76rem;
     font-weight: 600;
     cursor: pointer;
     white-space: nowrap;
-    transition: all 0.2s ease;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .inbox-filter-chip:hover {
     color: #ffffff;
-    border-color: rgba(0, 229, 255, 0.3);
+    border-color: rgba(0, 229, 255, 0.35);
+    background: rgba(0, 229, 255, 0.06);
 }
 
 .inbox-filter-chip.active {
-    border-color: rgba(0, 229, 255, 0.5);
-    background: rgba(0, 229, 255, 0.15);
-    color: #75ebff;
+    border-color: rgba(0, 229, 255, 0.6);
+    background: rgba(0, 229, 255, 0.16);
+    color: #00e5ff;
     font-weight: 700;
+    box-shadow: 0 0 12px rgba(0, 229, 255, 0.2);
 }
 
+/* ================= NOTIFICATION LIST ================= */
 .inbox-notification-list {
     flex: 1 1 auto;
     max-height: 64vh;
     overflow-y: auto;
-    padding: 14px 16px;
+    padding: 16px 18px;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 12px;
 }
 
 .inbox-notification-list::-webkit-scrollbar {
-    width: 5px;
+    width: 6px;
 }
 
 .inbox-notification-list::-webkit-scrollbar-track {
     background: rgba(0, 0, 0, 0.25);
-    border-radius: 4px;
 }
 
 .inbox-notification-list::-webkit-scrollbar-thumb {
@@ -169,89 +243,109 @@
     background: rgba(0, 229, 255, 0.55);
 }
 
+/* ================= EMPTY STATE ================= */
 .inbox-empty-state {
-    padding: 40px 20px;
+    padding: 48px 24px;
     text-align: center;
     color: #7b8ba5;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
 }
 
 .inbox-empty-icon {
-    font-size: 2rem;
-    color: rgba(0, 229, 255, 0.25);
+    font-size: 2.2rem;
+    color: rgba(0, 229, 255, 0.3);
     margin-bottom: 6px;
+    filter: drop-shadow(0 0 10px rgba(0, 229, 255, 0.2));
 }
 
 .inbox-empty-state p {
     margin: 0;
+    font-family: 'Space Grotesk', sans-serif;
     font-weight: 700;
-    color: #d1e2f7;
-    font-size: 0.95rem;
+    color: #e2e8f0;
+    font-size: 1rem;
+    letter-spacing: 0.02em;
 }
 
 .inbox-empty-state span {
-    font-size: 0.8rem;
+    font-size: 0.82rem;
+    color: #64748b;
 }
 
+/* ================= NOTIFICATION CARDS ================= */
 .inbox-item-card {
     border-radius: 14px;
     border: 1px solid rgba(255, 255, 255, 0.08);
     background: rgba(255, 255, 255, 0.02);
-    padding: 13px;
+    padding: 14px 16px;
     display: flex;
-    gap: 12px;
+    gap: 14px;
     align-items: flex-start;
     position: relative;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    box-sizing: border-box;
 }
 
 .inbox-item-card:hover {
-    border-color: rgba(0, 229, 255, 0.3);
+    border-color: rgba(0, 229, 255, 0.35);
     background: rgba(0, 229, 255, 0.05);
+    transform: translateX(4px);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3), 0 0 15px rgba(0, 229, 255, 0.1);
 }
 
 .inbox-item-card.is-unread {
-    border-color: rgba(0, 229, 255, 0.35);
-    background: rgba(0, 229, 255, 0.08);
+    border-color: rgba(0, 229, 255, 0.4);
+    border-left: 3.5px solid #00e5ff;
+    background: linear-gradient(90deg, rgba(0, 229, 255, 0.09), rgba(255, 255, 255, 0.03));
+    box-shadow: 0 0 15px rgba(0, 229, 255, 0.08);
 }
 
 .inbox-item-icon {
-    width: 34px;
-    height: 34px;
-    border-radius: 10px;
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.9rem;
+    font-size: 0.95rem;
     flex-shrink: 0;
+    transition: transform 0.25s ease;
+}
+
+.inbox-item-card:hover .inbox-item-icon {
+    transform: scale(1.1);
 }
 
 .inbox-item-icon.tone-cyan {
-    color: #72ebff;
-    background: rgba(0, 229, 255, 0.12);
-    border: 1px solid rgba(0, 229, 255, 0.3);
+    color: #00e5ff;
+    background: rgba(0, 229, 255, 0.14);
+    border: 1px solid rgba(0, 229, 255, 0.35);
+    box-shadow: 0 0 10px rgba(0, 229, 255, 0.2);
 }
 
 .inbox-item-icon.tone-green {
-    color: #73ffc4;
-    background: rgba(61, 233, 159, 0.12);
-    border: 1px solid rgba(61, 233, 159, 0.3);
+    color: #3de99f;
+    background: rgba(61, 233, 159, 0.14);
+    border: 1px solid rgba(61, 233, 159, 0.35);
+    box-shadow: 0 0 10px rgba(61, 233, 159, 0.2);
 }
 
 .inbox-item-icon.tone-pink {
-    color: #ff7dae;
-    background: rgba(255, 110, 168, 0.12);
-    border: 1px solid rgba(255, 110, 168, 0.3);
+    color: #ff6ea8;
+    background: rgba(255, 110, 168, 0.14);
+    border: 1px solid rgba(255, 110, 168, 0.35);
+    box-shadow: 0 0 10px rgba(255, 110, 168, 0.2);
 }
 
 .inbox-item-icon.tone-gold {
-    color: #ffd576;
-    background: rgba(255, 191, 73, 0.12);
-    border: 1px solid rgba(255, 191, 73, 0.3);
+    color: #ffc107;
+    background: rgba(255, 193, 7, 0.14);
+    border: 1px solid rgba(255, 193, 7, 0.35);
+    box-shadow: 0 0 10px rgba(255, 193, 7, 0.2);
 }
 
 .inbox-item-content {
@@ -263,28 +357,31 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 8px;
-    margin-bottom: 4px;
+    gap: 10px;
+    margin-bottom: 5px;
 }
 
 .inbox-item-row h4 {
     margin: 0;
     font-family: 'Space Grotesk', sans-serif;
-    font-size: 0.88rem;
-    color: #f2f8ff;
+    font-size: 0.9rem;
+    color: #ffffff;
     font-weight: 700;
+    letter-spacing: 0.01em;
 }
 
 .inbox-item-time {
     font-size: 0.72rem;
-    color: #7e8da5;
+    color: #64748b;
+    font-weight: 500;
+    white-space: nowrap;
 }
 
 .inbox-item-content p {
     margin: 0;
-    font-size: 0.81rem;
-    color: #a4b3c9;
-    line-height: 1.35;
+    font-size: 0.83rem;
+    color: #94a3b8;
+    line-height: 1.45;
 }
 
 .inbox-unread-dot {
@@ -292,32 +389,46 @@
     height: 8px;
     border-radius: 50%;
     background: #00e5ff;
-    box-shadow: 0 0 10px #00e5ff;
+    box-shadow: 0 0 10px #00e5ff, 0 0 18px #00e5ff;
     flex-shrink: 0;
-    margin-top: 4px;
+    margin-top: 5px;
 }
 
+/* ================= CHALLENGE ACTION BUTTONS ================= */
 .inbox-challenge-actions {
     display: flex;
-    gap: 8px;
-    margin-top: 10px;
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.inbox-challenge-actions .inbox-action-btn {
+    padding: 7px 14px;
+    font-size: 0.78rem;
+    border-radius: 8px;
 }
 
 .inbox-action-btn.tone-green {
-    border-color: rgba(61, 233, 159, 0.3);
-    background: rgba(61, 233, 159, 0.08);
+    border-color: rgba(61, 233, 159, 0.4);
+    background: rgba(61, 233, 159, 0.12);
     color: #3de99f;
 }
 
 .inbox-action-btn.tone-green:hover {
-    background: rgba(61, 233, 159, 0.22);
+    background: rgba(61, 233, 159, 0.28);
     border-color: #3de99f;
     color: #ffffff;
+    box-shadow: 0 0 14px rgba(61, 233, 159, 0.35);
 }
 
+/* ================= BROADCAST CARDS ================= */
 .inbox-broadcast-wrapper {
     margin-bottom: 12px;
     cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.inbox-broadcast-wrapper:hover {
+    transform: translateX(4px);
 }
 
 .inbox-broadcast-wrapper.is-unread .system-broadcast-card {
@@ -325,3 +436,24 @@
     box-shadow: 0 0 25px rgba(0, 229, 255, 0.22);
 }
 
+/* ================= MOBILE RESPONSIVENESS ================= */
+@media (max-width: 640px) {
+    .inbox-dropdown-overlay {
+        padding-top: 60px;
+        padding-right: 0;
+        justify-content: center;
+    }
+
+    .inbox-dropdown-panel {
+        width: 96vw;
+        border-radius: 16px;
+    }
+
+    .inbox-panel-header {
+        padding: 14px 16px;
+    }
+
+    .inbox-notification-list {
+        padding: 12px 14px;
+    }
+}

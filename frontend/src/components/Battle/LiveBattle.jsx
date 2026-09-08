@@ -30,6 +30,9 @@ import {
   getStarterCodeForLanguage,
   getLanguageLabel,
 } from "../../constants/languages";
+import BackgroundPaths from "../BackgroundPaths/BackgroundPaths";
+import "../BackgroundPaths/BackgroundPaths.css";
+import Footer from "../Common/Footer/Footer";
 import "./LiveBattle.css";
 
 const PostBattleSummaryModal = ({ battleResult, liveState, problems, ratingUpdates, currentUser, currentUsername, onClose }) => {
@@ -243,6 +246,63 @@ export default function LiveBattle() {
   const [isSubmitPanelOpen, setIsSubmitPanelOpen] = useState(true);
   const [searchElapsed, setSearchElapsed] = useState(0);
   const [searchWindow, setSearchWindow] = useState("±50 ELO");
+
+  // Panel Resizing State
+  const gridRef = useRef(null);
+  const [leftWidth, setLeftWidth] = useState(30); // % for Question panel
+  const [rightWidth, setRightWidth] = useState(26); // % for Submit panel
+  const [isDraggingLeft, setIsDraggingLeft] = useState(false);
+  const [isDraggingRight, setIsDraggingRight] = useState(false);
+
+  const handleMouseDownLeft = (e) => {
+    e.preventDefault();
+    setIsDraggingLeft(true);
+  };
+
+  const handleMouseDownRight = (e) => {
+    e.preventDefault();
+    setIsDraggingRight(true);
+  };
+
+  useEffect(() => {
+    if (!isDraggingLeft && !isDraggingRight) return;
+
+    const handleMouseMove = (e) => {
+      if (!gridRef.current) return;
+      const rect = gridRef.current.getBoundingClientRect();
+
+      if (isDraggingLeft) {
+        const offsetX = e.clientX - rect.left;
+        let newPercent = (offsetX / rect.width) * 100;
+        if (newPercent < 15) newPercent = 15;
+        if (newPercent > 55) newPercent = 55;
+        setLeftWidth(newPercent);
+      } else if (isDraggingRight) {
+        const offsetX = rect.right - e.clientX;
+        let newPercent = (offsetX / rect.width) * 100;
+        if (newPercent < 15) newPercent = 15;
+        if (newPercent > 45) newPercent = 45;
+        setRightWidth(newPercent);
+      }
+    };
+
+    const handleMouseUp = () => {
+      setIsDraggingLeft(false);
+      setIsDraggingRight(false);
+    };
+
+    document.body.style.userSelect = "none";
+    document.body.style.cursor = "col-resize";
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      document.body.style.userSelect = "";
+      document.body.style.cursor = "";
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [isDraggingLeft, isDraggingRight]);
 
   // Anti-Cheat Hook
   const { isBlurred, violations } = useAntiCheat(status === "matched");
@@ -736,17 +796,21 @@ export default function LiveBattle() {
 
   if (status === "connecting" || status === "waiting") {
     return (
-      <div className="livebattle-page">
-        <section className="livebattle-header-card">
-          <div className="livebattle-header-copy">
-            <div className="livebattle-pre">1V1 RANKED ARENA</div>
-            <h1>{status === "connecting" ? "Connecting to Battle Grid" : "Scanning For Challenger"}</h1>
-            <p>Distributed matchmaking connects combatants across all active nodes based on skill and rating tier.</p>
-          </div>
-          <button className="livebattle-leave-btn" onClick={handleCancelQueue}>
-            Cancel Queue
-          </button>
-        </section>
+      <BackgroundPaths>
+        <div className="livebattle-page">
+          <section className="livebattle-header-card">
+            <div className="livebattle-header-copy">
+              <div className="hero-badge">
+                <span className="badge-pulse-dot" />
+                <span>1V1 RANKED ARENA</span>
+              </div>
+              <h1 className="livebattle-hero-title">{status === "connecting" ? "Connecting to Battle Grid" : "Scanning For Challenger"}</h1>
+              <p>Distributed matchmaking connects combatants across all active nodes based on skill and rating tier.</p>
+            </div>
+            <button className="livebattle-leave-btn" onClick={handleCancelQueue}>
+              Cancel Queue
+            </button>
+          </section>
 
         <section className="livebattle-wait-panel">
           <div className="livebattle-loader">
@@ -827,99 +891,123 @@ export default function LiveBattle() {
           </div>
         </section>
       </div>
+      <Footer />
+    </BackgroundPaths>
     );
   }
 
   return (
-    <div className="livebattle-page">
-      {showSummary && (
-         <PostBattleSummaryModal 
-           battleResult={battleResult} 
-           liveState={liveState} 
-           problems={problems}
-           ratingUpdates={ratingUpdates}
-           currentUser={user}
-           currentUsername={username}
-           onClose={goBack} 
-         />
-      )}
+    <BackgroundPaths>
+      <div className="livebattle-page">
+        {showSummary && (
+           <PostBattleSummaryModal 
+             battleResult={battleResult} 
+             liveState={liveState} 
+             problems={problems}
+             ratingUpdates={ratingUpdates}
+             currentUser={user}
+             currentUsername={username}
+             onClose={goBack} 
+           />
+        )}
 
-      {/* Standalone Full-Screen Detailed Analysis Portal Modal */}
-      <DetailedAnalysisModal
-        isOpen={showDetailedAnalysis}
-        onClose={() => setShowDetailedAnalysis(false)}
-        result={lastResult}
-        problem={problem}
-      />
+        {/* Standalone Full-Screen Detailed Analysis Portal Modal */}
+        <DetailedAnalysisModal
+          isOpen={showDetailedAnalysis}
+          onClose={() => setShowDetailedAnalysis(false)}
+          result={lastResult}
+          problem={problem}
+        />
 
-      <motion.section initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="livebattle-header-card">
-        <div className="livebattle-header-copy" style={{ flex: 1 }}>
-          <div className="livebattle-pre">LIVE BATTLE</div>
-          <h1>Room {roomId}</h1>
-          <div style={{ display: 'flex', gap: '14px', marginTop: '10px', flexWrap: 'wrap' }}>
-             {liveState?.players?.map(p => {
+        <motion.section initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="livebattle-header-card">
+          <div className="livebattle-header-left">
+            <div className="livebattle-room-info">
+              <div className="hero-badge">
+                <span className="badge-pulse-dot" />
+                <span>LIVE BATTLE</span>
+              </div>
+              <h1 className="livebattle-hero-title">
+                Room #{roomId ? (roomId.length > 12 ? roomId.slice(0, 8) : roomId) : "BTL"}
+              </h1>
+              {roomId && (
+                <button 
+                  className="livebattle-copy-code-btn"
+                  onClick={() => {
+                    navigator.clipboard.writeText(roomId);
+                    notify({ type: "success", title: "Copied!", message: `Room code ${roomId} copied.` });
+                  }}
+                  title="Copy full room ID"
+                >
+                  <FontAwesomeIcon icon={faCode} /> Copy ID
+                </button>
+              )}
+            </div>
+
+            <div className="livebattle-players-matchup">
+              {liveState?.players?.map((p, idx) => {
                 const hasLeft = p.status === 'LEFT' || p.forfeited;
+                const isMe = p.username === username || p.userId === user?.uid;
+                const isWinner = battleResult && (battleResult.winnerId === p.userId || battleResult.winner === p.username);
                 return (
-                  <div
-                    key={p.userId}
-                    style={{
-                      padding: '6px 12px',
-                      background: hasLeft ? 'rgba(255, 77, 77, 0.14)' : 'rgba(255,255,255,0.08)',
-                      border: hasLeft ? '1px solid rgba(255, 77, 77, 0.45)' : '1px solid rgba(0, 229, 255, 0.16)',
-                      borderRadius: '8px',
-                      opacity: hasLeft ? 0.6 : 1,
-                      transition: 'all 0.3s ease'
-                    }}
-                  >
-                     <span style={{ opacity: 0.85, fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                       {p.username}
-                       {hasLeft && (
-                         <span style={{ fontSize: '0.68rem', color: '#ff6699', fontWeight: 800, letterSpacing: '0.04em' }}>[LEFT]</span>
-                       )}
-                     </span>
-                     <strong style={{ color: hasLeft ? '#94a3b8' : '#7fefff' }}>{p.points} pts</strong> ({p.solvedCount}/{problems.length})
-                  </div>
+                  <React.Fragment key={p.userId || idx}>
+                    {idx > 0 && <div className="matchup-vs-divider">VS</div>}
+                    <div className={`player-score-card ${isMe ? 'is-me' : ''} ${hasLeft ? 'is-left' : ''} ${isWinner ? 'is-winner' : ''}`}>
+                      <div className="player-avatar">
+                        {(p.username || "P")[0].toUpperCase()}
+                      </div>
+                      <div className="player-info">
+                        <div className="player-name-row">
+                          <span className="player-username">{p.username}</span>
+                          {isMe && <span className="you-badge">YOU</span>}
+                          {hasLeft && <span className="left-badge">LEFT</span>}
+                          {isWinner && <span className="winner-badge"><FontAwesomeIcon icon={faTrophy} /> WIN</span>}
+                        </div>
+                        <div className="player-score-row">
+                          <span className="player-pts">{p.points || 0} pts</span>
+                          <span className="player-solved">({p.solvedCount || 0}/{problems.length} solved)</span>
+                        </div>
+                      </div>
+                    </div>
+                  </React.Fragment>
                 );
-             })}
+              })}
+            </div>
           </div>
-        </div>
 
-        <div className="livebattle-header-right">
-          <div
-            className={`livebattle-timer calm-timer ${timeLeft <= 60 && timeLeft > 0 ? "timer-warning" : ""}`}
-            aria-label={`Time remaining: ${formatTime(timeLeft)}`}
-            title="Time remaining"
-          >
-            <FontAwesomeIcon icon={faClock} className="timer-icon" />
-            <span className="timer-digits">{formatTime(timeLeft)}</span>
+          <div className="livebattle-header-right">
+            <div
+              className={`livebattle-timer calm-timer ${timeLeft <= 60 && timeLeft > 0 ? "timer-warning" : ""}`}
+              aria-label={`Time remaining: ${formatTime(timeLeft)}`}
+              title="Time remaining"
+            >
+              <FontAwesomeIcon icon={faClock} className="timer-icon" />
+              <span className="timer-digits">{formatTime(timeLeft)}</span>
+            </div>
+            <button className="livebattle-leave-btn" onClick={handleLeaveBattle}>
+              {status === "finished" ? "Back to Arena" : "Leave Battle"}
+            </button>
           </div>
-          <button className="livebattle-leave-btn" onClick={handleLeaveBattle}>
-            {status === "finished" ? "Back to Arena" : "Leave Battle"}
-          </button>
-        </div>
-      </motion.section>
+        </motion.section>
 
-      <div className={`livebattle-grid ${!isSubmitPanelOpen ? "submit-panel-collapsed" : ""}`}>
-        <section className="livebattle-panel livebattle-problem-panel">
+      <div 
+        ref={gridRef}
+        className={`livebattle-grid ${!isSubmitPanelOpen ? "submit-panel-collapsed" : ""} ${isDraggingLeft || isDraggingRight ? "is-resizing" : ""}`}
+      >
+        <section 
+          className="livebattle-panel livebattle-problem-panel"
+          style={{ flex: `0 0 ${leftWidth}%`, minWidth: "220px", maxWidth: "55%" }}
+        >
           <div className="livebattle-panel-head" style={{ paddingBottom: 0, borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-             <div className="problem-tabs" style={{ display: 'flex', gap: '10px' }}>
+             <div className="problem-tabs" style={{ display: 'flex', gap: '8px' }}>
                 {problems.map((p, idx) => (
                    <button 
                      key={p.id}
                      className={`tab-btn ${activeProblemIndex === idx ? 'active' : ''}`}
                      onClick={() => setActiveProblemIndex(idx)}
-                     style={{
-                        padding: '10px 16px',
-                        background: activeProblemIndex === idx ? 'rgba(255,255,255,0.1)' : 'transparent',
-                        border: 'none',
-                        borderBottom: activeProblemIndex === idx ? '2px solid var(--primary-color)' : '2px solid transparent',
-                        color: '#fff',
-                        cursor: 'pointer'
-                     }}
                    >
-                     Q{idx + 1}
+                     <span>Q{idx + 1}</span>
                      {liveState?.players?.find(pl => pl.username === username)?.solvedProblems?.find(sp => sp.problemId === p.id) && (
-                        <FontAwesomeIcon icon={faCheckCircle} style={{ color: '#4ade80', marginLeft: '6px' }} />
+                        <FontAwesomeIcon icon={faCheckCircle} className="solved-check-icon" />
                      )}
                    </button>
                 ))}
@@ -931,11 +1019,24 @@ export default function LiveBattle() {
           </div>
         </section>
 
-          <section className="livebattle-panel livebattle-editor-panel">
+        <div 
+          className={`livebattle-resize-handle ${isDraggingLeft ? "active" : ""}`}
+          onMouseDown={handleMouseDownLeft}
+          title="Drag to resize Question & Solution panels"
+        >
+          <div className="resize-handle-bar" />
+        </div>
+
+        <section 
+          className="livebattle-panel livebattle-editor-panel"
+          style={{ flex: "1 1 0%", minWidth: "240px" }}
+        >
           <div className="livebattle-panel-head">
-            <h3>Solution</h3>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <FontAwesomeIcon icon={faCode} style={{ color: "#00e5ff", fontSize: "0.9rem" }} />
+              <h3>Solution</h3>
+            </div>
             <div style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}>
-              <span className="livebattle-chip">{getLanguageLabel(language)}</span>
               <select 
                 value={language}
                 onChange={(e) => setLanguage(e.target.value)}
@@ -948,41 +1049,63 @@ export default function LiveBattle() {
                   </option>
                 ))}
               </select>
+              {!isSubmitPanelOpen && (
+                <button
+                  className="livebattle-action-btn"
+                  onClick={() => setIsSubmitPanelOpen(true)}
+                  style={{ padding: "4px 10px", minHeight: "30px", marginLeft: "4px" }}
+                  title="Open Submit Panel"
+                >
+                  <FontAwesomeIcon icon={faChevronLeft} />
+                </button>
+              )}
             </div>
-            {!isSubmitPanelOpen && (
-              <button
-                className="livebattle-action-btn"
-                onClick={() => setIsSubmitPanelOpen(true)}
-                style={{ padding: "4px 10px", minHeight: "30px", marginLeft: "4px" }}
-                title="Open Submit Panel"
-              >
-                <FontAwesomeIcon icon={faChevronLeft} />
-              </button>
-            )}
           </div>
 
-          <textarea
-            className="livebattle-code-editor"
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-            spellCheck="false"
-            disabled={status === "finished"}
-            style={{ 
-                filter: isBlurred ? 'blur(8px)' : 'none',
-                transition: 'filter 0.3s'
-            }}
-          />
+          <div className="code-editor-wrapper">
+            <textarea
+              className="livebattle-code-editor"
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              spellCheck="false"
+              disabled={status === "finished"}
+              style={{ 
+                  filter: isBlurred ? 'blur(8px)' : 'none',
+                  transition: 'filter 0.3s'
+              }}
+            />
+            <div className="code-editor-statusbar">
+              <span>{code ? code.split('\n').length : 0} Lines</span>
+              <span>{code ? code.length : 0} Chars</span>
+              <span className="syntax-badge">{getLanguageLabel(language)}</span>
+            </div>
+          </div>
           {isBlurred && (
-              <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', color: '#ff4d4d', fontWeight: 'bold', fontSize: '1.2rem', background: 'rgba(0,0,0,0.8)', padding: '20px', borderRadius: '8px', zIndex: 10 }}>
+              <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', color: '#ff4d4d', fontWeight: 'bold', fontSize: '1.1rem', background: 'rgba(0,0,0,0.85)', border: '1px solid rgba(255,77,77,0.4)', padding: '16px 24px', borderRadius: '12px', zIndex: 10 }}>
                   Return to this window to continue coding!
               </div>
           )}
         </section>
 
         {isSubmitPanelOpen && (
-        <section className="livebattle-panel livebattle-submit-panel">
+        <>
+          <div 
+            className={`livebattle-resize-handle ${isDraggingRight ? "active" : ""}`}
+            onMouseDown={handleMouseDownRight}
+            title="Drag to resize Solution & Submit panels"
+          >
+            <div className="resize-handle-bar" />
+          </div>
+
+          <section 
+            className="livebattle-panel livebattle-submit-panel"
+            style={{ flex: `0 0 ${rightWidth}%`, minWidth: "220px", maxWidth: "45%" }}
+          >
           <div className="livebattle-panel-head">
-            <h3>Submit Solution</h3>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <FontAwesomeIcon icon={faFlask} style={{ color: "#ff2a7a", fontSize: "0.9rem" }} />
+              <h3>Submit Solution</h3>
+            </div>
             <button
               className="livebattle-action-btn"
               onClick={() => setIsSubmitPanelOpen(false)}
@@ -1044,57 +1167,70 @@ export default function LiveBattle() {
             ) : null}
 
             <div className="livebattle-output-box">
-              {running ? (
-                <div className="execution-timeline">
-                  <div className="timeline-nodes" style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-                      {['PREPARE', 'COMPILE', 'TEST_STARTED'].map(stage => (
-                          <div key={stage} style={{ 
-                              color: executionTimeline.includes(stage) ? '#4ade80' : 'rgba(255,255,255,0.3)',
-                              fontSize: '0.8rem',
-                              fontWeight: 'bold'
-                          }}>
-                              {stage} {executionTimeline.includes(stage) ? '✓' : '...'}
-                          </div>
-                      ))}
-                  </div>
-                  <div className="livebattle-tests-progress" style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      {executionTests.map((tc, idx) => (
-                          <div key={idx} style={{ 
-                              padding: '10px', 
-                              borderRadius: '8px', 
-                              background: tc.passed ? 'rgba(74, 222, 128, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                              border: `1px solid ${tc.passed ? '#4ade80' : '#ef4444'}`,
-                              fontSize: '0.9rem'
-                          }}>
-                              <strong style={{ color: tc.passed ? '#4ade80' : '#ef4444' }}>
-                                  Test Case {idx + 1} - {tc.passed ? 'PASSED' : 'FAILED'}
-                              </strong>
-                              <div style={{ marginTop: '4px', opacity: 0.8, fontSize: '0.8rem', display: 'flex', justifyContent: 'space-between' }}>
-                                  <span>Time: {tc.metrics?.executionTime}ms</span>
-                                  <span>Memory: {(tc.metrics?.memoryUsage / (1024 * 1024)).toFixed(2)} MB</span>
-                              </div>
-                              {runMode === "test" && (
-                                  <div style={{ marginTop: '8px', padding: '8px', background: 'rgba(0,0,0,0.5)', borderRadius: '4px', fontFamily: 'monospace', fontSize: '0.8rem', overflowX: 'auto' }}>
-                                      <div style={{color: '#aaa'}}>Input:</div>
-                                      <div>{tc.expectedOutput ? problem?.testCases?.[idx]?.input : "Hidden"}</div>
-                                      <div style={{color: '#aaa', marginTop: '4px'}}>Expected:</div>
-                                      <div>{tc.expectedOutput || "Hidden"}</div>
-                                      <div style={{color: '#aaa', marginTop: '4px'}}>Actual:</div>
-                                      <div style={{ color: tc.passed ? '#fff' : '#ef4444'}}>{tc.actualOutput || "Hidden"}</div>
-                                  </div>
-                              )}
-                          </div>
-                      ))}
-                  </div>
+              <div className="console-bar">
+                <div className="console-dots">
+                  <span className="dot dot-red" />
+                  <span className="dot dot-yellow" />
+                  <span className="dot dot-green" />
                 </div>
-              ) : (
-                <pre>{output || "Output will appear here."}</pre>
-              )}
+                <span className="console-title">Execution Console</span>
+              </div>
+              <div className="console-content">
+                {running ? (
+                  <div className="execution-timeline">
+                    <div className="timeline-nodes" style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+                        {['PREPARE', 'COMPILE', 'TEST_STARTED'].map(stage => (
+                            <div key={stage} style={{ 
+                                color: executionTimeline.includes(stage) ? '#4ade80' : 'rgba(255,255,255,0.3)',
+                                fontSize: '0.8rem',
+                                fontWeight: 'bold'
+                            }}>
+                                {stage} {executionTimeline.includes(stage) ? '✓' : '...'}
+                            </div>
+                        ))}
+                    </div>
+                    <div className="livebattle-tests-progress" style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        {executionTests.map((tc, idx) => (
+                            <div key={idx} style={{ 
+                                padding: '10px', 
+                                borderRadius: '8px', 
+                                background: tc.passed ? 'rgba(74, 222, 128, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                                border: `1px solid ${tc.passed ? '#4ade80' : '#ef4444'}`,
+                                fontSize: '0.9rem'
+                            }}>
+                                <strong style={{ color: tc.passed ? '#4ade80' : '#ef4444' }}>
+                                    Test Case {idx + 1} - {tc.passed ? 'PASSED' : 'FAILED'}
+                                </strong>
+                                <div style={{ marginTop: '4px', opacity: 0.8, fontSize: '0.8rem', display: 'flex', justifyContent: 'space-between' }}>
+                                    <span>Time: {tc.metrics?.executionTime}ms</span>
+                                    <span>Memory: {(tc.metrics?.memoryUsage / (1024 * 1024)).toFixed(2)} MB</span>
+                                </div>
+                                {runMode === "test" && (
+                                    <div style={{ marginTop: '8px', padding: '8px', background: 'rgba(0,0,0,0.5)', borderRadius: '4px', fontFamily: 'monospace', fontSize: '0.8rem', overflowX: 'auto' }}>
+                                        <div style={{color: '#aaa'}}>Input:</div>
+                                        <div>{tc.expectedOutput ? problem?.testCases?.[idx]?.input : "Hidden"}</div>
+                                        <div style={{color: '#aaa', marginTop: '4px'}}>Expected:</div>
+                                        <div>{tc.expectedOutput || "Hidden"}</div>
+                                        <div style={{color: '#aaa', marginTop: '4px'}}>Actual:</div>
+                                        <div style={{ color: tc.passed ? '#fff' : '#ef4444'}}>{tc.actualOutput || "Hidden"}</div>
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                  </div>
+                ) : (
+                  <pre>{output || "Output will appear here."}</pre>
+                )}
+              </div>
             </div>
           </div>
         </section>
+        </>
         )}
       </div>
     </div>
-  );
+    <Footer />
+  </BackgroundPaths>
+);
 }

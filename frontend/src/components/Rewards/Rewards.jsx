@@ -27,6 +27,9 @@ import {
     UNIVERSAL_EFFICIENCY_RULES,
 } from '../../utils/playerMetrics';
 import RankEmblem from '../Common/gamification/RankEmblem';
+import BackgroundPaths from '../BackgroundPaths/BackgroundPaths';
+import '../BackgroundPaths/BackgroundPaths.css';
+import Footer from '../Common/Footer/Footer';
 import './Rewards.css';
 
 const rewardCatalog = [
@@ -187,96 +190,100 @@ function Rewards() {
         [pointBreakdown]
     );
 
+    const [activeCategory, setActiveCategory] = useState('All');
+
+    const categories = ['All', 'Marketplace', 'Competition', 'Productivity', 'Career', 'Learning', 'Hardware'];
+
+    const filteredRewards = useMemo(() => {
+        if (activeCategory === 'All') return computedRewards;
+        return computedRewards.filter((r) => r.category === activeCategory);
+    }, [computedRewards, activeCategory]);
+
     const redeemableCount = computedRewards.filter((reward) => reward.status === 'redeem').length;
 
     if (authLoading || isLoadingProfile) {
         return (
-            <div className="rewards-page">
-                <section className="rewards-main-panel">
-                    <div className="panel-headline-row">
-                        <h2>Loading rewards...</h2>
-                    </div>
-                </section>
-            </div>
+            <BackgroundPaths>
+                <div className="rewards-page">
+                    <section className="rewards-main-panel">
+                        <div className="panel-headline-row">
+                            <h2>Loading rewards...</h2>
+                        </div>
+                    </section>
+                </div>
+                <Footer />
+            </BackgroundPaths>
         );
     }
 
     return (
-        <div className="rewards-page">
-            {/* Hero Section */}
-            <section className="rewards-hero">
-                <div className="pre-heading">REWARDS & UNIVERSAL MERIT SYSTEM</div>
-                <h1>
-                    Redeem <span className="text-cyan">Skills & Speed</span> Into Real Rewards
-                </h1>
-                <p>
-                    AlgoFight rewards algorithmic mastery, speed, and execution efficiency. Fast, optimal solutions universally unlock point surges across all battle arenas and practice tracks.
-                </p>
-                {profileError ? (
-                    <div className="rewards-warning">
-                        <FontAwesomeIcon icon={faCircleInfo} />
-                        <span>{profileError}</span>
+        <BackgroundPaths>
+            <div className="rewards-page">
+                {/* Hero Section */}
+                <section className="rewards-hero">
+                    <div className="hero-badge">
+                        <span className="badge-pulse-dot" />
+                        <span>REWARDS & UNIVERSAL MERIT SYSTEM</span>
                     </div>
-                ) : null}
-            </section>
-
-            {/* KPI Grid */}
-            <section className="rewards-kpi-grid">
-                <article className="rewards-kpi-card">
-                    <div className="kpi-label">Arena Points</div>
-                    <div className="kpi-value">{numberFormatter.format(arenaPoints)}</div>
-                    <div className="kpi-footnote">Includes speed & efficiency multipliers</div>
-                </article>
-
-                <article className="rewards-kpi-card">
-                    <div className="kpi-label">Current Rank</div>
-                    <div className="kpi-value kpi-rank-value">
-                        <RankEmblem rating={stats.rating} size={26} glow={false} />
-                        <span className="kpi-rank-title">{currentTier.label}</span>
-                    </div>
-                    <div className="kpi-footnote">
-                        {ratingToNextTier > 0
-                            ? `${ratingToNextTier} rating to ${nextTier.label}`
-                            : 'Top rank unlocked'}
-                    </div>
-                </article>
-
-                <article className="rewards-kpi-card">
-                    <div className="kpi-label">Efficiency Bonus</div>
-                    <div className="kpi-value">+{numberFormatter.format(pointBreakdown.speedEfficiencyPoints)}</div>
-                    <div className="kpi-footnote">Earned from rapid & clean execution</div>
-                </article>
-
-                <article className="rewards-kpi-card">
-                    <div className="kpi-label">Rewards Ready</div>
-                    <div className="kpi-value">{redeemableCount}</div>
-                    <div className="kpi-footnote">Items available to claim now</div>
-                </article>
-            </section>
-
-            {/* Universal Speed & Efficiency Multiplier Banner */}
-            <section className="efficiency-protocol-banner">
-                <div className="protocol-header">
-                    <div className="protocol-badge">
-                        <FontAwesomeIcon icon={faFire} /> UNIVERSAL MERIT PROTOCOL
-                    </div>
-                    <h2>Fast & Optimal Execution Earns Extra Points Universally</h2>
+                    <h1>
+                        Redeem <span className="text-cyan-gradient">Skills & Speed</span> Into <span className="text-purple">Real Rewards</span>
+                    </h1>
                     <p>
-                        Across all 1v1 duels, practice modes, and tournament rounds, developers who solve challenges faster than average or produce more computationally efficient (O(N) vs O(N²)) solutions receive universal bonus points.
+                        AlgoFight rewards algorithmic mastery, speed, and execution efficiency. Fast, optimal solutions universally unlock point surges across all battle arenas and practice tracks.
                     </p>
-                </div>
-
-                <div className="protocol-rules-grid">
-                    {UNIVERSAL_EFFICIENCY_RULES.map((rule) => (
-                        <div key={rule.title} className="protocol-rule-card">
-                            <div className="rule-badge">{rule.type} Multiplier</div>
-                            <h3>{rule.title}</h3>
-                            <p>{rule.description}</p>
-                            <div className="rule-multiplier">{rule.multiplier}</div>
+                    {profileError ? (
+                        <div className="rewards-warning">
+                            <FontAwesomeIcon icon={faCircleInfo} />
+                            <span>{profileError}</span>
                         </div>
-                    ))}
-                </div>
-            </section>
+                    ) : null}
+                </section>
+
+                {/* KPI Grid */}
+                <section className="rewards-kpi-grid">
+                    <article className="rewards-kpi-card tone-cyan">
+                        <div className="kpi-top">
+                            <div className="kpi-label">Arena Points</div>
+                            <div className="kpi-icon-wrap"><FontAwesomeIcon icon={faBolt} /></div>
+                        </div>
+                        <div className="kpi-value">{numberFormatter.format(arenaPoints)}</div>
+                        <div className="kpi-footnote">Includes speed & efficiency multipliers</div>
+                    </article>
+
+                    <article className="rewards-kpi-card tone-gold">
+                        <div className="kpi-top">
+                            <div className="kpi-label">Current Rank</div>
+                            <div className="kpi-icon-wrap"><FontAwesomeIcon icon={faMedal} /></div>
+                        </div>
+                        <div className="kpi-value kpi-rank-value">
+                            <RankEmblem rating={stats.rating} size={26} glow={false} />
+                            <span className="kpi-rank-title">{currentTier.label}</span>
+                        </div>
+                        <div className="kpi-footnote">
+                            {ratingToNextTier > 0
+                                ? `${ratingToNextTier} rating to ${nextTier.label}`
+                                : 'Top rank unlocked'}
+                        </div>
+                    </article>
+
+                    <article className="rewards-kpi-card tone-fire">
+                        <div className="kpi-top">
+                            <div className="kpi-label">Efficiency Bonus</div>
+                            <div className="kpi-icon-wrap"><FontAwesomeIcon icon={faFire} /></div>
+                        </div>
+                        <div className="kpi-value">+{numberFormatter.format(pointBreakdown.speedEfficiencyPoints)}</div>
+                        <div className="kpi-footnote">Earned from rapid & clean execution</div>
+                    </article>
+
+                    <article className="rewards-kpi-card tone-pink">
+                        <div className="kpi-top">
+                            <div className="kpi-label">Rewards Ready</div>
+                            <div className="kpi-icon-wrap"><FontAwesomeIcon icon={faGift} /></div>
+                        </div>
+                        <div className="kpi-value">{redeemableCount}</div>
+                        <div className="kpi-footnote">Items available to claim now</div>
+                    </article>
+                </section>
 
             {/* Main Rewards Layout */}
             <div className="rewards-layout">
@@ -286,37 +293,57 @@ function Rewards() {
                         <span className="panel-pill">Updated Weekly</span>
                     </div>
 
-                    <div className="rewards-grid">
-                        {computedRewards.map((reward) => (
-                            <article
-                                key={reward.title}
-                                className={`reward-card status-${reward.status}`}
+                    {/* Category Filter Pills */}
+                    <div className="rewards-category-pills">
+                        {categories.map((cat) => (
+                            <button
+                                key={cat}
+                                type="button"
+                                className={`category-pill ${activeCategory === cat ? 'is-active' : ''}`}
+                                onClick={() => setActiveCategory(cat)}
                             >
-                                <div className="reward-card-top">
-                                    <div className={`reward-icon tone-${reward.tone}`}>
-                                        <FontAwesomeIcon icon={reward.icon} />
-                                    </div>
-                                    <span className="reward-category">{reward.category}</span>
-                                </div>
-
-                                <h3>{reward.title}</h3>
-                                <p>{reward.description}</p>
-
-                                <div className="reward-meta-row">
-                                    <span className="reward-cost">{numberFormatter.format(reward.cost)} points</span>
-                                    <span className={`reward-status reward-status-${reward.status}`}>
-                                        {getRewardStatusLabel(reward.status)}
-                                    </span>
-                                </div>
-
-                                <button
-                                    className={`reward-action reward-action-${reward.status}`}
-                                    type="button"
-                                >
-                                    {reward.cta}
-                                </button>
-                            </article>
+                                {cat}
+                            </button>
                         ))}
+                    </div>
+
+                    <div className="rewards-grid">
+                        {filteredRewards.length > 0 ? (
+                            filteredRewards.map((reward) => (
+                                <article
+                                    key={reward.title}
+                                    className={`reward-card status-${reward.status}`}
+                                >
+                                    <div className="reward-card-top">
+                                        <div className={`reward-icon tone-${reward.tone}`}>
+                                            <FontAwesomeIcon icon={reward.icon} />
+                                        </div>
+                                        <span className="reward-category">{reward.category}</span>
+                                    </div>
+
+                                    <h3>{reward.title}</h3>
+                                    <p>{reward.description}</p>
+
+                                    <div className="reward-meta-row">
+                                        <span className="reward-cost">{numberFormatter.format(reward.cost)} pts</span>
+                                        <span className={`reward-status reward-status-${reward.status}`}>
+                                            {getRewardStatusLabel(reward.status)}
+                                        </span>
+                                    </div>
+
+                                    <button
+                                        className={`reward-action reward-action-${reward.status}`}
+                                        type="button"
+                                    >
+                                        {reward.cta}
+                                    </button>
+                                </article>
+                            ))
+                        ) : (
+                            <div className="rewards-empty-state">
+                                <p>No rewards found in this category.</p>
+                            </div>
+                        )}
                     </div>
                 </section>
 
@@ -397,7 +424,9 @@ function Rewards() {
                 </aside>
             </div>
         </div>
-    );
+        <Footer />
+    </BackgroundPaths>
+  );
 }
 
 export default Rewards;

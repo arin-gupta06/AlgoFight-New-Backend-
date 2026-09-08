@@ -1,14 +1,16 @@
 
 .livebattle-page {
 	min-height: calc(100vh - 72px);
-	max-width: 1720px;
+	max-width: 1560px;
 	margin: 0 auto;
-	padding: 12px 20px 24px;
+	padding: 72px 4% 80px;
 	color: #f4f8ff;
 	font-family: 'Inter', sans-serif;
 	display: flex;
 	flex-direction: column;
 	box-sizing: border-box;
+	position: relative;
+	z-index: 1;
 }
 
 @media (min-width: 1181px) {
@@ -20,9 +22,6 @@
 		flex: 1;
 		min-height: 0;
 	}
-	.livebattle-grid.submit-panel-collapsed {
-		grid-template-columns: minmax(280px, 1fr) 2fr;
-	}
 	.livebattle-panel {
 		height: 100%;
 		min-height: 0;
@@ -33,55 +32,191 @@
 .livebattle-panel,
 .livebattle-wait-panel,
 .livebattle-result-banner {
-	border-radius: 14px;
-	border: 1px solid rgba(0, 229, 255, 0.16);
-	background: linear-gradient(162deg, rgba(0, 0, 0, 0.52), rgba(4, 18, 34, 0.7));
-	box-shadow: 0 10px 28px rgba(0, 0, 0, 0.34);
-	backdrop-filter: blur(12px);
-	-webkit-backdrop-filter: blur(12px);
+	border-radius: 20px;
+	border: 1px solid rgba(255, 255, 255, 0.12);
+	background: rgba(18, 20, 28, 0.55);
+	box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+	backdrop-filter: blur(20px);
+	-webkit-backdrop-filter: blur(20px);
 }
 
 .livebattle-header-card {
-	padding: 10px 18px;
+	padding: 14px 22px;
 	margin-bottom: 12px;
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	gap: 14px;
+	gap: 16px;
 	flex-shrink: 0;
+	border-radius: 16px;
 }
 
-.livebattle-header-copy {
+.livebattle-header-left {
+	display: flex;
+	align-items: center;
+	gap: 24px;
+	flex: 1;
 	min-width: 0;
 }
 
-.livebattle-pre {
-	margin-bottom: 2px;
-	color: #8092ae;
-	font-size: 0.68rem;
-	font-weight: 700;
-	letter-spacing: 0.14em;
-	text-transform: uppercase;
+.livebattle-room-info {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
 }
 
-.livebattle-header-copy h1 {
-	margin: 0 0 2px;
-	font-family: 'Space Grotesk', sans-serif;
-	font-size: clamp(1.15rem, 2vw, 1.45rem);
-	text-transform: none;
-	letter-spacing: -0.01em;
-	line-height: 1.15;
-	color: #eef9ff;
-	text-shadow: none;
-}
-
-.livebattle-header-copy p {
+.livebattle-hero-title {
 	margin: 0;
-	color: #95a4ba;
+	font-family: 'Space Grotesk', sans-serif;
+	font-size: 1.35rem;
+	font-weight: 800;
+	letter-spacing: -0.01em;
+	background: linear-gradient(135deg, #ffffff 0%, #a5b4fc 100%);
+	-webkit-background-clip: text;
+	-webkit-text-fill-color: transparent;
+}
+
+.livebattle-copy-code-btn {
+	background: rgba(255, 255, 255, 0.05);
+	border: 1px solid rgba(255, 255, 255, 0.12);
+	color: #94a3b8;
+	border-radius: 6px;
+	padding: 3px 8px;
+	font-size: 0.68rem;
+	font-weight: 600;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	width: fit-content;
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+}
+
+.livebattle-copy-code-btn:hover {
+	background: rgba(0, 229, 255, 0.12);
+	border-color: rgba(0, 229, 255, 0.35);
+	color: #00e5ff;
+}
+
+.livebattle-players-matchup {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	flex-wrap: wrap;
+}
+
+.matchup-vs-divider {
+	font-family: 'Space Grotesk', sans-serif;
+	font-size: 0.72rem;
+	font-weight: 900;
+	color: rgba(255, 255, 255, 0.35);
+	letter-spacing: 0.1em;
+	padding: 2px 6px;
+	background: rgba(255, 255, 255, 0.04);
+	border-radius: 4px;
+}
+
+.player-score-card {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 6px 12px;
+	border-radius: 12px;
+	background: rgba(255, 255, 255, 0.04);
+	border: 1px solid rgba(255, 255, 255, 0.1);
+	transition: all 0.25s ease;
+}
+
+.player-score-card.is-me {
+	background: rgba(0, 229, 255, 0.07);
+	border-color: rgba(0, 229, 255, 0.25);
+}
+
+.player-score-card.is-left {
+	opacity: 0.55;
+	background: rgba(255, 77, 77, 0.08);
+	border-color: rgba(255, 77, 77, 0.3);
+}
+
+.player-score-card.is-winner {
+	background: rgba(74, 222, 128, 0.1);
+	border-color: rgba(74, 222, 128, 0.35);
+}
+
+.player-avatar {
+	width: 28px;
+	height: 28px;
+	border-radius: 50%;
+	background: linear-gradient(135deg, rgba(0, 229, 255, 0.3), rgba(124, 58, 237, 0.3));
+	border: 1px solid rgba(255, 255, 255, 0.2);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-weight: 800;
+	font-size: 0.75rem;
+	color: #fff;
+	flex-shrink: 0;
+}
+
+.player-info {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.player-name-row {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.player-username {
+	font-weight: 700;
 	font-size: 0.82rem;
-	white-space: nowrap;
-	overflow: hidden;
-	text-overflow: ellipsis;
+	color: #f1f5f9;
+}
+
+.you-badge {
+	font-size: 0.62rem;
+	font-weight: 800;
+	color: #00e5ff;
+	background: rgba(0, 229, 255, 0.15);
+	padding: 1px 5px;
+	border-radius: 4px;
+}
+
+.left-badge {
+	font-size: 0.62rem;
+	font-weight: 800;
+	color: #ff6699;
+	background: rgba(255, 77, 77, 0.15);
+	padding: 1px 5px;
+	border-radius: 4px;
+}
+
+.winner-badge {
+	font-size: 0.62rem;
+	font-weight: 800;
+	color: #4ade80;
+	background: rgba(74, 222, 128, 0.15);
+	padding: 1px 5px;
+	border-radius: 4px;
+}
+
+.player-score-row {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 0.74rem;
+}
+
+.player-pts {
+	color: #7fefff;
+	font-weight: 700;
+}
+
+.player-solved {
+	color: #94a3b8;
 }
 
 .livebattle-header-right {
@@ -209,10 +344,46 @@
 .livebattle-grid {
 	flex: 1;
 	min-height: 0;
-	display: grid;
-	grid-template-columns: minmax(280px, 1fr) minmax(500px, 2fr) minmax(260px, 0.75fr);
-	gap: 12px;
+	display: flex;
+	gap: 0;
 	align-items: stretch;
+	position: relative;
+	width: 100%;
+}
+
+.livebattle-resize-handle {
+	width: 10px;
+	margin: 0 2px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	cursor: col-resize;
+	z-index: 10;
+	user-select: none;
+	transition: background 0.2s ease;
+	border-radius: 6px;
+	flex-shrink: 0;
+}
+
+.livebattle-resize-handle .resize-handle-bar {
+	width: 3px;
+	height: 38px;
+	border-radius: 99px;
+	background: rgba(255, 255, 255, 0.2);
+	transition: all 0.2s ease;
+}
+
+.livebattle-resize-handle:hover,
+.livebattle-resize-handle.active {
+	background: rgba(0, 229, 255, 0.12);
+}
+
+.livebattle-resize-handle:hover .resize-handle-bar,
+.livebattle-resize-handle.active .resize-handle-bar {
+	background: #00e5ff;
+	box-shadow: 0 0 10px rgba(0, 229, 255, 0.7);
+	height: 52px;
+	width: 4px;
 }
 
 .livebattle-panel {
@@ -354,12 +525,87 @@
 	letter-spacing: 0.03em;
 }
 
+.problem-tabs {
+	display: flex;
+	gap: 6px;
+}
+
+.problem-tabs .tab-btn {
+	padding: 8px 14px;
+	background: transparent;
+	border: none;
+	border-bottom: 2px solid transparent;
+	color: #94a3b8;
+	font-family: 'Space Grotesk', sans-serif;
+	font-weight: 700;
+	font-size: 0.86rem;
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	transition: all 0.2s ease;
+	border-top-left-radius: 8px;
+	border-top-right-radius: 8px;
+}
+
+.problem-tabs .tab-btn:hover {
+	color: #e2e8f0;
+	background: rgba(255, 255, 255, 0.04);
+}
+
+.problem-tabs .tab-btn.active {
+	color: #00e5ff;
+	background: rgba(0, 229, 255, 0.08);
+	border-bottom-color: #00e5ff;
+}
+
+.solved-check-icon {
+	color: #4ade80;
+	font-size: 0.76rem;
+}
+
+.code-editor-wrapper {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	position: relative;
+	border-radius: 14px;
+	border: 1px solid rgba(255, 255, 255, 0.12);
+	background: rgba(8, 12, 20, 0.75);
+	overflow: hidden;
+}
+
+.code-editor-wrapper .livebattle-code-editor {
+	flex: 1;
+	border: none;
+	border-radius: 0;
+	background: transparent;
+}
+
+.code-editor-statusbar {
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 14px;
+	padding: 6px 14px;
+	background: rgba(0, 0, 0, 0.4);
+	border-top: 1px solid rgba(255, 255, 255, 0.06);
+	font-size: 0.7rem;
+	color: #64748b;
+	font-family: 'Space Grotesk', monospace;
+	font-weight: 600;
+}
+
+.syntax-badge {
+	color: #00e5ff;
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+	font-weight: 700;
+}
+
 .livebattle-code-editor {
 	flex: 1;
 	width: 100%;
-	border-radius: 14px;
-	border: 1px solid rgba(255, 255, 255, 0.12);
-	background: rgba(1, 9, 18, 0.9);
 	color: #edf6ff;
 	padding: 16px;
 	font-family: 'Fira Code', monospace;
@@ -371,8 +617,7 @@
 }
 
 .livebattle-code-editor:focus {
-	border-color: rgba(0, 229, 255, 0.45);
-	box-shadow: 0 0 0 2px rgba(0, 229, 255, 0.12);
+	outline: none;
 }
 
 .livebattle-code-editor:disabled {
@@ -491,20 +736,60 @@
 
 .livebattle-output-box {
 	flex: 1;
-	border-radius: 12px;
-	border: 1px solid rgba(255, 255, 255, 0.08);
-	background: rgba(0, 0, 0, 0.42);
-	padding: 13px;
+	border-radius: 14px;
+	border: 1px solid rgba(255, 255, 255, 0.1);
+	background: rgba(5, 8, 17, 0.85);
+	overflow: hidden;
+	display: flex;
+	flex-direction: column;
+}
+
+.console-bar {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 8px 14px;
+	background: rgba(0, 0, 0, 0.5);
+	border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.console-dots {
+	display: flex;
+	gap: 5px;
+}
+
+.console-dots .dot {
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+}
+
+.dot-red { background: #ff5f56; }
+.dot-yellow { background: #ffbd2e; }
+.dot-green { background: #27c93f; }
+
+.console-title {
+	font-family: 'Space Grotesk', monospace;
+	font-size: 0.72rem;
+	font-weight: 700;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: #94a3b8;
+}
+
+.console-content {
+	flex: 1;
+	padding: 12px 14px;
 	overflow-y: auto;
 }
 
-.livebattle-output-box pre {
+.console-content pre {
 	margin: 0;
-	color: #dce5f6;
+	color: #38bdf8;
 	white-space: pre-wrap;
-	font-family: 'Fira Code', monospace;
-	font-size: 0.79rem;
-	line-height: 1.58;
+	font-family: 'Fira Code', 'JetBrains Mono', monospace;
+	font-size: 0.82rem;
+	line-height: 1.6;
 }
 
 .livebattle-loader {
@@ -533,9 +818,18 @@
 
 .livebattle-wait-steps article {
 	border-radius: 14px;
-	border: 1px solid rgba(255, 255, 255, 0.08);
-	background: rgba(255, 255, 255, 0.025);
-	padding: 13px;
+	border: 1px solid rgba(255, 255, 255, 0.12);
+	background: rgba(255, 255, 255, 0.03);
+	padding: 16px;
+	backdrop-filter: blur(12px);
+	-webkit-backdrop-filter: blur(12px);
+	transition: all 0.2s ease;
+}
+
+.livebattle-wait-steps article:hover {
+	border-color: rgba(255, 255, 255, 0.25);
+	background: rgba(255, 255, 255, 0.06);
+	transform: translateY(-2px);
 }
 
 .livebattle-wait-steps svg {

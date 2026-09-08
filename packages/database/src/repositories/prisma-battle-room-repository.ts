@@ -77,7 +77,7 @@ export class PrismaBattleRoomRepository implements BattleRoomRepository {
     }
 
     async createRoom(input: CreateBattleRoomInput): Promise<BattleRoomEntity> {
-        const room = await prisma.$transaction(async (tx) => {
+        const room = await prisma.$transaction(async (tx: any) => {
             const created = await tx.battleRoom.create({
                 data: {
                     roomCode: input.roomCode,
@@ -133,7 +133,7 @@ export class PrismaBattleRoomRepository implements BattleRoomRepository {
     }
 
     async joinRoom(roomId: string, userId: string): Promise<BattleRoomEntity> {
-        const room = await prisma.$transaction(async (tx) => {
+        const room = await prisma.$transaction(async (tx: any) => {
             const targetRoom = await tx.battleRoom.findUniqueOrThrow({
                 where: { id: roomId },
                 include: { participants: true },
@@ -147,7 +147,7 @@ export class PrismaBattleRoomRepository implements BattleRoomRepository {
                 throw new Error("Cannot join battle room: Room is full");
             }
 
-            const alreadyJoined = targetRoom.participants.some((p) => p.userId === userId);
+            const alreadyJoined = targetRoom.participants.some((p: any) => p.userId === userId);
             if (!alreadyJoined) {
                 await tx.battleParticipant.create({
                     data: {
@@ -168,7 +168,7 @@ export class PrismaBattleRoomRepository implements BattleRoomRepository {
     }
 
     async leaveRoom(roomId: string, userId: string): Promise<{ wasHost: boolean; remainingCount: number }> {
-        return prisma.$transaction(async (tx) => {
+        return prisma.$transaction(async (tx: any) => {
             const room = await tx.battleRoom.findUniqueOrThrow({
                 where: { id: roomId },
                 include: { participants: true },
@@ -199,7 +199,7 @@ export class PrismaBattleRoomRepository implements BattleRoomRepository {
     }
 
     async setPlayerReady(roomId: string, userId: string, isReady: boolean): Promise<BattleRoomEntity> {
-        const room = await prisma.$transaction(async (tx) => {
+        const room = await prisma.$transaction(async (tx: any) => {
             await tx.battleParticipant.update({
                 where: { roomId_userId: { roomId, userId } },
                 data: { isReady },
@@ -213,7 +213,7 @@ export class PrismaBattleRoomRepository implements BattleRoomRepository {
                 where: { id: roomId },
             });
 
-            const allReady = participants.length >= 2 && participants.every((p) => p.isReady);
+            const allReady = participants.length >= 2 && participants.every((p: any) => p.isReady);
 
             // Auto-transition WAITING <-> READY
             let newStatus = currentRoom.status;
@@ -294,11 +294,11 @@ export class PrismaBattleRoomRepository implements BattleRoomRepository {
         });
 
         const now = Date.now();
-        const expired = runningRooms.filter((room) => {
+        const expired = runningRooms.filter((room: any) => {
             const expiryTime = room.startedAt!.getTime() + room.timeLimitMinutes * 60 * 1000;
             return now > expiryTime;
         });
 
-        return expired.map((r) => this.mapToEntity(r));
+        return expired.map((r: any) => this.mapToEntity(r));
     }
 }

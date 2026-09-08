@@ -16,6 +16,9 @@ import { faLinkedin, faGithub } from "@fortawesome/free-brands-svg-icons";
 import vivekPic from "../../assets/devs/vivek.png";
 import krishPic from "../../assets/devs/krish.jpg";
 import arinPic from "../../assets/devs/arin.png";
+import BackgroundPaths from "../BackgroundPaths/BackgroundPaths";
+import "../BackgroundPaths/BackgroundPaths.css";
+import Footer from "../Common/Footer/Footer";
 import "./Developer.css";
 
 const teamMembers = [
@@ -33,6 +36,18 @@ const teamMembers = [
     imgStyle: { objectPosition: "center 15%" },
   },
   {
+    name: "Krish Dargar",
+    role: "Frontend & UI/UX Systems Architect",
+    bio: "Crafts the cybernetic design language, glassmorphic interfaces, and micro-animations. Translates complex algorithmic mechanics into lightning-fast, intuitive, and visually stunning web applications that coders love to use.",
+    pic: krishPic,
+    stack: "UI/UX & Design Systems",
+    skills: ["Cyber Glassmorphic UI", "React.js & Framer Motion", "WhatsApp Media Previews", "Responsive Layouts"],
+    icon: faLaptopCode,
+    tone: "pink",
+    linkedin: "https://www.linkedin.com/in/krish-dargar-101774324/",
+    github: "https://github.com/KD2303"
+  },
+  {
     name: "Vivek Chaurasiya",
     role: "Backend & Sandbox Infrastructure Lead",
     bio: "Engineers database architecture, Prisma query optimization, asynchronous job queues, and isolated code evaluation sandboxes. Ensures the backend executes arbitrary code with strict isolation, low latency, and infinite horizontal scalability.",
@@ -43,19 +58,6 @@ const teamMembers = [
     tone: "cyan",
     linkedin: "https://www.linkedin.com/in/vivek-chaurasiya-722037315",
     github: "https://github.com/VivekChaurasiya95",
-    imgStyle: { transform: "scale(1.5)", transformOrigin: "center 20%" },
-  },
-  {
-    name: "Krish Dargar",
-    role: "Frontend & UI/UX Systems Architect",
-    bio: "Crafts the cybernetic design language, glassmorphic interfaces, and micro-animations. Translates complex algorithmic mechanics into lightning-fast, intuitive, and visually stunning web applications that coders love to use.",
-    pic: krishPic,
-    stack: "UI/UX & Design Systems",
-    skills: ["Cyber Glassmorphic UI", "React.js & Framer Motion", "WhatsApp Media Previews", "Responsive Layouts"],
-    icon: faLaptopCode,
-    tone: "pink",
-    linkedin: "https://www.linkedin.com/in/krish-dargar-101774324/",
-    github: "https://github.com/KD2303",
   },
 ];
 
@@ -108,118 +110,124 @@ const childVariants = {
 
 function Developer() {
   return (
-    <div className="developer-page">
-      <motion.section
-        className="developer-hero"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.45, ease: "easeOut" }}
-      >
-        <div className="developer-pre-heading">ENGINEERING & ARCHITECTURE</div>
-        <h1>
-          Built By <span>AlgoFight Architects</span>
-        </h1>
-        <p>
-          Meet the engineers building AlgoFight. Designed from the ground up as a high-throughput, real-time algorithmic combat arena, powered by modern distributed systems and cyber glassmorphic aesthetics.
-        </p>
+    <BackgroundPaths>
+      <div className="developer-page">
+        <motion.section
+          className="developer-hero"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45, ease: "easeOut" }}
+        >
+          <div className="hero-badge">
+            <span className="badge-pulse-dot" />
+            <span>ENGINEERING & ARCHITECTURE</span>
+          </div>
+          <h1>
+            Built By <span className="text-cyan-gradient">AlgoFight</span> <span className="text-purple">Architects</span>
+          </h1>
+          <p>
+            Meet the engineers building AlgoFight. Designed from the ground up as a high-throughput, real-time algorithmic combat arena, powered by modern distributed systems and cyber glassmorphic aesthetics.
+          </p>
 
-        <div className="developer-stat-grid">
-          {developerStats.map((item) => (
-            <article key={item.label} className="developer-stat-card">
-              <div className="developer-stat-value">{item.value}</div>
-              <div className="developer-stat-label">{item.label}</div>
-            </article>
-          ))}
-        </div>
-      </motion.section>
+          <div className="developer-stat-grid">
+            {developerStats.map((item) => (
+              <article key={item.label} className="developer-stat-card">
+                <div className="developer-stat-value">{item.value}</div>
+                <div className="developer-stat-label">{item.label}</div>
+              </article>
+            ))}
+          </div>
+        </motion.section>
 
-      <motion.section
-        className="developer-team-grid"
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-      >
-        {teamMembers.map((member, index) => (
-          <motion.article
-            key={member.name}
-            variants={childVariants}
-            className={`developer-member-card ${member.tone} ${index % 2 === 1 ? "reverse" : ""}`}
-          >
-            <div className="developer-avatar-wrap">
-              <div className="developer-avatar-glow" />
-              {member.pic ? (
-                 <div className="developer-avatar-container">
-                   <img src={member.pic} alt={member.name} className="developer-avatar-img" style={member.imgStyle} />
-                 </div>
-              ) : (
-                 <div className="developer-avatar">{member.name.charAt(0)}</div>
-              )}
-              <div className="developer-icon-badge">
-                <FontAwesomeIcon icon={member.icon} />
-              </div>
-            </div>
-
-            <div className="developer-member-content">
-              <div className="developer-member-head">
-                <h2>{member.name}</h2>
-                <span className="developer-chip">{member.stack}</span>
-              </div>
-
-              <h3>
-                <FontAwesomeIcon icon={faCodeMerge} />
-                {member.role}
-              </h3>
-
-              <p>{member.bio}</p>
-
-              <div className="developer-skill-list">
-                {member.skills.map((skill) => (
-                  <span key={skill}>{skill}</span>
-                ))}
-              </div>
-
-              <div className="developer-social-links">
-                {member.linkedin !== "#" && (
-                  <a href={member.linkedin} target="_blank" rel="noreferrer" className={`social-btn ${member.tone}`}>
-                    <FontAwesomeIcon icon={faLinkedin} /> LinkedIn
-                  </a>
+        <motion.section
+          className="developer-team-grid"
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+        >
+          {teamMembers.map((member, index) => (
+            <motion.article
+              key={member.name}
+              variants={childVariants}
+              className={`developer-member-card ${member.tone} ${index % 2 === 1 ? "reverse" : ""}`}
+            >
+              <div className="developer-avatar-wrap">
+                <div className="developer-avatar-glow" />
+                {member.pic ? (
+                   <div className="developer-avatar-container">
+                     <img src={member.pic} alt={member.name} className="developer-avatar-img" style={member.imgStyle} />
+                   </div>
+                ) : (
+                   <div className="developer-avatar">{member.name.charAt(0)}</div>
                 )}
-                {member.github !== "#" && (
-                  <a href={member.github} target="_blank" rel="noreferrer" className={`social-btn ${member.tone}`}>
-                    <FontAwesomeIcon icon={faGithub} /> GitHub
-                  </a>
-                )}
+                <div className="developer-icon-badge">
+                  <FontAwesomeIcon icon={member.icon} />
+                </div>
               </div>
-            </div>
-          </motion.article>
-        ))}
-      </motion.section>
 
-      <motion.section
-        className="developer-principles-panel"
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, amount: 0.3 }}
-        transition={{ duration: 0.45, ease: "easeOut" }}
-      >
-        <div className="developer-panel-header">
-          <h2>Platform Architecture & Engineering DNA</h2>
-          <span className="developer-chip">Production Grade</span>
-        </div>
+              <div className="developer-member-content">
+                <div className="developer-member-head">
+                  <h2>{member.name}</h2>
+                  <span className="developer-chip">{member.stack}</span>
+                </div>
 
-        <div className="developer-principles-grid">
-          {principles.map((item) => (
-            <article key={item.title} className="developer-principle-card">
-              <span className="developer-principle-icon">
-                <FontAwesomeIcon icon={item.icon} />
-              </span>
-              <h3>{item.title}</h3>
-              <p>{item.copy}</p>
-            </article>
+                <h3>
+                  <FontAwesomeIcon icon={faCodeMerge} />
+                  {member.role}
+                </h3>
+
+                <p>{member.bio}</p>
+
+                <div className="developer-skill-list">
+                  {member.skills.map((skill) => (
+                    <span key={skill}>{skill}</span>
+                  ))}
+                </div>
+
+                <div className="developer-social-links">
+                  {member.linkedin !== "#" && (
+                    <a href={member.linkedin} target="_blank" rel="noreferrer" className={`social-btn ${member.tone}`}>
+                      <FontAwesomeIcon icon={faLinkedin} /> LinkedIn
+                    </a>
+                  )}
+                  {member.github !== "#" && (
+                    <a href={member.github} target="_blank" rel="noreferrer" className={`social-btn ${member.tone}`}>
+                      <FontAwesomeIcon icon={faGithub} /> GitHub
+                    </a>
+                  )}
+                </div>
+              </div>
+            </motion.article>
           ))}
-        </div>
-      </motion.section>
-    </div>
+        </motion.section>
+
+        <motion.section
+          className="developer-principles-panel"
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.3 }}
+          transition={{ duration: 0.45, ease: "easeOut" }}
+        >
+          <div className="developer-panel-header">
+            <h2>Platform Architecture & Engineering DNA</h2>
+            <span className="developer-chip">Production Grade</span>
+          </div>
+
+          <div className="developer-principles-grid">
+            {principles.map((item) => (
+              <article key={item.title} className="developer-principle-card">
+                <span className="developer-principle-icon">
+                  <FontAwesomeIcon icon={item.icon} />
+                </span>
+                <h3>{item.title}</h3>
+                <p>{item.copy}</p>
+              </article>
+            ))}
+          </div>
+        </motion.section>
+      </div>
+      <Footer />
+    </BackgroundPaths>
   );
 }
 

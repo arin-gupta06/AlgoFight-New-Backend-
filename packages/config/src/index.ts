@@ -10,11 +10,11 @@ const envSchema = z.object({
     NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
     PORT: z.coerce.number().int().min(1).max(65535).default(3000),
     DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
-    REDIS_HOST: z.string().default("localhost"),
+    REDIS_HOST: z.string().default("127.0.0.1"),
     REDIS_PORT: z.coerce.number().int().min(1).max(65535).default(6379),
     PISTON_URL: z.string().default("http://127.0.0.1:2000"),
     ADMIN_SECRET_KEY: z.string().min(6, "ADMIN_SECRET_KEY must be at least 6 characters"),
-    ALLOWED_ORIGINS: z.string().default("http://localhost:5173,http://localhost:3000"),
+    ALLOWED_ORIGINS: z.string().default("http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000,http://127.0.0.1:3000,http://localhost:5174,http://127.0.0.1:5174"),
     WS_PORT: z.coerce.number().int().min(1).max(65535).default(4001),
     GATEWAY_CLUSTER_SECRET: z.string().default("da20e600e5f93a55c86dcdafc0611c5e32bdc807384ce14c5c653984eb574037"),
 });

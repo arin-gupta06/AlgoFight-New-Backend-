@@ -17,8 +17,9 @@ export function createRedisClient(): Redis {
               },
           })
         : new IORedis({
-              host: process.env.REDIS_HOST || "localhost",
+              host: process.env.REDIS_HOST || "127.0.0.1",
               port: Number(process.env.REDIS_PORT) || 6379,
+              family: 4,
               maxRetriesPerRequest: null,
               retryStrategy(time) {
                   return Math.min(time * 50, 2000);

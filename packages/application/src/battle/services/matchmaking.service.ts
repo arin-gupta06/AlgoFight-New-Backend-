@@ -75,8 +75,9 @@ export class MatchmakingService {
                           maxRetriesPerRequest: 1,
                       })
                     : new Redis({
-                          host: process.env.REDIS_HOST || "localhost",
+                          host: process.env.REDIS_HOST || "127.0.0.1",
                           port: Number(process.env.REDIS_PORT) || 6379,
+                          family: 4,
                           password: process.env.REDIS_PASSWORD || undefined,
                           tls: isTls ? { rejectUnauthorized: false } : undefined,
                           lazyConnect: true,

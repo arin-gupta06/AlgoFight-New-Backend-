@@ -6,10 +6,13 @@ import tailwindcss from '@tailwindcss/vite';
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   const backendTarget = env.VITE_API_URL || 'http://127.0.0.1:3000';
+  const wsTarget = env.VITE_WS_URL || 'ws://127.0.0.1:4001';
 
   return {
     plugins: [react(), tailwindcss()],
     server: {
+      port: 5173,
+      strictPort: false,
       headers: {
         'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
         'Cross-Origin-Embedder-Policy': 'unsafe-none',
@@ -17,6 +20,11 @@ export default defineConfig(({ mode }) => {
       proxy: {
         '/api': {
           target: backendTarget,
+          changeOrigin: true,
+        },
+        '/ws': {
+          target: wsTarget,
+          ws: true,
           changeOrigin: true,
         },
       },

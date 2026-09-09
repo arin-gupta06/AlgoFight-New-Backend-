@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo, useRef, useCallback } from "react";
+import ReactDOM from "react-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faTimes,
@@ -83,8 +84,11 @@ export default function ProblemReadPanel({ problemId, onClose, initialProblem = 
   useEffect(() => {
     if (problemId) {
       window.addEventListener("keydown", handleKeyDown);
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
       return () => {
         window.removeEventListener("keydown", handleKeyDown);
+        document.body.style.overflow = originalOverflow;
       };
     }
   }, [problemId, handleKeyDown]);
@@ -130,7 +134,7 @@ export default function ProblemReadPanel({ problemId, onClose, initialProblem = 
 
   const difficultyLabel = (problem?.difficulty || "Medium").toLowerCase();
 
-  return (
+  const drawerContent = (
     <div
       className="problem-read-backdrop"
       onClick={(e) => {
@@ -369,4 +373,8 @@ export default function ProblemReadPanel({ problemId, onClose, initialProblem = 
       </div>
     </div>
   );
+
+  return typeof document !== "undefined"
+    ? ReactDOM.createPortal(drawerContent, document.body)
+    : drawerContent;
 }

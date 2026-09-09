@@ -1,4 +1,5 @@
 import React, { useEffect, Suspense, lazy } from 'react';
+import ReactDOM from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
@@ -131,7 +132,7 @@ export default function PublicInfoModal({
     }
   };
 
-  return (
+  const modalElement = (
     <AnimatePresence>
       <motion.div
         className="public-modal-backdrop"
@@ -240,4 +241,8 @@ export default function PublicInfoModal({
       </motion.div>
     </AnimatePresence>
   );
+
+  return typeof document !== 'undefined'
+    ? ReactDOM.createPortal(modalElement, document.body)
+    : modalElement;
 }

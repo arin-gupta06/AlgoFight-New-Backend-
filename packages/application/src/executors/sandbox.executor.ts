@@ -238,6 +238,8 @@ export class SandboxExecutor implements CodeExecutor {
 
         const wrappedCode = this.wrapCodeForLanguage(targetLang, code);
 
+        const safeRunTimeout = Math.min(Math.max(100, timeoutMs), 3000);
+
         const requestBody = {
             language: targetLang,
             version: "*",
@@ -247,7 +249,7 @@ export class SandboxExecutor implements CodeExecutor {
                 },
             ],
             stdin: stdinInput,
-            run_timeout: timeoutMs,
+            run_timeout: safeRunTimeout,
             compile_timeout: 10000,
             run_memory_limit: memoryLimitBytes,
         };

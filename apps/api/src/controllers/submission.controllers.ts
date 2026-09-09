@@ -207,6 +207,7 @@ export class SubmissionController {
     }
 
     async test(body: TestRunInput) {
+        const poolManager = RuntimePoolManager.getInstance();
         let targetRuntimeUrl: string | undefined = undefined;
         if (process.env.NODE_ENV !== "production") {
             if (body.targetRuntimeUrl && (body.targetRuntimeUrl.startsWith("http://localhost:") || body.targetRuntimeUrl.startsWith("http://127.0.0.1:"))) {
@@ -216,17 +217,34 @@ export class SubmissionController {
             }
         }
 
-        const evaluationService = new EvaluationService();
-        const result = await evaluationService.evaluateSubmission({
-            submissionId: "test-run",
-            language: body.language,
-            code: body.code,
-            testCases: body.testCases as any,
-            timeLimitMs: 2000,
-            memoryLimitBytes: 256 * 1024 * 1024,
-            targetRuntimeUrl,
-        } as any, () => { }, "SAMPLE");
-        return result;
+        let allocatedSlot = false;
+        if (!targetRuntimeUrl) {
+            targetRuntimeUrl = await poolManager.routeSubmission({
+                submissionId: `test-${Date.now()}`,
+                language: body.language,
+                sourceCode: body.code,
+                workload: body.code.length > 8192 ? "HEAVY" : "LIGHT",
+            });
+            allocatedSlot = true;
+        }
+
+        try {
+            const evaluationService = new EvaluationService();
+            const result = await evaluationService.evaluateSubmission({
+                submissionId: "test-run",
+                language: body.language,
+                code: body.code,
+                testCases: body.testCases as any,
+                timeLimitMs: 2000,
+                memoryLimitBytes: 256 * 1024 * 1024,
+                targetRuntimeUrl,
+            } as any, () => { }, "SAMPLE");
+            return result;
+        } finally {
+            if (allocatedSlot && targetRuntimeUrl) {
+                await poolManager.releaseExecutionSlot(targetRuntimeUrl).catch(() => {});
+            }
+        }
     }
 
     /**

@@ -36,33 +36,33 @@ import './LandingPage.css';
 const testimonialsData = [
   {
     quote: "AlgoFight's real-time battles push me out of my comfort zone every day. The adrenaline, live telemetry, and instant compiler feedback are real.",
-    name: "Rishabh Codes",
+    name: "Palash Rai",
     designation: "Top 1% Global Grandmaster",
-    src: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&auto=format&fit=crop&q=75&fm=webp",
+    src: "/testimonials/palash.png",
   },
   {
     quote: "The best platform to level up problem solving speed and compete with elite coders under live pressure. HMAC anti-cheat is truly top-tier.",
-    name: "Aarav Sharma",
+    name: "Sneha",
     designation: "5★ Problem Solver • Rank 42",
-    src: "https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=200&auto=format&fit=crop&q=75&fm=webp",
+    src: "/testimonials/sneha.png",
   },
   {
     quote: "Clean cyber UI, fair matches, and zero-lag WebSocket sync. The synchronized 1v1 arenas make competitive programming feel like true esports.",
-    name: "Sneha Verma",
+    name: "Prateek Amar Batham",
     designation: "Competitive Programmer • Tier 1",
-    src: "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=200&auto=format&fit=crop&q=75&fm=webp",
+    src: "/testimonials/prateek.png",
   },
   {
     quote: "Sub-second execution with automated judging changed how our team prepares for collegiate coding hackathons and technical rounds.",
-    name: "Vikram Malhotra",
+    name: "Sarvesh Baghel",
     designation: "Collegiate ICPC Finalist",
-    src: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop&q=75&fm=webp",
+    src: "/testimonials/sarvesh.png",
   },
   {
     quote: "The 1v1 duel format creates unbeatable focus. You don't just solve algorithms, you master them under pressure.",
-    name: "Ananya Roy",
+    name: "Aishwary Pahariya",
     designation: "Senior Systems Engineer",
-    src: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&auto=format&fit=crop&q=75&fm=webp",
+    src: "/testimonials/aishwary.png",
   }
 ];
 

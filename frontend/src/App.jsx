@@ -62,9 +62,12 @@ function AuthLayout() {
 
 // 📌 Main layout (with NavBar)
 function MainLayout() {
+  const location = useLocation();
+  const hideNavBar = location.pathname.startsWith('/battle/live');
+  
   return (
     <>
-      <NavBar />
+      {!hideNavBar && <NavBar />}
       <Suspense fallback={<PageLoader />}>
         <Outlet />
       </Suspense>

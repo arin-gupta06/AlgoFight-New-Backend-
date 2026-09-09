@@ -100,7 +100,19 @@ export class PistonAdapter {
             const id = setTimeout(() => controller.abort(), timeLimitMs + 5000); 
 
             const endpoint = targetUrl || this.PISTON_URL;
-            const response = await fetch(`${endpoint}/api/v2/execute`, {
+            let url = `${endpoint}/api/v2/execute`;
+            if (endpoint === "https://emkc.org") {
+                url = `https://emkc.org/api/v2/piston/execute`;
+            } else if (endpoint === "https://emkc.org/api/v2/piston" || endpoint.endsWith("/execute") === false) {
+                // If it already contains the full path, just append /execute if missing
+                url = endpoint.endsWith("/execute") ? endpoint : `${endpoint}/execute`;
+                // Fallback for standard local docker which expects /api/v2/execute
+                if (!endpoint.includes("emkc") && !endpoint.includes("api/v2")) {
+                    url = `${endpoint}/api/v2/execute`;
+                }
+            }
+
+            const response = await fetch(url, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",

@@ -105,7 +105,7 @@ export class BattleRoomService {
             throw new Error("Host cannot kick themselves from the lobby");
         }
 
-        if (room.status !== "WAITING") {
+        if (room.status !== "WAITING" && room.status !== "READY") {
             throw new Error("Cannot kick players after battle has started");
         }
 

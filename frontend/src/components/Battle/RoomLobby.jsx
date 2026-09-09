@@ -53,7 +53,6 @@ export default function RoomLobby() {
     const currentUsername = user?.displayName || user?.email?.split("@")[0] || "Player";
     const isHost = room?.hostId === currentUserId || room?.host?.id === currentUserId;
 
-    // 1. Fetch Room State from REST API
     const loadRoom = async (isBackgroundSync = false) => {
         try {
             if (!isBackgroundSync) setLoading(true);
@@ -66,10 +65,22 @@ export default function RoomLobby() {
                 return;
             }
 
-            setRoom(roomData);
-            setParticipants(data.participants || roomData?.participants || []);
+            const currentParticipants = data.participants || roomData?.participants || [];
+            
+            // Check if current user is still in the room
+            const me = currentParticipants.find((p) => p.userId === currentUserId);
+            const amIHost = roomData?.hostId === currentUserId || roomData?.host?.id === currentUserId;
+            
+            // If the user is not in the participants list and not the host, they have been kicked/removed
+            if (!me && !amIHost && roomData) {
+                notify({ type: "error", title: "Removed from Lobby", message: "You were removed from the lobby." });
+                navigate("/battle");
+                return;
+            }
 
-            const me = (data.participants || roomData?.participants || []).find((p) => p.userId === currentUserId);
+            setRoom(roomData);
+            setParticipants(currentParticipants);
+
             if (me) setIsReady(me.isReady);
         } catch (err) {
             if (!isBackgroundSync) {
@@ -213,7 +224,7 @@ export default function RoomLobby() {
         }
 
         return () => {
-            if (ws && ws.readyState === WebSocket.OPEN) {
+            if (ws) {
                 ws.close();
             }
         };
@@ -359,13 +370,8 @@ export default function RoomLobby() {
         try {
             setKickingUserId(targetUserId);
 
-            await requestJson(`/api/battle/rooms/${room?.id || roomCode}/kick`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ hostId: currentUserId, targetUserId }),
-                includeAuth: true,
-            });
-
+            // Send ONLY via WebSocket to ensure proper event broadcasting
+            // (REST call removed to prevent duplicate kicks/race conditions that break the kicked_from_room event)
             if (socketRef.current?.readyState === WebSocket.OPEN) {
                 socketRef.current.send(JSON.stringify({
                     action: "kick_player",
@@ -376,13 +382,13 @@ export default function RoomLobby() {
                         targetUsername,
                     },
                 }));
+            } else {
+                throw new Error("Connection lost. Please try again.");
             }
 
-            notify({ type: "success", title: "Combatant Evicted", message: `${targetUsername} has been kicked.` });
-            loadRoom(true);
+            // Let the websocket response (player_kicked) handle the UI update
         } catch (err) {
             notify({ type: "error", title: "Kick Failed", message: err.message || "Failed to remove player." });
-        } finally {
             setKickingUserId(null);
         }
     };
@@ -730,7 +736,7 @@ export default function RoomLobby() {
 
                                     <div className="participant-info">
                                         <div className="participant-name">
-                                            {playerName}
+                                            <span className="participant-name-text" title={playerName}>{playerName}</span>
                                             {isMe && <span className="me-badge">YOU</span>}
                                             {isPlayerHost && <span className="host-badge"><FontAwesomeIcon icon={faCrown} /> HOST</span>}
                                         </div>

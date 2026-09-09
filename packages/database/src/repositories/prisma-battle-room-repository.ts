@@ -139,7 +139,7 @@ export class PrismaBattleRoomRepository implements BattleRoomRepository {
                 include: { participants: true },
             });
 
-            if (targetRoom.status !== "WAITING") {
+            if (targetRoom.status !== "WAITING" && targetRoom.status !== "READY") {
                 throw new Error("Cannot join battle room: Battle is not in waiting state");
             }
 
@@ -156,6 +156,13 @@ export class PrismaBattleRoomRepository implements BattleRoomRepository {
                         isReady: false,
                     },
                 });
+
+                if (targetRoom.status === "READY") {
+                    await tx.battleRoom.update({
+                        where: { id: roomId },
+                        data: { status: "WAITING" },
+                    });
+                }
             }
 
             return tx.battleRoom.findUniqueOrThrow({
@@ -189,6 +196,14 @@ export class PrismaBattleRoomRepository implements BattleRoomRepository {
                     where: { id: roomId },
                     data: { status: "CANCELLED" },
                 });
+            } else if (room.status === "READY") {
+                const allReady = remaining.length >= 2 && remaining.every((p: any) => p.isReady);
+                if (!allReady) {
+                    await tx.battleRoom.update({
+                        where: { id: roomId },
+                        data: { status: "WAITING" },
+                    });
+                }
             }
 
             return {

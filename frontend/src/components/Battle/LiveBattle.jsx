@@ -656,6 +656,20 @@ export default function LiveBattle() {
         }
       });
 
+      socket.on("error", (errorMsg) => {
+        setRunning(false);
+        setRunMode("idle");
+        
+        if (slowNotificationTimer.current) {
+            clearTimeout(slowNotificationTimer.current);
+            slowNotificationTimer.current = null;
+        }
+        
+        const message = typeof errorMsg === "string" ? errorMsg : errorMsg?.message || "An error occurred during execution.";
+        setOutput(`Error:\n${message}\n\nPlease check if your Piston sandbox is running or your code has syntax errors.`);
+        notify({ type: "error", title: "Execution Error", message, duration: 4000 });
+      });
+
       socket.on("battle_over", (data) => {
         const winnerId = data?.winnerId;
         const winnerName = data?.winnerUsername || data?.winner || "Opponent";

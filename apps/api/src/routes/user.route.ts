@@ -17,6 +17,10 @@ export async function userRoutes(app: FastifyInstance) {
             displayName: body.displayName,
             githubUrl: body.githubUrl,
             linkedinUrl: body.linkedinUrl,
+            userType: body.userType,
+            institutionName: body.institutionName,
+            department: body.department,
+            batchYear: body.batchYear,
         });
     });
 

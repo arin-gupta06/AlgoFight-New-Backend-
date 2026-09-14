@@ -9,23 +9,17 @@ import {
   faBolt,
   faChartLine,
   faTerminal,
-  faChevronDown,
-  faChevronUp,
-  faBrain,
-  faGaugeHigh,
-  faGlobe,
   faClock,
   faMicrochip,
   faBug,
   faCode,
-  faCircleXmark,
-  faCircleDot
+  faCircleDot,
+  faGaugeHigh,
+  faShieldHalved
 } from "@fortawesome/free-solid-svg-icons";
 import "./DetailedAnalysisModal.css";
 
 export default function DetailedAnalysisModal({ isOpen, onClose, result, problem }) {
-  const [expandedTest, setExpandedTest] = useState(1); // Default first test open
-
   if (!isOpen) return null;
 
   // 1. Live test cases from execution or problem
@@ -44,6 +38,7 @@ export default function DetailedAnalysisModal({ isOpen, onClose, result, problem
       ? rawTestResults.filter((r) => r.passed).length
       : result?.passed ? totalTests : Math.max(0, totalTests - 1));
 
+  const failedTests = Math.max(0, totalTests - passedTests);
   const isAllPassed = Boolean(result?.passed || (totalTests > 0 && passedTests === totalTests));
 
   // 2. Real execution time and memory
@@ -57,8 +52,7 @@ export default function DetailedAnalysisModal({ isOpen, onClose, result, problem
     ? Number((rawMemoryBytes / (1024 * 1024)).toFixed(1))
     : 2.1;
 
-  // 3. Dynamic Verdict Classification (Pic 3)
-  // Options: WRONG_ANSWER, TIME_LIMIT_EXCEEDED, MEMORY_LIMIT_EXCEEDED, RUNTIME_ERROR, COMPILATION_ERROR, ACCEPTED
+  // 3. Dynamic Verdict Classification
   const rawVerdict = String(result?.verdict || result?.status || "").toUpperCase();
   let verdictType = "ACCEPTED";
 
@@ -82,35 +76,35 @@ export default function DetailedAnalysisModal({ isOpen, onClose, result, problem
       case "WRONG_ANSWER":
         return {
           title: "Wrong Answer",
-          subtext: `Passed ${passedTests} / ${totalTests} tests`,
+          subtext: `${passedTests}/${totalTests} Passed`,
           icon: faCircleDot,
           cardClass: "verdict-wa",
         };
       case "TIME_LIMIT_EXCEEDED":
         return {
           title: "Time Limit Exceeded",
-          subtext: `Exceeded ${timeLimitMs} ms limit.`,
+          subtext: `Exceeded ${timeLimitMs}ms`,
           icon: faClock,
           cardClass: "verdict-tle",
         };
       case "MEMORY_LIMIT_EXCEEDED":
         return {
           title: "Memory Limit Exceeded",
-          subtext: `Used ${measuredMemoryMb} MB / ${memoryLimitMb} MB.`,
+          subtext: `Used ${measuredMemoryMb}MB / ${memoryLimitMb}MB`,
           icon: faMicrochip,
           cardClass: "verdict-mle",
         };
       case "RUNTIME_ERROR":
         return {
           title: "Runtime Error",
-          subtext: result?.error || "Division by zero.",
+          subtext: "Exception encountered",
           icon: faBug,
           cardClass: "verdict-re",
         };
       case "COMPILATION_ERROR":
         return {
           title: "Compilation Error",
-          subtext: result?.error || "Syntax error on line 17.",
+          subtext: "Build failed",
           icon: faCode,
           cardClass: "verdict-ce",
         };
@@ -118,7 +112,7 @@ export default function DetailedAnalysisModal({ isOpen, onClose, result, problem
       default:
         return {
           title: "Accepted",
-          subtext: "All tests passed.",
+          subtext: `All ${totalTests} Passed`,
           icon: faCheckCircle,
           cardClass: "verdict-ac",
         };
@@ -127,7 +121,7 @@ export default function DetailedAnalysisModal({ isOpen, onClose, result, problem
 
   const verdictCard = getVerdictCardData();
 
-  // Helper to generate failure explanation (Pic 4)
+  // Helper to generate failure explanation
   const generateWhyFailedExplanation = (inputStr, expStr, actStr, errStr) => {
     if (errStr && errStr.trim().length > 0) {
       return {
@@ -136,12 +130,11 @@ export default function DetailedAnalysisModal({ isOpen, onClose, result, problem
       };
     }
 
-    // Try parsing input to extract semantic values (e.g. nums = [2, 7, 11, 15], target = 9)
     try {
       if (inputStr && (inputStr.includes("2") || inputStr.includes("7") || inputStr.includes("9"))) {
         return {
-          line1: `Expected index ${expStr || "1"} because 2 + 7 = 9.`,
-          line2: `Your solution returned ${actStr || "index 3"}.`
+          line1: `Expected target ${expStr || "correct output"} for the provided test case.`,
+          line2: `Your solution returned ${actStr || "incorrect result"}.`
         };
       }
     } catch (e) {
@@ -159,10 +152,8 @@ export default function DetailedAnalysisModal({ isOpen, onClose, result, problem
     const rawRes = rawTestResults[idx];
     const pCase = problemCases[idx];
 
-    // First test fails if not all passed, or check rawRes
     const isPass = rawRes ? Boolean(rawRes.passed) : (isAllPassed ? true : idx !== 0);
-    
-    // Sample inputs/outputs matching mock/real structure
+
     const defaultInputs = [
       "nums = [2, 7, 11, 15], target = 9",
       "nums = [3, 2, 4], target = 6",
@@ -176,7 +167,7 @@ export default function DetailedAnalysisModal({ isOpen, onClose, result, problem
     const input = rawRes?.input || pCase?.input || defaultInputs[idx % defaultInputs.length];
     const expected = rawRes?.expectedOutput || rawRes?.expected || pCase?.expectedOutput || pCase?.output || defaultExpected[idx % defaultExpected.length];
     const actual = rawRes?.actualOutput || rawRes?.actual || (isPass ? expected : defaultActual[idx % defaultActual.length]);
-    
+
     const tcTime = rawRes?.executionTime || rawRes?.metrics?.executionTime
       ? `${rawRes?.executionTime || rawRes?.metrics?.executionTime} ms`
       : defaultRuntimes[idx % defaultRuntimes.length];
@@ -205,27 +196,39 @@ export default function DetailedAnalysisModal({ isOpen, onClose, result, problem
     };
   });
 
-  // 4. Dynamic Complexity Estimation based on problem tags & data
-  const problemTags = Array.isArray(problem?.tags) ? problem.tags.map(t => String(t).toLowerCase()) : [];
+  // Default active test to first failed test or test #1
+  const firstFailed = testList.find((t) => !t.passed);
+  const [activeTestId, setActiveTestId] = useState(firstFailed ? firstFailed.id : 1);
+  const [testFilter, setTestFilter] = useState("all"); // 'all' | 'failed' | 'passed'
+
+  const filteredTests = testList.filter((t) => {
+    if (testFilter === "failed") return !t.passed;
+    if (testFilter === "passed") return t.passed;
+    return true;
+  });
+
+  const activeTest = testList.find((t) => t.id === activeTestId) || testList[0];
+
+  // 4. Dynamic Complexity Estimation
+  const problemTags = Array.isArray(problem?.tags) ? problem.tags.map((t) => String(t).toLowerCase()) : [];
   let timeComplexityEst = "O(N)";
   let spaceComplexityEst = "O(1)";
 
-  if (problemTags.some(t => t.includes("tree") || t.includes("graph") || t.includes("bfs") || t.includes("dfs"))) {
+  if (problemTags.some((t) => t.includes("tree") || t.includes("graph") || t.includes("bfs") || t.includes("dfs"))) {
     timeComplexityEst = "O(V + E)";
     spaceComplexityEst = "O(V)";
-  } else if (problemTags.some(t => t.includes("sort") || t.includes("divide") || t.includes("heap"))) {
+  } else if (problemTags.some((t) => t.includes("sort") || t.includes("divide") || t.includes("heap"))) {
     timeComplexityEst = "O(N log N)";
     spaceComplexityEst = "O(N)";
-  } else if (problemTags.some(t => t.includes("dp") || t.includes("matrix"))) {
+  } else if (problemTags.some((t) => t.includes("dp") || t.includes("matrix"))) {
     timeComplexityEst = "O(N²)";
     spaceComplexityEst = "O(N)";
-  } else if (problemTags.some(t => t.includes("binary search"))) {
+  } else if (problemTags.some((t) => t.includes("binary search"))) {
     timeComplexityEst = "O(log N)";
     spaceComplexityEst = "O(1)";
   }
 
-  // Tested input size
-  const inputSizeLabel = "4080 elements";
+  const inputSizeLabel = "4,080 elements";
 
   // 5. Dynamic Efficiency Score & Tier Calculation
   let tier = "D Tier";
@@ -242,268 +245,309 @@ export default function DetailedAnalysisModal({ isOpen, onClose, result, problem
     memoryScore = 985;
   }
 
+  // Progress bar percentages
+  const runtimePercent = Math.min(100, Math.max(8, Math.round((totalExecutionTimeMs / timeLimitMs) * 100)));
+  const memoryPercent = Math.min(100, Math.max(6, Math.round((measuredMemoryMb / memoryLimitMb) * 100)));
+
   const modalContent = (
     <div className="analysis-portal-overlay" onClick={onClose}>
       <motion.div
         className="analysis-modal-container"
         onClick={(e) => e.stopPropagation()}
-        initial={{ opacity: 0, scale: 0.95, y: 12 }}
+        initial={{ opacity: 0, scale: 0.96, y: 12 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95, y: 12 }}
-        transition={{ duration: 0.2, ease: "easeOut" }}
+        exit={{ opacity: 0, scale: 0.96, y: 12 }}
+        transition={{ duration: 0.22, ease: "easeOut" }}
       >
-        {/* Header (Pic 1) */}
+        {/* HEADER: Matching AlgoFight Modals */}
         <div className="analysis-modal-header">
-          <div className="analysis-modal-title">
-            <FontAwesomeIcon icon={faChartLine} className="title-chart-icon" />
-            <h2>EXECUTION & PERFORMANCE ANALYSIS</h2>
-          </div>
-          <button className="analysis-modal-close-btn" onClick={onClose} aria-label="Close Analysis">
-            <FontAwesomeIcon icon={faTimes} />
-          </button>
-        </div>
-
-        {/* Execution Timeline (Pic 1) */}
-        <div className="analysis-timeline-strip">
-          <div className="timeline-title">EXECUTION TIMELINE</div>
-          <div className="timeline-nodes">
-            {[
-              { name: "COMPILE", status: "pass" },
-              { name: "CONTAINER", status: "pass" },
-              { name: "SAMPLE TESTS", status: "pass" },
-              { name: "HIDDEN TESTS", status: isAllPassed ? "pass" : "pass" },
-              { name: "DONE", status: isAllPassed ? "pass" : "fail" }
-            ].map((stage, sIdx, arr) => (
-              <React.Fragment key={stage.name}>
-                <div className="timeline-node-item">
-                  <div
-                    className={`timeline-node-dot ${stage.status === "pass" ? "dot-green" : "dot-red"}`}
-                  />
-                  <span>{stage.name}</span>
-                </div>
-                {sIdx < arr.length - 1 && (
-                  <div className="timeline-connector" />
-                )}
-              </React.Fragment>
-            ))}
-          </div>
-        </div>
-
-        {/* Top 3 Cards Grid (Pic 1) */}
-        <div className="analysis-grid-layout">
-          {/* 1. PER-TEST METRICS */}
-          <div className="analysis-card">
-            <div className="analysis-card-title">
-              <FontAwesomeIcon icon={faGlobe} /> PER-TEST METRICS
-            </div>
-            <div className="analysis-table-header">
-              <div>TEST</div>
-              <div>RUNTIME</div>
-              <div>MEMORY</div>
-              <div>STATUS</div>
-            </div>
-            <div className="analysis-table-body">
-              {testList.map((t) => (
-                <div key={t.id} className="analysis-table-row">
-                  <span className="test-num">#{t.id}</span>
-                  <span className="mono-val">{t.runtime}</span>
-                  <span className="mono-val">{t.memory}</span>
-                  <span className={`status-badge ${t.passed ? "pass" : "fail"}`}>
-                    <FontAwesomeIcon icon={t.passed ? faCheckCircle : faExclamationCircle} />
-                    {t.passed ? "Pass" : "Fail"}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* 2. PERFORMANCE VISUALIZATION */}
-          <div className="analysis-card">
-            <div className="analysis-card-title">
-              <FontAwesomeIcon icon={faBolt} /> PERFORMANCE VISUALIZATION
-            </div>
-            
-            <div className="perf-bar-group">
-              <div className="perf-bar-label">
-                <span className="perf-label-name">Runtime</span>
-                <strong className={`perf-value ${isAllPassed ? "val-green" : "val-red"}`}>
-                  {totalExecutionTimeMs} ms
-                </strong>
-              </div>
-              <div className="perf-bar-track">
-                <div
-                  className={`perf-bar-fill ${isAllPassed ? "fill-green" : "fill-red"}`}
-                  style={{ width: isAllPassed ? "18%" : "95%" }}
-                />
-              </div>
-              <div className="perf-bar-subtext">
-                <span className="subtext-left-green">Fast (0 ms)</span>
-                <span className="subtext-right">Limit ({timeLimitMs} ms)</span>
-              </div>
-            </div>
-
-            <div className="perf-bar-group">
-              <div className="perf-bar-label">
-                <span className="perf-label-name">Memory Allocation</span>
-                <strong className="perf-value val-blue">
-                  {measuredMemoryMb} MB
-                </strong>
-              </div>
-              <div className="perf-bar-track">
-                <div
-                  className="perf-bar-fill fill-blue"
-                  style={{ width: "8%" }}
-                />
-              </div>
-              <div className="perf-bar-subtext">
-                <span className="subtext-left-blue">Low (0 MB)</span>
-                <span className="subtext-right">Limit ({memoryLimitMb} MB)</span>
-              </div>
-            </div>
-          </div>
-
-          {/* 3. COMPLEXITY REPORT */}
-          <div className="analysis-card">
-            <div className="analysis-card-title">
-              <span className="circle-half-icon">◓</span> COMPLEXITY REPORT
-            </div>
-            <div className="complexity-row">
-              <span className="complexity-label">Time Complexity (est.)</span>
-              <span className="complexity-badge-time">{timeComplexityEst}</span>
-            </div>
-            <div className="complexity-row">
-              <span className="complexity-label">Space Complexity (est.)</span>
-              <span className="complexity-badge-space">{spaceComplexityEst}</span>
-            </div>
-            <div className="complexity-row">
-              <span className="complexity-label">Input Size Tested</span>
-              <span className="complexity-size-val">
-                {inputSizeLabel}
+          <div className="analysis-header-info">
+            <div className="analysis-badge-row">
+              <span className="import-badge">
+                <span className="badge-pulse-dot" />
+                {problem?.difficulty || "PRACTICE"}
+              </span>
+              <span className="analysis-mode-badge">
+                <FontAwesomeIcon icon={faShieldHalved} style={{ marginRight: 5 }} />
+                EXECUTION BENCHMARK
               </span>
             </div>
-            <div className="complexity-disclaimer">
-              * Calculated from problem structure & execution metrics.
+            <h2>{problem?.title ? `${problem.title} — Detailed Analysis` : "Execution & Performance Analysis"}</h2>
+            <p>Algorithmic benchmarks, test suite validation & performance telemetry</p>
+          </div>
+
+          <div className="analysis-header-right">
+            {/* Prominent Verdict Pill */}
+            <div className={`hud-verdict-badge ${verdictCard.cardClass}`}>
+              <FontAwesomeIcon icon={verdictCard.icon} className="hud-verdict-icon" />
+              <div className="hud-verdict-texts">
+                <span className="hud-verdict-name">{verdictCard.title}</span>
+                <span className="hud-verdict-sub">{verdictCard.subtext}</span>
+              </div>
+            </div>
+
+            {/* Pipeline Strip */}
+            <div className="hud-timeline-strip">
+              {[
+                { name: "COMPILE", status: "pass" },
+                { name: "SANDBOX", status: "pass" },
+                { name: "TESTS", status: isAllPassed ? "pass" : "fail" },
+                { name: "DONE", status: isAllPassed ? "pass" : "fail" }
+              ].map((stage, sIdx, arr) => (
+                <React.Fragment key={stage.name}>
+                  <div className="hud-timeline-node">
+                    <span className={`hud-node-dot ${stage.status === "pass" ? "dot-green" : "dot-red"}`} />
+                    <span className="hud-node-name">{stage.name}</span>
+                  </div>
+                  {sIdx < arr.length - 1 && <div className="hud-timeline-line" />}
+                </React.Fragment>
+              ))}
+            </div>
+
+            <button className="analysis-close-btn" onClick={onClose} aria-label="Close Analysis">
+              <FontAwesomeIcon icon={faTimes} />
+            </button>
+          </div>
+        </div>
+
+        {/* 4-COLUMN HIGH DENSITY KPI RIBBON */}
+        <div className="analysis-kpi-ribbon">
+          {/* 1. Runtime Stat */}
+          <div className="kpi-widget">
+            <div className="kpi-label">
+              <span className="kpi-title"><FontAwesomeIcon icon={faClock} /> RUNTIME</span>
+              <span className={`kpi-tag ${totalExecutionTimeMs > timeLimitMs ? "tag-red" : "tag-cyan"}`}>
+                {totalExecutionTimeMs > timeLimitMs ? "Slow" : "Fast"}
+              </span>
+            </div>
+            <div className="kpi-main-val">
+              <strong>{totalExecutionTimeMs} <small>ms</small></strong>
+              <span className="kpi-denom">/ {timeLimitMs} ms</span>
+            </div>
+            <div className="kpi-bar-track">
+              <div
+                className={`kpi-bar-fill ${totalExecutionTimeMs > timeLimitMs ? "bar-red" : "bar-cyan"}`}
+                style={{ width: `${runtimePercent}%` }}
+              />
+            </div>
+          </div>
+
+          {/* 2. Memory Stat */}
+          <div className="kpi-widget">
+            <div className="kpi-label">
+              <span className="kpi-title"><FontAwesomeIcon icon={faMicrochip} /> MEMORY</span>
+              <span className="kpi-tag tag-blue">Normal</span>
+            </div>
+            <div className="kpi-main-val">
+              <strong>{measuredMemoryMb} <small>MB</small></strong>
+              <span className="kpi-denom">/ {memoryLimitMb} MB</span>
+            </div>
+            <div className="kpi-bar-track">
+              <div
+                className="kpi-bar-fill bar-blue"
+                style={{ width: `${memoryPercent}%` }}
+              />
+            </div>
+          </div>
+
+          {/* 3. Complexity Stat */}
+          <div className="kpi-widget">
+            <div className="kpi-label">
+              <span className="kpi-title"><FontAwesomeIcon icon={faGaugeHigh} /> COMPLEXITY</span>
+              <span className="kpi-input-tag">{inputSizeLabel}</span>
+            </div>
+            <div className="kpi-complexity-badges">
+              <span className="kpi-pill-badge time-pill">Time: <strong>{timeComplexityEst}</strong></span>
+              <span className="kpi-pill-badge space-pill">Space: <strong>{spaceComplexityEst}</strong></span>
+            </div>
+          </div>
+
+          {/* 4. Tier & Efficiency Stat */}
+          <div className="kpi-widget">
+            <div className="kpi-label">
+              <span className="kpi-title"><FontAwesomeIcon icon={faBolt} /> TIER RATING</span>
+              <span className={`kpi-tag ${tierClass === "tier-s" ? "tag-yellow" : "tag-red"}`}>
+                {percentileLabel}
+              </span>
+            </div>
+            <div className="kpi-tier-row">
+              <span className={`kpi-tier-val ${tierClass}`}>{tier}</span>
+              <div className="kpi-mini-scores">
+                <span>⚡ {speedScore}/1000</span>
+                <span>💧 {memoryScore}/1000</span>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Middle / Bottom Grid: Testcases & Verdict / Console */}
-        <div className="analysis-bottom-row">
-          {/* Expandable Test Cases (Pic 1 & Pic 4) */}
-          <div className="analysis-card expandable-card-wrapper">
-            <div className="analysis-card-title">
-              TEST CASES (EXPANDABLE)
-            </div>
-            <div className="expandable-tests-list">
-              {testList.map((t) => (
-                <div key={t.id} className="expandable-test-item">
-                  <div
-                    className="expandable-test-head"
-                    onClick={() => setExpandedTest(expandedTest === t.id ? null : t.id)}
+        {/* BALANCED 2-COLUMN WORKSPACE */}
+        <div className="analysis-workspace-grid">
+          {/* LEFT COLUMN: TEST CASES INSPECTOR */}
+          <div className="analysis-panel testcase-panel">
+            <div className="panel-header-bar">
+              <div className="panel-title-group">
+                <span className="panel-title-text">TEST CASES INSPECTOR</span>
+                <span className="panel-count-pill">{passedTests}/{totalTests} Passed</span>
+              </div>
+
+              {/* Filter Toggles */}
+              <div className="test-filter-toggles">
+                <button
+                  className={`filter-btn ${testFilter === "all" ? "active" : ""}`}
+                  onClick={() => setTestFilter("all")}
+                >
+                  All ({totalTests})
+                </button>
+                {failedTests > 0 && (
+                  <button
+                    className={`filter-btn btn-fail ${testFilter === "failed" ? "active" : ""}`}
+                    onClick={() => setTestFilter("failed")}
                   >
-                    <div className="test-head-left">
-                      <FontAwesomeIcon
-                        icon={t.passed ? faCheckCircle : faExclamationCircle}
-                        className={t.passed ? "icon-green" : "icon-red"}
-                      />
-                      <span>Test #{t.id}</span>
-                    </div>
-                    <div className="test-head-right">
-                      <span className={`test-verdict-text ${t.passed ? "text-pass" : "text-fail"}`}>
-                        {t.passed ? "Passed" : "Failed"}
-                      </span>
-                      <FontAwesomeIcon
-                        icon={expandedTest === t.id ? faChevronUp : faChevronDown}
-                        className="test-chevron"
-                      />
-                    </div>
-                  </div>
+                    Failed ({failedTests})
+                  </button>
+                )}
+                <button
+                  className={`filter-btn btn-pass ${testFilter === "passed" ? "active" : ""}`}
+                  onClick={() => setTestFilter("passed")}
+                >
+                  Passed ({passedTests})
+                </button>
+              </div>
+            </div>
 
-                  {expandedTest === t.id && (
-                    <div className="expandable-test-body">
-                      {/* Pic 4 Content: Why it failed */}
-                      {t.whyFailedInfo && (
-                        <div className="why-it-failed-container">
-                          <div className="why-it-failed-header">Why it failed</div>
-                          <div className="why-it-failed-content">
-                            <p className="failure-line">{t.whyFailedInfo.line1}</p>
-                            <p className="failure-line">{t.whyFailedInfo.line2}</p>
-                          </div>
-                        </div>
-                      )}
+            {/* Quick Test Tabs */}
+            <div className="test-tabs-scroll-row">
+              {filteredTests.map((t) => {
+                const isSelected = t.id === activeTest.id;
+                return (
+                  <button
+                    key={t.id}
+                    className={`test-tab-chip ${isSelected ? "selected" : ""} ${t.passed ? "tab-pass" : "tab-fail"}`}
+                    onClick={() => setActiveTestId(t.id)}
+                  >
+                    <FontAwesomeIcon
+                      icon={t.passed ? faCheckCircle : faExclamationCircle}
+                      className={t.passed ? "chip-icon-green" : "chip-icon-red"}
+                    />
+                    <span>Test #{t.id}</span>
+                  </button>
+                );
+              })}
+            </div>
 
-                      <div className="test-io-section">
-                        <div className="test-io-block">
-                          <span className="test-io-label">Input:</span>
-                          <div className="test-io-box">{t.input}</div>
-                        </div>
-                        <div className="test-io-grid">
-                          <div className="test-io-block">
-                            <span className="test-io-label">Expected:</span>
-                            <div className="test-io-box exp-box">{t.expected}</div>
-                          </div>
-                          <div className="test-io-block">
-                            <span className="test-io-label">Your Output:</span>
-                            <div className={`test-io-box ${t.passed ? "exp-box" : "act-box-err"}`}>
-                              {t.actual}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
+            {/* Active Test Case Detail Viewer */}
+            <div className="active-test-container">
+              <div className="test-meta-strip">
+                <div className="test-meta-left">
+                  <span className="test-id-heading">Test Case #{activeTest.id}</span>
+                  <span className={`status-badge-pill ${activeTest.passed ? "pill-pass" : "pill-fail"}`}>
+                    <FontAwesomeIcon icon={activeTest.passed ? faCheckCircle : faExclamationCircle} />
+                    {activeTest.passed ? "Passed" : "Wrong Output"}
+                  </span>
                 </div>
-              ))}
+                <div className="test-meta-right">
+                  <span className="meta-metric-item">Time: <strong>{activeTest.runtime}</strong></span>
+                  <span className="meta-metric-item">Mem: <strong>{activeTest.memory}</strong></span>
+                </div>
+              </div>
+
+              {/* Why It Failed Callout Box */}
+              {!activeTest.passed && activeTest.whyFailedInfo && (
+                <div className="why-failed-callout">
+                  <div className="callout-header">
+                    <FontAwesomeIcon icon={faBug} className="callout-icon" />
+                    <span>DIAGNOSTIC EXPLANATION</span>
+                  </div>
+                  <div className="callout-body">
+                    <p className="callout-line highlight">{activeTest.whyFailedInfo.line1}</p>
+                    <p className="callout-line">{activeTest.whyFailedInfo.line2}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Input Box */}
+              <div className="io-section-wrap">
+                <div className="io-block">
+                  <div className="io-header-label">INPUT</div>
+                  <pre className="io-code-box input-box">{activeTest.input}</pre>
+                </div>
+
+                {/* Expected vs Actual Side-by-Side */}
+                <div className="io-diff-grid">
+                  <div className="io-block">
+                    <div className="io-header-label label-green">EXPECTED OUTPUT</div>
+                    <pre className="io-code-box expected-box">{activeTest.expected}</pre>
+                  </div>
+                  <div className="io-block">
+                    <div className={`io-header-label ${activeTest.passed ? "label-green" : "label-red"}`}>
+                      YOUR OUTPUT
+                    </div>
+                    <pre className={`io-code-box ${activeTest.passed ? "expected-box" : "actual-err-box"}`}>
+                      {activeTest.actual}
+                    </pre>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Right Column: Verdict Card (Pic 3) + Tier Rating + Console Output */}
-          <div className="analysis-right-column">
-            {/* Verdict Card (Pic 3) */}
-            <div className={`verdict-card-container ${verdictCard.cardClass}`}>
-              <div className="verdict-card-header">
-                <FontAwesomeIcon icon={verdictCard.icon} className="verdict-icon" />
-                <span className="verdict-title">{verdictCard.title}</span>
+          {/* RIGHT COLUMN: PERFORMANCE GAUGES & CONSOLE TERMINAL */}
+          <div className="analysis-panel side-panel">
+            {/* Upper: Performance Breakdown & Score Metrics */}
+            <div className="side-card perf-breakdown-card">
+              <div className="side-card-title">
+                <FontAwesomeIcon icon={faBolt} />
+                PERFORMANCE BREAKDOWN
               </div>
-              <div className="verdict-subtext">{verdictCard.subtext}</div>
+
+              <div className="perf-meter-row">
+                <div className="meter-label-row">
+                  <span>Execution Speed Score</span>
+                  <span className="meter-score-text">⚡ {speedScore} / 1000</span>
+                </div>
+                <div className="meter-track">
+                  <div
+                    className={`meter-fill ${isAllPassed ? "meter-green" : "meter-orange"}`}
+                    style={{ width: `${Math.min(100, Math.max(10, speedScore / 10))}%` }}
+                  />
+                </div>
+              </div>
+
+              <div className="perf-meter-row">
+                <div className="meter-label-row">
+                  <span>Memory Efficiency Score</span>
+                  <span className="meter-score-text">💧 {memoryScore} / 1000</span>
+                </div>
+                <div className="meter-track">
+                  <div
+                    className="meter-fill meter-cyan"
+                    style={{ width: `${Math.min(100, Math.max(10, memoryScore / 10))}%` }}
+                  />
+                </div>
+              </div>
+
+              <div className="side-complexity-footer">
+                <span>Theoretical Bound: <strong>{timeComplexityEst}</strong> Time, <strong>{spaceComplexityEst}</strong> Space</span>
+              </div>
             </div>
 
-            {/* Performance Tier Rating Card (Pic 1) */}
-            <div className="analysis-card tier-card">
-              <div className="tier-header">
-                <div className={`tier-title ${tierClass}`}>
-                  {tier} <FontAwesomeIcon icon={faBolt} className="tier-bolt" />
+            {/* Lower: Terminal Console Output matching LiveBattle styling */}
+            <div className="side-card terminal-card">
+              <div className="console-bar">
+                <div className="console-dots">
+                  <span className="dot dot-red" />
+                  <span className="dot dot-yellow" />
+                  <span className="dot dot-green" />
                 </div>
-                <div className="tier-pill">{percentileLabel}</div>
+                <span className="console-title">
+                  <FontAwesomeIcon icon={faTerminal} style={{ marginRight: 6 }} />
+                  Console Output (Stdout)
+                </span>
               </div>
-              <div className="tier-subtext-main">
-                {isAllPassed
-                  ? "All test cases passed. Inspect runtime efficiency below."
-                  : `${passedTests}/${totalTests} test cases passed. Inspect failed cases below.`}
-              </div>
-              <div className="tier-scores-list">
-                <div className="tier-score-row">
-                  <span className="score-label">Execution Speed Score</span>
-                  <strong className="score-val">
-                    <span className="bolt-symbol">⚡</span> {speedScore} / 1000
-                  </strong>
-                </div>
-                <div className="tier-score-row">
-                  <span className="score-label">Memory Efficiency Score</span>
-                  <strong className="score-val">
-                    <span className="drop-symbol">💧</span> {memoryScore} / 1000
-                  </strong>
-                </div>
-              </div>
-            </div>
-
-            {/* Console Output (Pic 1) */}
-            <div className="analysis-card console-card">
-              <div className="analysis-card-title">
-                <span className="console-prompt">&gt;_</span> CONSOLE OUTPUT
-              </div>
-              <div className="console-terminal-box">
-                {result?.output || "2\n5\n1 4 2 3 5\n5\n1 2 3 4 5"}
+              <div className="terminal-body-scroll">
+                <pre className="terminal-pre">
+                  {result?.output || "Execution completed. No additional stdout logs reported by sandbox."}
+                </pre>
               </div>
             </div>
           </div>

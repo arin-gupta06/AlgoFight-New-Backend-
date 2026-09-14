@@ -15,19 +15,45 @@ export interface GetProblemQuery {
 
 export class PrismaProblemRepository implements ProblemRepository {
     async createProblem(input: CreateProblemInput): Promise<ProblemEntity> {
+        const testCasesData = (input.testCases || []).map((tc) => ({
+            input: tc.input,
+            expectedOutput: tc.expectedOutput,
+            isHidden: tc.isHidden !== undefined ? tc.isHidden : true,
+        }));
+
         const problem = await prisma.problem.create({
             data: {
                 title: input.title,
                 statement: input.statement,
                 difficulty: input.difficulty,
-                timeLimit: input.timeLimit,
-                memoryLimit: input.memoryLimit,
+                category: input.category || null,
+                tags: input.tags || [],
+                timeLimit: input.timeLimit || 2000,
+                memoryLimit: input.memoryLimit || 256,
+                creatorId: input.creatorId || null,
+                creatorRole: input.creatorRole || null,
+                ...(testCasesData.length > 0
+                    ? {
+                        testCases: {
+                            create: testCasesData,
+                        },
+                    }
+                    : {}),
             },
             include: {
                 testCases: true,
             },
         });
-        return problem;
+        return problem as any;
+    }
+
+    async bulkCreateProblems(inputs: CreateProblemInput[]): Promise<ProblemEntity[]> {
+        const created: ProblemEntity[] = [];
+        for (const input of inputs) {
+            const problem = await this.createProblem(input);
+            created.push(problem);
+        }
+        return created;
     }
 
     async getProblems(query: GetProblemQuery = {}) {

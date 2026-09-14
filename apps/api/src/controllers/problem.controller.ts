@@ -12,6 +12,15 @@ export class ProblemController {
         return this.problemRepository.createProblem(input);
     }
 
+    async bulkCreateProblems(problems: ProblemInput[], creatorId?: string, creatorRole?: string) {
+        const inputs = problems.map((p) => ({
+            ...p,
+            creatorId: creatorId || p.creatorId || null,
+            creatorRole: creatorRole || p.creatorRole || null,
+        }));
+        return this.problemRepository.bulkCreateProblems(inputs);
+    }
+
     async getProblems(query: { page?: number; limit?: number; difficulty?: string; category?: string; tags?: string }) {
         return this.problemRepository.getProblems(query);
     }

@@ -51,7 +51,7 @@ export default function PracticeWorkspace() {
   const [showDetailedAnalysis, setShowDetailedAnalysis] = useState(false);
   const [isSubmitPanelOpen, setIsSubmitPanelOpen] = useState(true);
 
-  // Fullscreen Mode State
+  // Fullscreen Mode State & Auto-Trigger
   const [isFullscreen, setIsFullscreen] = useState(!!document.fullscreenElement);
 
   const toggleFullScreen = () => {
@@ -69,6 +69,33 @@ export default function PracticeWorkspace() {
       }
     }
   };
+
+  // Auto trigger fullscreen mode on first user interaction when code editor opens
+  useEffect(() => {
+    const handleFirstInteraction = () => {
+      if (!document.fullscreenElement) {
+        if (document.documentElement.requestFullscreen) {
+          document.documentElement.requestFullscreen().catch(() => {});
+        } else if (document.documentElement.webkitRequestFullscreen) {
+          document.documentElement.webkitRequestFullscreen().catch(() => {});
+        }
+      }
+    };
+
+    window.addEventListener("pointerdown", handleFirstInteraction, { once: true });
+
+    return () => {
+      window.removeEventListener("pointerdown", handleFirstInteraction);
+      // Exit fullscreen mode when leaving the workspace
+      if (document.fullscreenElement) {
+        if (document.exitFullscreen) {
+          document.exitFullscreen().catch(() => {});
+        } else if (document.webkitExitFullscreen) {
+          document.webkitExitFullscreen().catch(() => {});
+        }
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const handleFsChange = () => {

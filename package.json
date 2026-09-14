@@ -12,6 +12,7 @@
     "build:api": "pnpm --filter @algofight/database exec prisma db push --accept-data-loss && pnpm --filter @algofight/database exec prisma generate && pnpm --filter @algofight/api run build",
     "import:problems": "pnpm exec tsx scripts/database/import-problems.ts",
     "start:api": "pnpm --filter @algofight/api exec tsx src/index.ts",
+    "tunnel:url": "node scripts/get-tunnel-url.mjs",
     "lint": "eslint .",
     "format": "prettier --write ."
   },

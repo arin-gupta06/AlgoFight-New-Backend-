@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import './NavBar.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faBell, faBars, faTimes, faRightFromBracket, faShieldHalved, faUser, faChevronDown, faInfoCircle, faCode, faCompass } from '@fortawesome/free-solid-svg-icons';
+import { faBell, faBars, faTimes, faRightFromBracket, faShieldHalved, faUser, faChevronDown, faInfoCircle, faCode, faCompass, faChalkboardUser } from '@fortawesome/free-solid-svg-icons';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotificationInbox } from '../../contexts/NotificationInboxContext';
@@ -21,7 +21,7 @@ const getInitials = (user) => {
 };
 
 const Navbar = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, profileData } = useAuth();
   const { unreadCount } = useNotificationInbox();
   const [isInboxOpen, setIsInboxOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -46,8 +46,9 @@ const Navbar = () => {
     return location.pathname === path ? 'active-link' : '';
   };
 
-  const isExploreActive = ['/about', '/developer', '/admin'].includes(location.pathname);
   const isAdmin = isAdminUser(user);
+  const isFaculty = profileData?.userType === "FACULTY" || isAdmin;
+  const isExploreActive = ['/about', '/developer', '/admin', '/faculty'].includes(location.pathname);
 
   return (
     <>
@@ -95,6 +96,12 @@ const Navbar = () => {
                         <FontAwesomeIcon icon={faCode} className="explore-icon" />
                         <span>Developers</span>
                       </Link>
+                      {isFaculty && (
+                        <Link to="/faculty" className={`explore-item faculty-item ${isActive('/faculty')}`}>
+                          <FontAwesomeIcon icon={faChalkboardUser} className="explore-icon faculty-icon" />
+                          <span>Faculty Hub</span>
+                        </Link>
+                      )}
                       {isAdmin && (
                         <Link to="/admin" className={`explore-item admin-item ${isActive('/admin')}`}>
                           <FontAwesomeIcon icon={faShieldHalved} className="explore-icon admin-icon" />
@@ -189,6 +196,14 @@ const Navbar = () => {
                 <li><Link to="/rewards" className={isActive('/rewards')}>Rewards</Link></li>
                 <li><Link to="/about" className={isActive('/about')}>About</Link></li>
                 <li><Link to="/developer" className={isActive('/developer')}>Developers</Link></li>
+                {isFaculty && (
+                  <li>
+                    <Link to="/faculty" className={`mobile-admin-link ${isActive('/faculty')}`} style={{ borderColor: 'rgba(168, 85, 247, 0.4)', color: '#e9d5ff' }}>
+                      <FontAwesomeIcon icon={faChalkboardUser} style={{ marginRight: '8px', color: '#c084fc' }} />
+                      Faculty Hub
+                    </Link>
+                  </li>
+                )}
                 {isAdmin && (
                   <li>
                     <Link to="/admin" className={`mobile-admin-link ${isActive('/admin')}`}>

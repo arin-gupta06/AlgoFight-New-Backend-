@@ -4,6 +4,7 @@ import { JudgeService } from "../judge/services/judge.service";
 import { SubmissionStatus, Verdict } from "@algofight/types";
 import { logger } from "@algofight/logger";
 import { RuntimePoolManager } from "../runtime-pool/runtime-pool.manager";
+import vm from "node:vm";
 
 const PISTON_URL = process.env.PISTON_URL || "http://127.0.0.1:2000";
 const MAX_OUTPUT_BYTES = 512 * 1024; // 512 KB Output Limit
@@ -254,91 +255,111 @@ export class SandboxExecutor implements CodeExecutor {
             run_memory_limit: memoryLimitBytes,
         };
 
-        const baseUrl = targetRuntimeUrl || PISTON_URL;
+        const candidates: string[] = [];
+        if (targetRuntimeUrl) candidates.push(targetRuntimeUrl);
+        if (PISTON_URL && !candidates.includes(PISTON_URL)) candidates.push(PISTON_URL);
+        const publicFallback = "https://emkc.org/api/v2/piston";
+        if (!candidates.includes(publicFallback)) candidates.push(publicFallback);
 
-        try {
-            const res = await fetch(`${baseUrl}/api/v2/execute`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(requestBody),
-                signal: AbortSignal.timeout(timeoutMs + 3000),
-            });
+        let lastErr: any = null;
 
-            if (!res.ok) {
-                const errorText = await res.text().catch(() => "");
-                throw new Error(`Sandbox service error (${res.status}): ${errorText}`);
+        for (const candidate of candidates) {
+            let executeUrl = candidate.trim().replace(/\/+$/, "");
+            if (executeUrl === "https://emkc.org") {
+                executeUrl = "https://emkc.org/api/v2/piston/execute";
+            } else if (executeUrl.includes("emkc.org")) {
+                executeUrl = executeUrl.endsWith("/execute") ? executeUrl : `${executeUrl}/execute`;
+            } else if (!executeUrl.endsWith("/api/v2/execute")) {
+                executeUrl = executeUrl.endsWith("/execute") ? executeUrl : `${executeUrl}/api/v2/execute`;
             }
 
-            const data = (await res.json()) as any;
+            try {
+                const res = await fetch(executeUrl, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(requestBody),
+                    signal: AbortSignal.timeout(timeoutMs + 4000),
+                });
 
-            // 1. Check Compilation Failure
-            if (data.compile && (data.compile.code !== 0 || data.compile.status)) {
+                if (!res.ok) {
+                    const errorText = await res.text().catch(() => "");
+                    throw new Error(`Sandbox service error (${res.status}) at ${executeUrl}: ${errorText}`);
+                }
+
+                const data = (await res.json()) as any;
+
+                // 1. Check Compilation Failure
+                if (data.compile && (data.compile.code !== 0 || data.compile.status)) {
+                    return {
+                        stdout: "",
+                        stderr: (data.compile.message || data.compile.stderr || data.compile.output || "Compilation error").trim(),
+                        exitCode: data.compile.code || 1,
+                        signal: data.compile.signal || null,
+                        timedOut: data.compile.status === "TO",
+                        memoryLimitExceeded: data.compile.status === "MLE",
+                        outputLimitExceeded: false,
+                        compilationError: true,
+                        memoryUsed: data.compile.memory || 0,
+                        cpuTime: 0,
+                    };
+                }
+
+                const run = data.run || {};
+                let stdout = (run.stdout || "").trim();
+                let stderr = (run.stderr || "").trim();
+                let outputTruncated = false;
+
+                // 2. Enforce Output Capping (OLE)
+                if (stdout.length > MAX_OUTPUT_BYTES || stderr.length > MAX_OUTPUT_BYTES) {
+                    stdout = stdout.slice(0, MAX_OUTPUT_BYTES);
+                    stderr = stderr.slice(0, MAX_OUTPUT_BYTES) + "\n[Output limit exceeded. Truncated.]";
+                    outputTruncated = true;
+                }
+
+                const timedOut = run.status === "TO" || run.signal === "SIGXCPU";
+                const memoryLimitExceeded = run.status === "MLE" || (run.signal === "SIGKILL" && !timedOut);
+                const outputLimitExceeded = outputTruncated || run.status === "OLE";
+
                 return {
-                    stdout: "",
-                    stderr: (data.compile.message || data.compile.stderr || data.compile.output || "Compilation error").trim(),
-                    exitCode: data.compile.code || 1,
-                    signal: data.compile.signal || null,
-                    timedOut: data.compile.status === "TO",
-                    memoryLimitExceeded: data.compile.status === "MLE",
-                    outputLimitExceeded: false,
-                    compilationError: true,
-                    memoryUsed: data.compile.memory || 0,
-                    cpuTime: 0,
+                    stdout,
+                    stderr,
+                    exitCode: run.code ?? (timedOut || memoryLimitExceeded || outputLimitExceeded ? 1 : 0),
+                    signal: run.signal || null,
+                    timedOut,
+                    memoryLimitExceeded,
+                    outputLimitExceeded,
+                    compilationError: false,
+                    memoryUsed: Number(run.memory || 0),
+                    cpuTime: Number(run.cpu_time || 0),
                 };
+            } catch (err: any) {
+                lastErr = err;
+                continue;
             }
-
-            const run = data.run || {};
-            let stdout = (run.stdout || "").trim();
-            let stderr = (run.stderr || "").trim();
-            let outputTruncated = false;
-
-            // 2. Enforce Output Capping (OLE)
-            if (stdout.length > MAX_OUTPUT_BYTES || stderr.length > MAX_OUTPUT_BYTES) {
-                stdout = stdout.slice(0, MAX_OUTPUT_BYTES);
-                stderr = stderr.slice(0, MAX_OUTPUT_BYTES) + "\n[Output limit exceeded. Truncated.]";
-                outputTruncated = true;
-            }
-
-            const timedOut = run.status === "TO" || run.signal === "SIGXCPU";
-            const memoryLimitExceeded = run.status === "MLE" || (run.signal === "SIGKILL" && !timedOut);
-            const outputLimitExceeded = outputTruncated || run.status === "OLE";
-
-            return {
-                stdout,
-                stderr,
-                exitCode: run.code ?? (timedOut || memoryLimitExceeded || outputLimitExceeded ? 1 : 0),
-                signal: run.signal || null,
-                timedOut,
-                memoryLimitExceeded,
-                outputLimitExceeded,
-                compilationError: false,
-                memoryUsed: Number(run.memory || 0),
-                cpuTime: Number(run.cpu_time || 0),
-            };
-        } catch (err: any) {
-            logger.warn(
-                { error: err.message, PISTON_URL, language: targetLang },
-                "Piston sandbox unreachable, attempting in-process isolated runner fallback",
-            );
-
-            // In-process fallback for JavaScript / TypeScript
-            if (targetLang === "javascript" || targetLang === "typescript") {
-                return this.runLocalVm(wrappedCode, stdinInput, timeoutMs);
-            }
-
-            return {
-                stdout: "",
-                stderr: `Sandbox execution engine for ${targetLang} is unavailable (${err.message}). Please check PISTON_URL or select JavaScript.`,
-                exitCode: 1,
-                signal: null,
-                timedOut: false,
-                memoryLimitExceeded: false,
-                outputLimitExceeded: false,
-                compilationError: false,
-                memoryUsed: 0,
-                cpuTime: 0,
-            };
         }
+
+        logger.warn(
+            { error: lastErr?.message, PISTON_URL, language: targetLang },
+            "All remote Piston sandboxes unreachable, attempting in-process isolated runner fallback",
+        );
+
+        // In-process fallback for JavaScript / TypeScript
+        if (targetLang === "javascript" || targetLang === "typescript") {
+            return this.runLocalVm(wrappedCode, stdinInput, timeoutMs);
+        }
+
+        return {
+            stdout: "",
+            stderr: `Sandbox execution engine for ${targetLang} is unavailable (${lastErr?.message || "unreachable"}). Please check PISTON_URL or select JavaScript.`,
+            exitCode: 1,
+            signal: null,
+            timedOut: false,
+            memoryLimitExceeded: false,
+            outputLimitExceeded: false,
+            compilationError: false,
+            memoryUsed: 0,
+            cpuTime: 0,
+        };
     }
 
     private runLocalVm(code: string, stdinInput: string, timeoutMs: number): SandboxResult {
@@ -391,7 +412,6 @@ export class SandboxExecutor implements CodeExecutor {
 
         const start = Date.now();
         try {
-            const vm = require("vm");
             const context = vm.createContext(sandbox);
             const script = new vm.Script(code);
             script.runInContext(context, { timeout: timeoutMs });

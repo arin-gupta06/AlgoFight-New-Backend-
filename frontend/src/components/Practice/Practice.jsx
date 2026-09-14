@@ -8,10 +8,13 @@ import {
   faChevronLeft,
   faChevronRight,
   faBookOpen,
+  faPlus,
 } from "@fortawesome/free-solid-svg-icons";
 import { fetchPracticeProblems, fetchUserProfile, toApiUrl } from "../../services/api";
 import { useAuth } from "../../contexts/AuthContext.jsx";
+import { isAdminUser } from "../../constants/admins";
 import ProblemReadPanel from "./ProblemReadPanel.jsx";
+import ProblemImportModal from "./ProblemImportModal.jsx";
 import BackgroundPaths from "../BackgroundPaths/BackgroundPaths.jsx";
 import "../BackgroundPaths/BackgroundPaths.css";
 import Footer from "../Common/Footer/Footer.jsx";
@@ -81,7 +84,7 @@ const getDeterministicAcceptanceRate = (problemId = "") => {
 
 export default function Practice() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, profileData } = useAuth();
 
   const [difficulty, setDifficulty] = useState("all");
   const [selectedTag, setSelectedTag] = useState("all");
@@ -94,6 +97,10 @@ export default function Practice() {
   const [solvedProblemIds, setSolvedProblemIds] = useState([]);
   const [loadingList, setLoadingList] = useState(true);
   const [error, setError] = useState("");
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const canImport = Boolean(isAdminUser(user) || profileData?.userType === "FACULTY");
 
   const solvedProblemSet = useMemo(
     () => new Set((solvedProblemIds || []).map((id) => String(id))),
@@ -210,7 +217,7 @@ export default function Practice() {
     return () => {
       active = false;
     };
-  }, [difficulty, selectedTag, currentPage]);
+  }, [difficulty, selectedTag, currentPage, refreshKey]);
 
   const handleDifficultyChange = (event) => {
     setDifficulty(event.target.value);
@@ -299,6 +306,17 @@ export default function Practice() {
           <div className="archive-meta-pills">
             <span className="archive-pill">{totalProblems} Total</span>
             <span className="archive-pill archive-pill-solved">{solvedProblemSet.size} Solved</span>
+            {canImport && (
+              <button
+                type="button"
+                className="add-problem-btn"
+                onClick={() => setShowImportModal(true)}
+                title="Import or create algorithmic challenges from Excel, CSV, or JSON"
+              >
+                <FontAwesomeIcon icon={faPlus} />
+                <span>Add Questions</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -306,13 +324,13 @@ export default function Practice() {
 
         <div className="archive-panel archive-table-wrap">
           <div className="archive-list-head" aria-hidden="true">
-            <div>#</div>
-            <div>Status</div>
-            <div>Title</div>
-            <div>Tags</div>
-            <div>Acceptance</div>
-            <div>Difficulty</div>
-            <div>Action</div>
+            <div className="th-num">#</div>
+            <div className="th-status">Status</div>
+            <div className="th-title">Title</div>
+            <div className="th-tags">Tags</div>
+            <div className="th-acc">Acceptance</div>
+            <div className="th-diff">Difficulty</div>
+            <div className="th-action">Action</div>
           </div>
 
           <div className="archive-list">
@@ -450,6 +468,15 @@ export default function Practice() {
           problemId={readingProblemId}
           onClose={() => setReadingProblemId(null)}
           initialProblem={problems.find((p) => (p.id || p._id) === readingProblemId)}
+        />
+
+        {/* Faculty / Admin Excel & Document Question Import Modal */}
+        <ProblemImportModal
+          isOpen={showImportModal}
+          onClose={() => setShowImportModal(false)}
+          onImportSuccess={() => {
+            setRefreshKey((k) => k + 1);
+          }}
         />
       </div>
       <Footer />

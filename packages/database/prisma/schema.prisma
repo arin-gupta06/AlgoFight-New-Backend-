@@ -35,6 +35,7 @@ model User {
   participants    BattleParticipant[]
   hostedRooms     BattleRoom[] @relation("HostedRooms")
   ratingHistories RatingHistory[]
+  quizzes         Quiz[]
   githubUrl       String?
   linkedinUrl     String?
 
@@ -107,6 +108,8 @@ model Problem {
   source      String?      // e.g. "code_contests"
   externalId  String?      @unique // stable id from the source, used for idempotent re-imports
   sourceUrl   String?      // canonical link back to the original problem, when available
+  creatorId   String?
+  creatorRole String?
   // -------------------------------------------------------------------
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
@@ -247,6 +250,28 @@ model SystemBroadcast {
   @@index([expiresAt])
   @@index([revokedAt])
   @@index([createdAt])
+}
+
+model Quiz {
+  id              String      @id @default(uuid())
+  title           String
+  description     String?
+  creatorId       String
+  creator         User        @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  institutionName String?
+  department      String?     // Eligibility department / branch (e.g. "Computer Science & Engineering", "All")
+  batchYear       String?     // Eligibility batch (e.g. "2026", "All")
+  durationMinutes Int         @default(30)
+  startTime       DateTime?
+  endTime         DateTime?
+  status          String      @default("SCHEDULED") // DRAFT, SCHEDULED, ACTIVE, COMPLETED
+  problemIds      String[]    @default([])
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@index([creatorId])
+  @@index([department])
+  @@index([status])
 }
 
 

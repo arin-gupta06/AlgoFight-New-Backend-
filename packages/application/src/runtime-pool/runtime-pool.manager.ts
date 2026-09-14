@@ -56,12 +56,18 @@ export class RuntimePoolManager {
     }
 
     private initBaselineRuntimes(): void {
-        for (const port of this.BASELINE_PORTS) {
-            const url = `http://localhost:${port}`;
-            const id = `piston-baseline-${port}`;
-            this.runtimes.set(url, {
-                id,
-                url,
+        const envPistonUrl = (process.env.PISTON_URL || "").trim().replace(/\/+$/, "");
+        const pistonHost = (process.env.PISTON_HOST || "localhost").trim();
+
+        if (envPistonUrl) {
+            let port = 2000;
+            try {
+                const parsed = new URL(envPistonUrl);
+                port = parsed.port ? parseInt(parsed.port, 10) : (parsed.protocol === "https:" ? 443 : 80);
+            } catch {}
+            this.runtimes.set(envPistonUrl, {
+                id: "piston-primary-configured",
+                url: envPistonUrl,
                 port,
                 status: "HEALTHY",
                 activeJobs: 0,
@@ -70,9 +76,26 @@ export class RuntimePoolManager {
                 lastHeartbeat: Date.now(),
             });
         }
+
+        for (const port of this.BASELINE_PORTS) {
+            const url = `http://${pistonHost}:${port}`;
+            if (!this.runtimes.has(url)) {
+                const id = `piston-baseline-${port}`;
+                this.runtimes.set(url, {
+                    id,
+                    url,
+                    port,
+                    status: "HEALTHY",
+                    activeJobs: 0,
+                    isBaseline: true,
+                    createdAt: Date.now(),
+                    lastHeartbeat: Date.now(),
+                });
+            }
+        }
         logger.info(
-            { baselinePorts: this.BASELINE_PORTS },
-            "Runtime Pool Manager initialized with 2 prewarmed baseline instances",
+            { activePoolSize: this.runtimes.size, envPistonUrl, pistonHost },
+            "Runtime Pool Manager initialized baseline instances",
         );
     }
 
@@ -83,7 +106,8 @@ export class RuntimePoolManager {
     public async routeSubmission(context: SubmissionRoutingContext): Promise<string> {
         let explicitTargetUrl: string | undefined = context.targetRuntimeUrl;
         if (!explicitTargetUrl && context.targetPort) {
-            explicitTargetUrl = `http://localhost:${context.targetPort}`;
+            const pistonHost = (process.env.PISTON_HOST || "localhost").trim();
+            explicitTargetUrl = `http://${pistonHost}:${context.targetPort}`;
         }
 
         if (explicitTargetUrl) {
@@ -102,7 +126,16 @@ export class RuntimePoolManager {
         }
 
         const pool = Array.from(this.runtimes.values());
-        const selectedUrl = await this.routingStrategy.selectRuntime(context, pool, this.redisClient);
+        const healthyPool = pool.filter((r) => r.status === "HEALTHY");
+        const candidates = healthyPool.length > 0 ? healthyPool : pool;
+
+        let selectedUrl = await this.routingStrategy.selectRuntime(context, candidates, this.redisClient);
+
+        // In production, if PISTON_URL is configured and selected URL is hardcoded localhost, prioritize PISTON_URL
+        const envPistonUrl = (process.env.PISTON_URL || "").trim().replace(/\/+$/, "");
+        if (envPistonUrl && (selectedUrl.includes("localhost") || selectedUrl.includes("127.0.0.1")) && process.env.NODE_ENV === "production") {
+            selectedUrl = envPistonUrl;
+        }
 
         // Track load in-memory and atomically in Redis
         const runtime = this.runtimes.get(selectedUrl);

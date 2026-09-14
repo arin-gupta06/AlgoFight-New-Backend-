@@ -177,6 +177,23 @@
   margin-top: 4px;
 }
 
+.explore-item.faculty-item {
+  color: #e9d5ff;
+  border: 1px solid rgba(168, 85, 247, 0.3);
+  background: rgba(168, 85, 247, 0.08);
+  margin-top: 4px;
+}
+
+.explore-item.faculty-item:hover {
+  background: rgba(168, 85, 247, 0.2);
+  border-color: rgba(168, 85, 247, 0.6);
+  color: #ffffff;
+}
+
+.explore-icon.faculty-icon {
+  color: #c084fc;
+}
+
 /* Actions & Buttons */
 .navbar-actions {
   display: flex;

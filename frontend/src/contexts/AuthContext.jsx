@@ -18,9 +18,11 @@ export function useAuth() {
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
+  const [profileData, setProfileData] = useState(null);
   const [loading, setLoading] = useState(true);
   const setGlobalUser = useUserStore((state) => state.setUser);
   const clearGlobalUser = useUserStore((state) => state.clearUser);
+  const setGlobalProfileData = useUserStore((state) => state.setProfileData);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -36,13 +38,21 @@ export function AuthProvider({ children }) {
 
         try {
           const authToken = await firebaseUser.getIdToken();
-          await syncUserToBackend({ ...syncPayload, authToken });
+          const synced = await syncUserToBackend({ ...syncPayload, authToken });
+          if (synced) {
+            setProfileData(synced);
+            setGlobalProfileData(synced);
+          }
         } catch (err) {
           if (isAuthTokenError(err)) {
             try {
               // Force refresh and retry once to handle stale token snapshots.
               const refreshedToken = await firebaseUser.getIdToken(true);
-              await syncUserToBackend({ ...syncPayload, authToken: refreshedToken });
+              const synced = await syncUserToBackend({ ...syncPayload, authToken: refreshedToken });
+              if (synced) {
+                setProfileData(synced);
+                setGlobalProfileData(synced);
+              }
             } catch (retryError) {
               console.error("Failed to sync user to backend after retry:", retryError);
             }
@@ -61,6 +71,8 @@ export function AuthProvider({ children }) {
       } else {
         unifiedAnalytics.setUserId(null);
         setUser(null);
+        setProfileData(null);
+        setGlobalProfileData(null);
         clearGlobalUser();
       }
       setLoading(false);
@@ -72,10 +84,12 @@ export function AuthProvider({ children }) {
   const logout = async () => {
     await signOut(auth);
     setUser(null);
+    setProfileData(null);
+    setGlobalProfileData(null);
     clearGlobalUser();
   };
 
-  const value = { user, loading, logout };
+  const value = { user, profileData, setProfileData, loading, logout };
 
   return (
     <AuthContext.Provider value={value}>

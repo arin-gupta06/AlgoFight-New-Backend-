@@ -1,0 +1,293 @@
+/* frontend/src/components/Battle/CreateRoomModal.css */
+
+.create-room-modal-hud {
+  max-width: 740px !important;
+  transition: all 0.3s ease;
+}
+
+/* Mode Switcher Tabs */
+.battle-mode-selector {
+  display: flex;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 4px;
+  gap: 6px;
+  margin-bottom: 20px;
+}
+
+.mode-tab-btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  background: transparent;
+  border: none;
+  color: #8fa1bc;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.mode-tab-btn:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.mode-tab-btn.active {
+  background: linear-gradient(135deg, rgba(0, 229, 255, 0.18), rgba(0, 114, 255, 0.24));
+  border: 1px solid rgba(0, 229, 255, 0.45);
+  color: #00e5ff;
+  box-shadow: 0 4px 18px rgba(0, 229, 255, 0.2);
+}
+
+/* Custom Problem Selector Container */
+.custom-picker-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: rgba(12, 16, 26, 0.7);
+  border: 1px solid rgba(0, 229, 255, 0.2);
+  border-radius: 14px;
+  padding: 14px;
+}
+
+/* Selected Tags Container (inside the placeholder area) */
+.custom-tags-placeholder-box {
+  min-height: 48px;
+  max-height: 120px;
+  overflow-y: auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  padding: 8px 12px;
+  transition: border-color 0.2s;
+}
+
+.custom-tags-placeholder-box:hover,
+.custom-tags-placeholder-box:focus-within {
+  border-color: rgba(0, 229, 255, 0.5);
+  box-shadow: 0 0 12px rgba(0, 229, 255, 0.15);
+}
+
+.tags-empty-hint {
+  color: rgba(163, 178, 200, 0.55);
+  font-size: 0.84rem;
+  font-style: italic;
+}
+
+.selected-problem-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(0, 229, 255, 0.12);
+  border: 1px solid rgba(0, 229, 255, 0.35);
+  color: #e2f1ff;
+  font-size: 0.8rem;
+  font-weight: 600;
+  animation: chipAppear 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes chipAppear {
+  from { opacity: 0; transform: scale(0.85); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.chip-diff-badge {
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.chip-diff-easy {
+  background: rgba(0, 230, 118, 0.2);
+  color: #00e676;
+  border: 1px solid rgba(0, 230, 118, 0.4);
+}
+
+.chip-diff-medium {
+  background: rgba(255, 179, 0, 0.2);
+  color: #ffb300;
+  border: 1px solid rgba(255, 179, 0, 0.4);
+}
+
+.chip-diff-hard {
+  background: rgba(255, 42, 109, 0.2);
+  color: #ff2a6d;
+  border: 1px solid rgba(255, 42, 109, 0.4);
+}
+
+.chip-title {
+  max-width: 140px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chip-delete-btn {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  padding: 0;
+  margin-left: 2px;
+  font-size: 1rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  transition: color 0.2s;
+}
+
+.chip-delete-btn:hover {
+  color: #ff2a6d;
+}
+
+/* Search bar inside picker */
+.problem-search-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.problem-search-icon {
+  position: absolute;
+  left: 12px;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.85rem;
+  pointer-events: none;
+}
+
+.problem-search-input {
+  width: 100%;
+  padding: 9px 12px 9px 34px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 9px;
+  color: #ffffff;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.85rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.problem-search-input:focus {
+  border-color: #00e5ff;
+}
+
+/* Available Problems Scrollable List */
+.available-problems-scrollbox {
+  max-height: 160px;
+  overflow-y: auto;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 9px;
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.problem-select-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.problem-select-row:last-child {
+  border-bottom: none;
+}
+
+.problem-select-row:hover {
+  background: rgba(0, 229, 255, 0.08);
+}
+
+.problem-select-row.selected {
+  background: rgba(0, 229, 255, 0.15);
+}
+
+.row-left {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  overflow: hidden;
+}
+
+.row-title {
+  color: #e2f1ff;
+  font-size: 0.84rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.row-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.row-category {
+  font-size: 0.74rem;
+  color: #8fa1bc;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+.row-check-badge {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  color: transparent;
+  transition: all 0.2s;
+}
+
+.problem-select-row.selected .row-check-badge {
+  background: #00e5ff;
+  border-color: #00e5ff;
+  color: #050e1a;
+}
+
+/* Custom Difficulty Info Badge (replacing difficulty pills in custom mode) */
+.custom-difficulty-badge {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(0, 229, 255, 0.07);
+  border: 1px dashed rgba(0, 229, 255, 0.35);
+  color: #83f2bd;
+  font-size: 0.84rem;
+  line-height: 1.4;
+}
+
+.custom-difficulty-badge svg {
+  color: #00e5ff;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.custom-difficulty-badge span {
+  color: #c6d6ea;
+}

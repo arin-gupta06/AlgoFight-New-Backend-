@@ -13,6 +13,7 @@ export interface CreateRoomDto {
     difficulty?: string;
     questionCount?: number;
     isFriendly?: boolean;
+    problemIds?: string[];
 }
 
 
@@ -26,14 +27,22 @@ export class BattleRoomService {
     async createRoom(dto: CreateRoomDto): Promise<BattleRoomEntity> {
         const roomCode = RoomCodeGenerator.generate();
 
-        let selectedProblems: any[] = [];
-        if (this.problemRepository) {
+        let selectedProblemIds: string[] = [];
+        let finalDifficulty = dto.difficulty || "MIX";
+        let finalQuestionCount = dto.questionCount ?? 3;
+
+        if (dto.problemIds && dto.problemIds.length > 0) {
+            selectedProblemIds = dto.problemIds;
+            finalQuestionCount = selectedProblemIds.length;
+            finalDifficulty = "CUSTOM";
+        } else if (this.problemRepository) {
             const allResult = await this.problemRepository.getProblems({ limit: 100 });
             const problems = allResult.problems;
 
             const qCount = dto.questionCount ?? 3;
             const diff = (dto.difficulty || "MIX").toUpperCase();
 
+            let selectedProblems: any[] = [];
             if (diff === "MIX") {
                 const hardCount = Math.max(1, Math.floor(qCount * 0.3));
                 const easyCount = Math.max(1, Math.floor(qCount * 0.2));
@@ -49,6 +58,7 @@ export class BattleRoomService {
             }
 
             if (selectedProblems.length === 0) selectedProblems = problems.slice(0, qCount);
+            selectedProblemIds = selectedProblems.map(p => p.id);
         }
 
         return this.battleRoomRepository.createRoom({
@@ -56,9 +66,9 @@ export class BattleRoomService {
             roomCode,
             maxPlayers: dto.maxPlayers ?? 2,
             timeLimitMinutes: dto.timeLimitMinutes ?? 15,
-            difficulty: dto.difficulty || "MIX",
-            questionCount: dto.questionCount ?? 3,
-            problemIds: selectedProblems.map(p => p.id),
+            difficulty: finalDifficulty,
+            questionCount: finalQuestionCount,
+            problemIds: selectedProblemIds,
             isFriendly: dto.isFriendly,
             status: "WAITING",
         });

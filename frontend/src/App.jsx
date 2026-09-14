@@ -7,6 +7,7 @@ import Login from './components/Login/Login.jsx';
 import NavBar from './components/NavBar/NavBar.jsx';
 import ProtectedRoute from './components/Common/routing/ProtectedRoute.jsx';
 import AdminRoute from './components/Common/routing/AdminRoute.jsx';
+import FacultyRoute from './components/Common/routing/FacultyRoute.jsx';
 import SystemBroadcastBanner from './components/Common/broadcasts/SystemBroadcastBanner.jsx';
 
 // 🚀 Code-split secondary route components with React.lazy
@@ -32,6 +33,7 @@ const Privacy = lazy(() => import('./components/Legal/Privacy.jsx'));
 const Cookies = lazy(() => import('./components/Legal/Cookies.jsx'));
 const RoomLobby = lazy(() => import("./components/Battle/RoomLobby.jsx"));
 const ControlHub = lazy(() => import('./components/Admin/ControlHub.jsx'));
+const FacultyControlHub = lazy(() => import('./components/Faculty/FacultyControlHub.jsx'));
 
 // Fast, non-blocking loading placeholder
 function PageLoader() {
@@ -63,8 +65,22 @@ function AuthLayout() {
 // 📌 Main layout (with NavBar)
 function MainLayout() {
   const location = useLocation();
-  const hideNavBar = location.pathname.startsWith('/battle/live');
-  
+  const isCodeEditorRoute =
+    location.pathname.startsWith('/battle/live') ||
+    /^\/practice\/[^/]+/.test(location.pathname);
+  const hideNavBar = isCodeEditorRoute;
+
+  // Auto exit browser fullscreen mode when leaving code editor environments
+  useEffect(() => {
+    if (!isCodeEditorRoute && document.fullscreenElement) {
+      if (document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+      } else if (document.webkitExitFullscreen) {
+        document.webkitExitFullscreen().catch(() => {});
+      }
+    }
+  }, [isCodeEditorRoute, location.pathname]);
+
   return (
     <>
       {!hideNavBar && <NavBar />}
@@ -103,6 +119,7 @@ function App() {
           <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
           <Route path="/profile/:userId" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
           <Route path="/admin" element={<AdminRoute><ControlHub /></AdminRoute>} />
+          <Route path="/faculty" element={<FacultyRoute><FacultyControlHub /></FacultyRoute>} />
 
           {/* ✅ Battle Routes */}
           <Route path="/battle" element={<ProtectedRoute><BattleArena /></ProtectedRoute>} />

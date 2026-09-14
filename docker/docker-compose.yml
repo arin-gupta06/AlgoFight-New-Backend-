@@ -67,6 +67,14 @@ services:
     networks:
       - algofight-network
 
+  piston-tunnel:
+    image: cloudflare/cloudflared:latest
+    container_name: algofight-piston-tunnel
+    restart: unless-stopped
+    command: tunnel --no-autoupdate --url http://piston-1:2000
+    networks:
+      - algofight-network
+
 volumes:
   postgres_data:
   redis_data:

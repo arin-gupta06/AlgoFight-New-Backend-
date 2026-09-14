@@ -129,10 +129,28 @@ export class ExecutionService {
             }
 
             logger.info({ submissionId }, "Submission processing completed");
-        } catch (error) {
-            logger.error({ submissionId, error }, "Submission processing failed");
-            
-            // Re-throw to let the worker handle/retry
+        } catch (error: any) {
+            logger.error({ submissionId, error: error.message || error }, "Submission processing failed");
+
+            // AF-009: Ensure submission is finalized in DB with SYSTEM_ERROR to prevent permanent COMPILING lockout
+            try {
+                await this.submissionRepository.completeSubmission(submissionId, {
+                    status: SubmissionStatus.FINALIZED,
+                    stdout: null,
+                    stderr: error?.message || "Execution engine encountered an unexpected error.",
+                    executionTime: 0,
+                    exitCode: 1,
+                    passedCount: 0,
+                    failedCount: 0,
+                    verdict: Verdict.SYSTEM_ERROR,
+                    memoryUsage: 0,
+                    compileTime: 0,
+                });
+            } catch (dbErr: any) {
+                logger.error({ submissionId, error: dbErr.message }, "Failed to finalize failed submission in DB");
+            }
+
+            // Re-throw to let BullMQ worker register the failed job
             throw error;
         }
     }

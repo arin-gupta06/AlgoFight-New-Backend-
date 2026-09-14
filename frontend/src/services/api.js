@@ -133,9 +133,11 @@ export async function requestJson(path, options = {}) {
 
   if (isGet && cacheKey) {
     inFlightRequests.set(cacheKey, executionPromise);
-    executionPromise.finally(() => {
-      inFlightRequests.delete(cacheKey);
-    });
+    executionPromise
+      .catch(() => {})
+      .finally(() => {
+        inFlightRequests.delete(cacheKey);
+      });
   }
 
   return executionPromise;
@@ -418,6 +420,92 @@ export async function scaleAdminFleet(adminKey, direction = "out", reason = "") 
     body: JSON.stringify({ reason }),
   });
 }
+
+/**
+ * Bulk import problems into the problem archive (Admin or Verified Faculty)
+ */
+export async function importProblemsBulk(problems) {
+  invalidateApiCache("/api/problems");
+  return requestJson("/api/problems/bulk", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ problems }),
+    includeAuth: true,
+  });
+}
+
+/**
+ * Faculty Control Hub APIs
+ */
+export async function fetchFacultyStudents({ department = "", branch = "", batchYear = "", search = "", page = 1, limit = 50 } = {}) {
+  const params = new URLSearchParams();
+  if (department && department !== "ALL") params.set("department", department);
+  if (branch && branch !== "ALL") params.set("branch", branch);
+  if (batchYear && batchYear !== "ALL") params.set("batchYear", batchYear);
+  if (search) params.set("search", search);
+  params.set("page", String(page));
+  params.set("limit", String(limit));
+
+  return requestJson(`/api/faculty/students?${params.toString()}`, {
+    includeAuth: true,
+    cache: "no-store",
+  });
+}
+
+export async function dispatchFacultyReminder(payload) {
+  invalidateApiCache("/api/notifications");
+  return requestJson("/api/faculty/reminders", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+    includeAuth: true,
+  });
+}
+
+export async function fetchFacultyReminders() {
+  return requestJson("/api/faculty/reminders", {
+    includeAuth: true,
+    cache: "no-store",
+  });
+}
+
+export async function deleteFacultyReminder(id) {
+  return requestJson(`/api/faculty/reminders/${id}`, {
+    method: "DELETE",
+    includeAuth: true,
+  });
+}
+
+export async function createFacultyQuiz(payload) {
+  return requestJson("/api/faculty/quizzes", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+    includeAuth: true,
+  });
+}
+
+export async function fetchFacultyQuizzes() {
+  return requestJson("/api/faculty/quizzes", {
+    includeAuth: true,
+    cache: "no-store",
+  });
+}
+
+export async function deleteFacultyQuiz(id) {
+  return requestJson(`/api/faculty/quizzes/${id}`, {
+    method: "DELETE",
+    includeAuth: true,
+  });
+}
+
+export async function fetchFacultyStats() {
+  return requestJson("/api/faculty/stats", {
+    includeAuth: true,
+    cache: "no-store",
+  });
+}
+
 
 
 

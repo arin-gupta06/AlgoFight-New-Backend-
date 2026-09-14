@@ -76,8 +76,26 @@ export class PistonAdapter {
         java: { language: "java", version: "*", fileExtension: "java" }
     };
 
+    private resolveExecutionUrl(endpoint: string): string {
+        const clean = endpoint.trim().replace(/\/+$/, "");
+        if (clean === "https://emkc.org") {
+            return "https://emkc.org/api/v2/piston/execute";
+        }
+        if (clean.includes("emkc.org")) {
+            return clean.endsWith("/execute") ? clean : `${clean}/execute`;
+        }
+        if (clean.endsWith("/api/v2/execute")) {
+            return clean;
+        }
+        if (clean.endsWith("/execute")) {
+            return clean;
+        }
+        return `${clean}/api/v2/execute`;
+    }
+
     /**
      * Executes the provided code on the Piston engine and normalizes the response.
+     * Incorporates automatic fallback cascade across targetUrl -> PISTON_URL -> public EMKC.
      */
     async executeCode(
         language: string,
@@ -109,56 +127,58 @@ export class PistonAdapter {
             run_memory_limit: memoryLimitBytes,
         };
 
-        try {
-            const controller = new AbortController();
-            // A bit more than Piston's run_timeout to allow network travel
-            const id = setTimeout(() => controller.abort(), timeLimitMs + 5000); 
+        const candidates: string[] = [];
+        if (targetUrl) candidates.push(targetUrl);
+        if (this.PISTON_URL && !candidates.includes(this.PISTON_URL)) candidates.push(this.PISTON_URL);
+        const fallbackPublic = "https://emkc.org/api/v2/piston";
+        if (!candidates.includes(fallbackPublic)) candidates.push(fallbackPublic);
 
-            const endpoint = targetUrl || this.PISTON_URL;
-            let url = `${endpoint}/api/v2/execute`;
-            if (endpoint === "https://emkc.org") {
-                url = `https://emkc.org/api/v2/piston/execute`;
-            } else if (endpoint === "https://emkc.org/api/v2/piston" || endpoint.endsWith("/execute") === false) {
-                // If it already contains the full path, just append /execute if missing
-                url = endpoint.endsWith("/execute") ? endpoint : `${endpoint}/execute`;
-                // Fallback for standard local docker which expects /api/v2/execute
-                if (!endpoint.includes("emkc") && !endpoint.includes("api/v2")) {
-                    url = `${endpoint}/api/v2/execute`;
+        let lastError: any = null;
+
+        for (const candidate of candidates) {
+            const url = this.resolveExecutionUrl(candidate);
+            try {
+                const controller = new AbortController();
+                const timeoutTimer = setTimeout(() => controller.abort(), timeLimitMs + 5000);
+
+                const response = await fetch(url, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(requestBody),
+                    signal: controller.signal,
+                });
+
+                clearTimeout(timeoutTimer);
+
+                if (!response.ok) {
+                    const text = await response.text().catch(() => "");
+                    throw new Error(`Piston API Error (${response.status}) at ${url}: ${text}`);
                 }
+
+                const data: PistonExecuteResponse = await response.json();
+
+                if (data.message) {
+                    throw new Error(`Piston Error at ${url}: ${data.message}`);
+                }
+
+                return this.normalizeResponse(data, timeLimitMs, memoryLimitBytes);
+            } catch (error: any) {
+                lastError = error;
+                if (error.name === "AbortError") {
+                    return this.createErrorResult(Verdict.TIME_LIMIT_EXCEEDED, "Request to execution engine timed out completely.");
+                }
+                // Try next candidate URL in pool
+                continue;
             }
-
-            const response = await fetch(url, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify(requestBody),
-                signal: controller.signal,
-            });
-
-            clearTimeout(id);
-
-            if (!response.ok) {
-                const text = await response.text();
-                throw new Error(`Piston API Error (${response.status}): ${text}`);
-            }
-
-            const data: PistonExecuteResponse = await response.json();
-            
-            // Check if Piston returned an error message
-            if (data.message) {
-                throw new Error(`Piston Error: ${data.message}`);
-            }
-
-            return this.normalizeResponse(data, timeLimitMs, memoryLimitBytes);
-        } catch (error: any) {
-            if (error.name === "AbortError") {
-                // Client side abort, likely a catastrophic timeout
-                return this.createErrorResult(Verdict.TIME_LIMIT_EXCEEDED, "Request to execution engine timed out completely.");
-            }
-            // System-level errors (network down, piston crash)
-            throw error;
         }
+
+        // If all candidate runtimes failed, return normalized system error
+        return this.createErrorResult(
+            Verdict.SYSTEM_ERROR,
+            `Sandbox execution engine unreachable across all nodes. Last error: ${lastError?.message || "Unknown"}`
+        );
     }
 
     private normalizeResponse(

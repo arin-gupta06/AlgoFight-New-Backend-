@@ -6,6 +6,7 @@ import { GatewayState } from "../state/gateway.state";
 import { GatewayStateMachine } from "../state/gateway-state-machine";
 import { GatewayMetrics } from "../contracts/gateway-metrics";
 import { logger } from "@algofight/logger";
+import { isAdminEmail } from "../../constants/admins";
 
 export class UserGateway implements Gateway {
     public readonly id: string;
@@ -131,11 +132,12 @@ export class UserGateway implements Gateway {
 
             if (payload) {
                 const userId = payload.user_id || payload.uid || payload.sub;
+                const isExplicitAdmin = payload.admin || payload.role === "ADMIN" || isAdminEmail(payload.email);
                 return {
                     id: String(userId),
                     email: payload.email,
                     username: payload.name || (payload.email ? payload.email.split("@")[0] : `user_${userId}`),
-                    role: payload.admin || payload.role === "ADMIN" ? "ADMIN" : "USER",
+                    role: isExplicitAdmin ? "ADMIN" : "USER",
                     platformCode: payload.platformCode,
                     institutionName: payload.institutionName,
                     rawToken: token,
@@ -149,11 +151,12 @@ export class UserGateway implements Gateway {
                     const devPayload = JSON.parse(Buffer.from(parts[1], "base64url").toString("utf-8"));
                     const userId = devPayload.user_id || devPayload.uid || devPayload.sub || devPayload.id;
                     if (userId) {
+                        const isDevAdmin = devPayload.role === "ADMIN" || isAdminEmail(devPayload.email);
                         return {
                             id: String(userId),
                             email: devPayload.email,
                             username: devPayload.name || (devPayload.email ? devPayload.email.split("@")[0] : `dev_${userId}`),
-                            role: devPayload.role === "ADMIN" ? "ADMIN" : "USER",
+                            role: isDevAdmin ? "ADMIN" : "USER",
                             rawToken: token,
                         };
                     }

@@ -277,17 +277,30 @@ export default function LiveBattle() {
     return () => {
       document.removeEventListener("fullscreenchange", handleFsChange);
       document.removeEventListener("webkitfullscreenchange", handleFsChange);
+      if (document.fullscreenElement) {
+        if (document.exitFullscreen) {
+          document.exitFullscreen().catch(() => {});
+        } else if (document.webkitExitFullscreen) {
+          document.webkitExitFullscreen().catch(() => {});
+        }
+      }
     };
   }, []);
 
-  // Auto trigger fullscreen mode when battle status becomes "matched"
+  // Auto trigger fullscreen mode on first interaction when battle is matched
   useEffect(() => {
     if (status === "matched") {
-      try {
-        if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
-          document.documentElement.requestFullscreen().catch(() => {});
+      const handleFirstInteraction = () => {
+        if (!document.fullscreenElement) {
+          if (document.documentElement.requestFullscreen) {
+            document.documentElement.requestFullscreen().catch(() => {});
+          } else if (document.documentElement.webkitRequestFullscreen) {
+            document.documentElement.webkitRequestFullscreen().catch(() => {});
+          }
         }
-      } catch (e) {}
+      };
+      window.addEventListener("pointerdown", handleFirstInteraction, { once: true });
+      return () => window.removeEventListener("pointerdown", handleFirstInteraction);
     }
   }, [status]);
 

@@ -1,20 +1,70 @@
-import { FastifyInstance } from "fastify";
-import { PrismaProblemRepository } from "@algofight/database";
+import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
+import { PrismaProblemRepository, prisma } from "@algofight/database";
 import { ProblemController } from "../controllers/problem.controller";
-import { problemSchema, ProblemInput } from "../schema/problem.schema";
-import { requireRole, requireAuth } from "../plugins/auth.plugin";
+import { problemSchema, ProblemInput, bulkProblemsSchema } from "../schema/problem.schema";
+import { requireAuth } from "../plugins/auth.plugin";
+import { isAdminEmail } from "../constants/admins";
 
 const repository = new PrismaProblemRepository();
 const controller = new ProblemController(repository);
 
+const requireFacultyOrAdmin = async (request: FastifyRequest, reply: FastifyReply) => {
+    if (!request.user || !request.user.id) {
+        return reply.status(401).send({ error: "UNAUTHORIZED", message: "Authentication required." });
+    }
+    const isExplicitAdmin =
+        request.user.role === "ADMIN" ||
+        isAdminEmail(request.user.email) ||
+        request.headers["x-admin-key"] === process.env.ADMIN_SECRET_KEY;
+    if (isExplicitAdmin) return;
+
+    try {
+        const user = await prisma.user.findUnique({
+            where: { id: request.user.id },
+            select: { userType: true, email: true },
+        });
+        if (user?.userType === "FACULTY" || isAdminEmail(user?.email)) return;
+    } catch {}
+
+    return reply.status(403).send({
+        error: "FORBIDDEN",
+        message: "Only verified faculty or administrators can add problems to the archive.",
+    });
+};
+
 export async function problemRoutes(app: FastifyInstance) {
-    // 1. Create Problem (Admin Only)
+    // 1. Create Problem (Admin or Verified Faculty)
     app.post(
         "/problems",
-        { preHandler: [requireRole("ADMIN")] },
+        { preHandler: [requireFacultyOrAdmin] },
         async (request) => {
             const body: ProblemInput = problemSchema.parse(request.body);
-            return controller.createProblem(body);
+            return controller.createProblem({
+                ...body,
+                creatorId: request.user?.id,
+                creatorRole: request.user?.role === "ADMIN" ? "ADMIN" : "FACULTY",
+            });
+        },
+    );
+
+    // 1b. Bulk Create / Import Problems (Admin or Verified Faculty)
+    app.post(
+        "/problems/bulk",
+        { preHandler: [requireFacultyOrAdmin] },
+        async (request) => {
+            const raw = request.body as any;
+            const items = Array.isArray(raw) ? raw : (raw?.problems || []);
+            const parsed = bulkProblemsSchema.parse({ problems: items });
+            const created = await controller.bulkCreateProblems(
+                parsed.problems,
+                request.user?.id,
+                request.user?.role === "ADMIN" ? "ADMIN" : "FACULTY"
+            );
+            return {
+                success: true,
+                count: created.length,
+                problems: created,
+            };
         },
     );
 

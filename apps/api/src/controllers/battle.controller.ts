@@ -43,7 +43,15 @@ export class BattleController {
         return user.id;
     }
 
-    async createRoom(authUser: { id: string; email?: string; username?: string }, maxPlayers = 2, timeLimitMinutes = 15, difficulty = "MIX", questionCount = 3, isFriendly?: boolean) {
+    async createRoom(
+        authUser: { id: string; email?: string; username?: string },
+        maxPlayers = 2,
+        timeLimitMinutes = 15,
+        difficulty = "MIX",
+        questionCount = 3,
+        isFriendly?: boolean,
+        problemIds?: string[]
+    ) {
         const resolvedHostId = await this.resolveUser(authUser);
         return this.battleRoomService.createRoom({
             hostId: resolvedHostId,
@@ -52,6 +60,7 @@ export class BattleController {
             difficulty,
             questionCount,
             isFriendly,
+            problemIds,
         });
     }
 

@@ -24,6 +24,7 @@
     "socket.io-client": "^4.8.3",
     "tailwindcss": "^4.1.14",
     "vite": "^7.1.7",
+    "xlsx": "^0.18.5",
     "zustand": "^5.0.15"
   },
   "devDependencies": {

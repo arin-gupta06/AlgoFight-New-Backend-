@@ -19,6 +19,7 @@ import { matchmakingRoutes } from "./routes/matchmaking.route";
 import { adminRoutes } from "./routes/admin.route";
 import { notificationRoutes } from "./routes/notification.route";
 import { analyticsRoutes } from "./routes/analytics.route";
+import { facultyRoutes } from "./routes/faculty.route";
 
 const app = fastify({
     bodyLimit: 1048576, // 1 MB Request Body Limit
@@ -109,6 +110,7 @@ const start = async () => {
             instance.register(adminRoutes);
             instance.register(notificationRoutes);
             instance.register(analyticsRoutes);
+            instance.register(facultyRoutes);
         };
 
         // Register both under /api and root
@@ -125,6 +127,16 @@ const start = async () => {
         });
 
         logger.info({ port: config.port, env: config.environment }, "API server running at http://localhost:3000");
+
+        // 🚀 Embedded Submission Worker for single-process deployments (Render, Railway, VPS)
+        if (process.env.STANDALONE_WORKER !== "true") {
+            try {
+                await import("@algofight/queue");
+                logger.info("Embedded BullMQ submission worker pool successfully attached to API server");
+            } catch (wErr: any) {
+                logger.warn({ error: wErr.message }, "Could not attach embedded worker, assuming external worker pool");
+            }
+        }
     } catch (error) {
         logger.error({ error }, "Failed to start API server");
         process.exit(1);

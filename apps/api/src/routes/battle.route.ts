@@ -23,6 +23,7 @@ export async function battleRoutes(app: FastifyInstance) {
             body.difficulty,
             body.questionCount,
             body.isFriendly,
+            body.problemIds,
         );
     });
 

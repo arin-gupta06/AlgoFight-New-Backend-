@@ -16,6 +16,7 @@ export interface SyncUserPayload {
     institutionDomain?: string;
     department?: string;
     branch?: string;
+    batchYear?: string;
     admissionYear?: number;
     enrollmentNumber?: string;
     studentIdentityMetadata?: any;

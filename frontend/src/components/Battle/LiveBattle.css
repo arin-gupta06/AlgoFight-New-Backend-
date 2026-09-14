@@ -1,9 +1,9 @@
 
 .livebattle-page {
-	min-height: calc(100vh - 72px);
+	min-height: 100vh;
 	max-width: 1760px;
 	margin: 0 auto;
-	padding: 72px 2% 14px;
+	padding: 14px 1.5% 12px;
 	color: #f4f8ff;
 	font-family: 'Inter', sans-serif;
 	display: flex;
@@ -15,9 +15,9 @@
 
 @media (min-width: 1181px) {
 	.livebattle-page {
-		height: calc(100vh - 72px);
+		height: 100vh;
 		overflow: hidden;
-		padding: 76px 1.5% 10px;
+		padding: 14px 1.5% 10px;
 	}
 	.livebattle-grid {
 		flex: 1;

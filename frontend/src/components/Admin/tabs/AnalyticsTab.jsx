@@ -45,22 +45,22 @@ export default function AnalyticsTab({
       <div className="analytics-kpi-grid">
         <div className="analytics-kpi-card glass-panel">
           <span className="kpi-tag-label">SURFING NOW</span>
-          <div className="kpi-big-num cyan">{analyticsData?.activeSurfersNow ?? 0}</div>
+          <div className="kpi-big-num cyan">{analyticsData?.activeUsersNow ?? 0}</div>
           <span className="kpi-footnote">Active clients in rolling 5m window</span>
         </div>
         <div className="analytics-kpi-card glass-panel">
           <span className="kpi-tag-label">TOTAL REQUESTS (24H)</span>
-          <div className="kpi-big-num green">{analyticsData?.totalRequests24h ?? 0}</div>
+          <div className="kpi-big-num green">{analyticsData?.totalPageViews ?? 0}</div>
           <span className="kpi-footnote">Aggregated API & gateway hits</span>
         </div>
         <div className="analytics-kpi-card glass-panel">
-          <span className="kpi-tag-label">UNIQUE CLIENT IPS</span>
-          <div className="kpi-big-num purple">{analyticsData?.uniqueIps24h ?? 0}</div>
-          <span className="kpi-footnote">Unique origins accessing endpoints</span>
+          <span className="kpi-tag-label">TOTAL SESSIONS</span>
+          <div className="kpi-big-num purple">{analyticsData?.totalSessions ?? 0}</div>
+          <span className="kpi-footnote">Total unique sessions recorded</span>
         </div>
         <div className="analytics-kpi-card glass-panel">
           <span className="kpi-tag-label">AVG ROUTE DWELL</span>
-          <div className="kpi-big-num gold">{analyticsData?.avgDwellTimeSec ?? 48}s</div>
+          <div className="kpi-big-num gold">{analyticsData?.avgSurfingSeconds ?? 48}s</div>
           <span className="kpi-footnote">Session focus engagement duration</span>
         </div>
       </div>
@@ -78,26 +78,32 @@ export default function AnalyticsTab({
           </div>
 
           <div className="top-routes-list">
-            {(analyticsData?.topRoutes || []).map((r, i) => (
-              <div key={r.path || i} className="route-stat-item">
-                <div className="route-item-head">
-                  <span className="route-rank">#{i + 1}</span>
-                  <code className="route-path">{r.path}</code>
-                  <span className="route-hits">{r.hits} hits</span>
-                </div>
-                <div className="route-progress-track">
-                  <div
-                    className="route-progress-fill"
-                    style={{
-                      width: `${Math.min(
-                        100,
-                        (r.hits / Math.max(1, analyticsData?.totalRequests24h || 1)) * 100 * 3
-                      )}%`,
-                    }}
-                  />
-                </div>
+            {(!analyticsData?.topPages || analyticsData.topPages.length === 0) ? (
+              <div style={{ color: '#8494ad', padding: '20px', textAlign: 'center', fontSize: '0.85rem' }}>
+                No routes visited yet. Live traffic will appear here.
               </div>
-            ))}
+            ) : (
+              (analyticsData?.topPages || []).map((r, i) => (
+                <div key={r.path || i} className="route-stat-item">
+                  <div className="route-item-head">
+                    <span className="route-rank">#{i + 1}</span>
+                    <code className="route-path">{r.path}</code>
+                    <span className="route-hits">{r.hits} hits</span>
+                  </div>
+                  <div className="route-progress-track">
+                    <div
+                      className="route-progress-fill"
+                      style={{
+                        width: `${Math.min(
+                          100,
+                          (r.hits / Math.max(1, analyticsData?.totalPageViews || 1)) * 100 * 3
+                        )}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
 

@@ -98,6 +98,7 @@
   margin: 0 0 8px;
   background: linear-gradient(135deg, #ffffff 0%, #a5b4fc 100%);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
@@ -727,6 +728,7 @@
   font-weight: 800;
   background: linear-gradient(135deg, #ffffff 0%, #a5b4fc 100%);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
   display: flex;
   align-items: center;
@@ -890,18 +892,22 @@
 .stat-row {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   font-size: 0.74rem;
+  gap: 8px;
 }
 
 .stat-label {
   color: #8494ad;
+  flex-shrink: 0;
 }
 
 .stat-value {
   font-family: 'Fira Code', monospace;
   color: #cbd5e1;
   font-weight: 600;
+  text-align: right;
+  word-break: break-all;
 }
 
 /* Telemetry Rows & Cards */

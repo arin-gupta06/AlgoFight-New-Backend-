@@ -1,6 +1,7 @@
 // packages/institutional-identity/src/institutes/mits/mits.parser.ts
 import { IIdentityParser, StudentIdentity } from "../../core/types";
 import {
+    MITS_ACADEMIC_MAP,
     MITS_BRANCH_MAP,
     MITS_DOMAIN,
     MITS_INSTITUTE_ID,
@@ -17,7 +18,7 @@ export class MitsIdentityParser implements IIdentityParser {
         if (!match) return false;
 
         const branchCode = match[2].toLowerCase();
-        return branchCode in MITS_BRANCH_MAP;
+        return branchCode in MITS_ACADEMIC_MAP || branchCode in MITS_BRANCH_MAP;
     }
 
     public parse(localPart: string, domain: string): StudentIdentity {
@@ -30,11 +31,15 @@ export class MitsIdentityParser implements IIdentityParser {
 
         const [, batchStr, branchCodeRaw, sequenceGroup, nameIdentifier, rollNumber] = match;
         const branchCode = branchCodeRaw.toLowerCase();
-        const branchName = MITS_BRANCH_MAP[branchCode];
+        const academicInfo = MITS_ACADEMIC_MAP[branchCode];
 
-        if (!branchName) {
+        if (!academicInfo) {
             throw new Error(`Unable to determine academic branch for code '${branchCodeRaw}'.`);
         }
+
+        const branchName = academicInfo.branch;
+        const department = academicInfo.department;
+        const programme = academicInfo.programme;
 
         // Convert 2-digit batch to 4-digit admission year (e.g. '24' -> 2024)
         const batchNum = parseInt(batchStr, 10);
@@ -47,6 +52,8 @@ export class MitsIdentityParser implements IIdentityParser {
             admissionYear,
             branch: branchCode.toUpperCase(),
             branchName,
+            department,
+            programme,
             enrollmentNumber: rollNumber,
             instituteSpecificIdentifiers: {
                 rawLocalPart: cleaned,
@@ -55,6 +62,8 @@ export class MitsIdentityParser implements IIdentityParser {
                 sequenceGroup,
                 nameIdentifier,
                 rollNumber,
+                department,
+                programme,
             },
         };
     }

@@ -19,9 +19,16 @@ export default function GoogleAuthButton({
 
   const label = mode === "signup" ? "Sign up with Google" : "Sign in with Google";
 
-  useEffect(() => {
-    let active = true;
+  const onSuccessRef = useRef(onSuccess);
+  const onErrorRef = useRef(onError);
 
+  // Keep refs pointing at the latest handlers on every render
+  useEffect(() => {
+    onSuccessRef.current = onSuccess;
+    onErrorRef.current = onError;
+  });
+
+  useEffect(() => {
     if (!GOOGLE_CLIENT_ID) {
       return;
     }
@@ -29,19 +36,11 @@ export default function GoogleAuthButton({
     const init = async () => {
       try {
         await initializeGoogleSignIn(
-          (credential) => {
-            if (active && typeof onSuccess === "function") {
-              onSuccess(credential);
-            }
-          },
-          (err) => {
-            if (active && typeof onError === "function") {
-              onError(err);
-            }
-          }
+          (credential) => onSuccessRef.current?.(credential),
+          (err) => onErrorRef.current?.(err)
         );
 
-        if (containerRef.current && active) {
+        if (containerRef.current) {
           renderGoogleButton(
             containerRef.current,
             {
@@ -66,11 +65,7 @@ export default function GoogleAuthButton({
     };
 
     init();
-
-    return () => {
-      active = false;
-    };
-  }, [mode, onSuccess, onError, notify]);
+  }, [mode, notify]);
 
   const handleManualClick = () => {
     if (!GOOGLE_CLIENT_ID) {

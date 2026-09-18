@@ -5,11 +5,11 @@ const isLocal = typeof window !== "undefined" &&
     (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
 
 const getEffectiveApiUrl = () => {
+  // In local browser development, leverage Vite dev proxy (/api) to eliminate CORS and preflight mismatches
+  if (isLocal) {
+    return "";
+  }
   if (rawApiUrl) {
-    if (!isLocal && (rawApiUrl.includes("localhost") || rawApiUrl.includes("127.0.0.1"))) {
-      // In production deployment, ignore baked-in localhost URL
-      return "";
-    }
     return rawApiUrl.replace(/\/api\/?$/, "").replace(/\/+$/, "");
   }
   return "";

@@ -249,17 +249,47 @@ function Profile() {
         const admissionYear = match ? 2000 + parseInt(match[1], 10) : 2024;
         const branchCode = match ? match[2].toUpperCase() : "CD";
 
-        const branchMap = {
-            CD: "Computer Science & Design",
-            CS: "Computer Science & Engineering",
-            IT: "Information Technology",
-            AI: "Artificial Intelligence & Data Science",
-            EC: "Electronics & Communication",
-            EE: "Electrical Engineering",
-            ME: "Mechanical Engineering",
-            CE: "Civil Engineering",
+        const ACADEMIC_MAP = {
+            mup: { branch: "Urban Planning", department: "School of Architecture", programme: "MUP" },
+            ar: { branch: "Bachelor of Architecture", department: "School of Architecture", programme: "B.Arch" },
+            ad: { branch: "Artificial Intelligence (AI) and Data Science", department: "Centre for Artificial Intelligence", programme: "B.Tech" },
+            am: { branch: "Artificial Intelligence and Machine Learning", department: "Centre for Artificial Intelligence", programme: "B.Tech" },
+            ai: { branch: "Artificial Intelligence(AI)", department: "Centre for Artificial Intelligence", programme: "B.Tech" },
+            ml: { branch: "Artificial Intelligence and Machine Learning", department: "Centre for Artificial Intelligence", programme: "B.Tech" },
+            mb: { branch: "MBA", department: "School of Humanities and Management", programme: "MBA" },
+            mba: { branch: "MBA", department: "School of Humanities and Management", programme: "MBA" },
+            cb: { branch: "Computer Science and Business Systems", department: "Centre for Computer Science and Technology", programme: "B.Tech" },
+            ct: { branch: "Computer science and Technology", department: "Centre for Computer Science and Technology", programme: "B.Tech" },
+            cd: { branch: "Computer Science and Design", department: "Computer Science & Design", programme: "B.Tech" },
+            cs: { branch: "Computer Science and Engineering", department: "School of Computer Science & Engineering", programme: "B.Tech" },
+            mtcs: { branch: "Computer Science and Engineering", department: "School of Computer Science & Engineering", programme: "M.Tech" },
+            ca: { branch: "MCA", department: "School of Engineering Mathematics & Computing", programme: "MCA" },
+            pdce: { branch: "PhD Computer Science & Engineering", department: "School of Computer Science & Engineering", programme: "Ph.D" },
+            eo: { branch: "EE (Internet of Things)", department: "Centre for Internet of Things", programme: "B.Tech" },
+            ec: { branch: "Electrical and Computer Engineering", department: "Centre for Internet of Things", programme: "B.Tech" },
+            io: { branch: "IT (Internet of Things (IoT))", department: "Centre for Internet of Things", programme: "B.Tech" },
+            cm: { branch: "Chemical Engineering", department: "School of Chemical Engineering", programme: "B.Tech" },
+            ce: { branch: "Civil Engineering", department: "School of Civil Engineering", programme: "B.Tech" },
+            ctm: { branch: "Construction Technology & Management", department: "School of Civil Engineering", programme: "M.Tech" },
+            mtctm: { branch: "Construction Technology & Management", department: "School of Civil Engineering", programme: "M.Tech" },
+            en: { branch: "Environment Engineering", department: "School of Civil Engineering", programme: "M.Tech" },
+            ee: { branch: "Electrical Engineering", department: "School of Electrical Engineering", programme: "B.Tech" },
+            mtisd: { branch: "Industrial Systems & Drives", department: "School of Electrical Engineering", programme: "M.Tech" },
+            et: { branch: "Electronics and Telecommunications", department: "School of Electronics and Communication Engineering", programme: "B.Tech" },
+            el: { branch: "Electronics Engineering", department: "School of Electronics and Communication Engineering", programme: "B.Tech" },
+            cn: { branch: "Communication Control and Networking", department: "School of Electronics and Communication Engineering", programme: "M.Tech" },
+            it: { branch: "Information Technology", department: "School of Information Technology", programme: "B.Tech" },
+            mtit: { branch: "Information Technology", department: "School of Information Technology", programme: "M.Tech" },
+            ir: { branch: "IT (Artificial Intelligence and Robotics)", department: "Centre for Artificial Intelligence", programme: "B.Tech" },
+            mc: { branch: "Mathematics and Computing", department: "School of Engineering Mathematics & Computing", programme: "B.Tech" },
+            pdca: { branch: "PhD Computer Application", department: "School of Engineering Mathematics & Computing", programme: "Ph.D" },
+            me: { branch: "Mechanical Engineering", department: "School of Mechanical Engineering", programme: "B.Tech" },
+            pe: { branch: "Production Engineering", department: "School of Mechanical Engineering", programme: "M.Tech" },
         };
-        const branchName = branchMap[branchCode] || `${branchCode} Engineering`;
+        const academicInfo = ACADEMIC_MAP[branchCode.toLowerCase()];
+        const branchName = academicInfo?.branch || `${branchCode} Engineering`;
+        const department = academicInfo?.department || "School of Engineering";
+        const programme = academicInfo?.programme || "B.Tech";
 
         const now = new Date();
         const currentYear = now.getFullYear();
@@ -285,6 +315,8 @@ function Profile() {
             isInstitutional: true,
             institutionName: "MITS Gwalior",
             branch: branchName,
+            department,
+            programme,
             batchYear: String(admissionYear),
             yearLabel: yearLabels[yearNumber - 1] || `${yearNumber}th Year`,
             semesterLabel,
@@ -543,8 +575,12 @@ function Profile() {
                                 <span className="info-value highlight-cyan">{profile?.institutionName || academicFallback?.institutionName || "MITS Gwalior"}</span>
                             </div>
                             <div className="student-info-item">
-                                <span className="info-label">Branch</span>
-                                <span className="info-value">{profile?.department || profile?.branch || academicFallback?.branch || "Computer Science & Design"}</span>
+                                <span className="info-label">Department</span>
+                                <span className="info-value">{profile?.department || academicFallback?.department || "School of Engineering"}</span>
+                            </div>
+                            <div className="student-info-item">
+                                <span className="info-label">Branch & Programme</span>
+                                <span className="info-value">{profile?.branch || academicFallback?.branch || "Computer Science & Design"}{academicFallback?.programme ? ` (${academicFallback.programme})` : ""}</span>
                             </div>
                             <div className="student-info-item">
                                 <span className="info-label">Batch</span>

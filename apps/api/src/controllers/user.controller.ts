@@ -50,7 +50,7 @@ export class UserController {
                     institutionName = resolution.institute.name;
                     institutionId = resolution.institute.id;
                     institutionDomain = resolution.institute.domain;
-                    department = resolution.identity.branchName;
+                    department = resolution.identity.department || resolution.identity.branchName;
                     branch = resolution.identity.branch;
                     admissionYear = resolution.identity.admissionYear;
                     enrollmentNumber = resolution.identity.enrollmentNumber;
@@ -126,7 +126,7 @@ export class UserController {
                     user.institutionName = user.institutionName || resolution.institute.name;
                     user.institutionId = user.institutionId || resolution.institute.id;
                     user.institutionDomain = user.institutionDomain || resolution.institute.domain;
-                    user.department = user.department || resolution.identity.branchName;
+                    user.department = user.department || resolution.identity.department || resolution.identity.branchName;
                     user.branch = user.branch || resolution.identity.branch;
                     user.admissionYear = user.admissionYear || resolution.identity.admissionYear;
                     user.enrollmentNumber = user.enrollmentNumber || resolution.identity.enrollmentNumber;

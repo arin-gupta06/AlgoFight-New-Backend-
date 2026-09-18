@@ -123,7 +123,7 @@ export default function PrivacyContent({ isModal = false }) {
             We share data only with verified cloud infrastructure providers who are contractually bound by strict data processing and confidentiality agreements:
           </p>
           <ul>
-            <li><strong>Authentication Services:</strong> Firebase / Google Identity (for secure OAuth and session token verification).</li>
+            <li><strong>Authentication Services:</strong> Google Identity Services & AlgoFight Auth Gateway (for secure OAuth and session token verification).</li>
             <li><strong>Database & Cache Systems:</strong> PostgreSQL with Prisma ORM and Redis (BullMQ) for high-frequency distributed state coordination.</li>
             <li><strong>Isolated Judge Runtime:</strong> Hardened compute instances running containerized Piston judge engines.</li>
           </ul>

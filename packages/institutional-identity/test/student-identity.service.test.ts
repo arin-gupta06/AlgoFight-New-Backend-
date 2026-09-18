@@ -14,7 +14,9 @@ test("StudentIdentityService: full resolution for 24ai10ar16@mitsgwl.ac.in", () 
 
         assert.equal(result.identity.admissionYear, 2024);
         assert.equal(result.identity.branch, "AI");
-        assert.equal(result.identity.branchName, "Artificial Intelligence");
+        assert.equal(result.identity.branchName, "Artificial Intelligence(AI)");
+        assert.equal(result.identity.department, "Centre for Artificial Intelligence");
+        assert.equal(result.identity.programme, "B.Tech");
         assert.equal(result.identity.enrollmentNumber, "16");
 
         assert.equal(result.academicProfile.yearNumber, 3);

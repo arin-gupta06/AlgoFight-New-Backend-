@@ -9,6 +9,8 @@ export interface StudentIdentity {
     admissionYear: number;
     branch: string;
     branchName: string;
+    department?: string;
+    programme?: string;
     enrollmentNumber: string;
     instituteSpecificIdentifiers: {
         rawLocalPart: string;
@@ -17,6 +19,8 @@ export interface StudentIdentity {
         sequenceGroup?: string;
         nameIdentifier?: string;
         rollNumber?: string;
+        department?: string;
+        programme?: string;
         [key: string]: any;
     };
 }

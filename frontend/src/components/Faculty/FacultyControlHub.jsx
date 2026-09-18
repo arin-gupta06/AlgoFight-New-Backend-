@@ -39,12 +39,20 @@ import "./FacultyControlHub.css";
 
 const DEPARTMENTS = [
   "ALL",
-  "Computer Science & Engineering",
-  "Information Technology",
-  "Electronics & Communication",
-  "Artificial Intelligence & ML",
-  "Data Science",
-  "Mechanical Engineering",
+  "Centre for Artificial Intelligence",
+  "Centre for Computer Science and Technology",
+  "Centre for Internet of Things",
+  "Computer Science & Design",
+  "School of Architecture",
+  "School of Chemical Engineering",
+  "School of Civil Engineering",
+  "School of Computer Science & Engineering",
+  "School of Electrical Engineering",
+  "School of Electronics and Communication Engineering",
+  "School of Engineering Mathematics & Computing",
+  "School of Humanities and Management",
+  "School of Information Technology",
+  "School of Mechanical Engineering",
 ];
 
 const BATCH_YEARS = ["ALL", "2024", "2025", "2026", "2027", "2028"];

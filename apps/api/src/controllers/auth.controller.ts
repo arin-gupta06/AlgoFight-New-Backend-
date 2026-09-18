@@ -5,6 +5,7 @@ import { googleTokenVerifier } from "../utils/google-auth.util";
 import { hashPassword, verifyPassword } from "../utils/password.util";
 import { userSessionStore } from "../gateway/session/user-session";
 import { isAdminEmail } from "../constants/admins";
+import { defaultStudentIdentityService } from "@algofight/institutional-identity";
 
 export class AuthController {
     public async loginWithGoogle(params: {
@@ -17,9 +18,46 @@ export class AuthController {
             throw { statusCode: 401, message: "Invalid or expired Google credential" };
         }
 
+        // Check if user email is an institutional email (e.g. 24ai10ar16@mitsgwl.ac.in)
+        let institutionalData: {
+            userType?: "STUDENT";
+            institutionName?: string;
+            department?: string;
+            batchYear?: string;
+        } = {};
+
+        if (googleUser.email && googleUser.email.includes("@")) {
+            try {
+                const resolution = defaultStudentIdentityService.resolveFromEmail(googleUser.email);
+                if (resolution.isInstitutional) {
+                    institutionalData = {
+                        userType: "STUDENT",
+                        institutionName: resolution.institute.name,
+                        department: resolution.identity.department || resolution.identity.branchName,
+                        batchYear: String(resolution.identity.admissionYear),
+                    };
+                }
+            } catch {
+                // Ignore parsing errors for non-institutional emails
+            }
+        }
+
         let user = await prisma.user.findUnique({
             where: { googleSub: googleUser.sub },
         });
+
+        // If existing user by googleSub, ensure department is synced if available
+        if (user && institutionalData.department && (!user.department || user.userType === "INDIVIDUAL")) {
+            user = await prisma.user.update({
+                where: { id: user.id },
+                data: {
+                    department: user.department || institutionalData.department,
+                    institutionName: user.institutionName || institutionalData.institutionName,
+                    batchYear: user.batchYear || institutionalData.batchYear,
+                    userType: user.userType === "INDIVIDUAL" ? (institutionalData.userType || "STUDENT") : user.userType,
+                },
+            });
+        }
 
         // Link existing account by email if not already linked to googleSub
         if (!user && googleUser.email) {
@@ -29,9 +67,15 @@ export class AuthController {
             if (user) {
                 user = await prisma.user.update({
                     where: { id: user.id },
-                    data: { googleSub: googleUser.sub },
+                    data: {
+                        googleSub: googleUser.sub,
+                        department: user.department || institutionalData.department || null,
+                        institutionName: user.institutionName || institutionalData.institutionName || null,
+                        batchYear: user.batchYear || institutionalData.batchYear || null,
+                        userType: user.userType === "INDIVIDUAL" && institutionalData.userType ? institutionalData.userType : user.userType,
+                    },
                 });
-                logger.info({ userId: user.id, email: user.email }, "Linked existing account to Google sub");
+                logger.info({ userId: user.id, email: user.email, department: user.department }, "Linked existing account to Google sub and synced academic department");
             }
         }
 
@@ -50,18 +94,24 @@ export class AuthController {
                 if (counter > 10) break;
             }
 
-            const platformCode = `AF-USR-${Math.floor(10000 + Math.random() * 90000)}`;
+            const userType = institutionalData.userType || "INDIVIDUAL";
+            const platformPrefix = userType === "STUDENT" ? "AF-STU" : "AF-USR";
+            const platformCode = `${platformPrefix}-${Math.floor(10000 + Math.random() * 90000)}`;
+
             user = await prisma.user.create({
                 data: {
                     email: googleUser.email,
                     googleSub: googleUser.sub,
                     username: uniqueUsername,
                     primaryEmail: googleUser.email,
-                    userType: "INDIVIDUAL",
+                    userType,
+                    institutionName: institutionalData.institutionName || null,
+                    department: institutionalData.department || null,
+                    batchYear: institutionalData.batchYear || null,
                     platformCode,
                 },
             });
-            logger.info({ userId: user.id, username: user.username }, "Created new user via Google authentication");
+            logger.info({ userId: user.id, username: user.username, department: user.department, userType }, "Created new user via Google authentication");
         }
 
         const isAdmin = isAdminEmail(user.email);
@@ -84,8 +134,11 @@ export class AuthController {
                 email: user.email,
                 username: user.username,
                 role: isAdmin ? "ADMIN" : "USER",
+                userType: user.userType,
                 platformCode: user.platformCode,
                 institutionName: user.institutionName,
+                department: user.department,
+                batchYear: user.batchYear,
                 rating: user.rating,
                 highestRank: user.highestRank,
                 photoURL: googleUser.picture,
@@ -175,8 +228,33 @@ export class AuthController {
             if (counter > 10) break;
         }
 
+        let institutionalData: {
+            userType?: "STUDENT";
+            institutionName?: string;
+            department?: string;
+            batchYear?: string;
+        } = {};
+
+        if (cleanEmail.includes("@")) {
+            try {
+                const resolution = defaultStudentIdentityService.resolveFromEmail(cleanEmail);
+                if (resolution.isInstitutional) {
+                    institutionalData = {
+                        userType: "STUDENT",
+                        institutionName: resolution.institute.name,
+                        department: resolution.identity.department || resolution.identity.branchName,
+                        batchYear: String(resolution.identity.admissionYear),
+                    };
+                }
+            } catch {
+                // Ignore parsing errors for non-institutional emails
+            }
+        }
+
         const passwordHash = hashPassword(params.password);
-        const platformCode = `AF-USR-${Math.floor(10000 + Math.random() * 90000)}`;
+        const resolvedUserType = params.userType || institutionalData.userType || "INDIVIDUAL";
+        const platformPrefix = resolvedUserType === "STUDENT" ? "AF-STU" : resolvedUserType === "FACULTY" ? "AF-FAC" : "AF-USR";
+        const platformCode = `${platformPrefix}-${Math.floor(10000 + Math.random() * 90000)}`;
 
         const user = await prisma.user.create({
             data: {
@@ -184,8 +262,10 @@ export class AuthController {
                 username: uniqueUsername,
                 passwordHash,
                 primaryEmail: cleanEmail,
-                userType: params.userType || "INDIVIDUAL",
-                institutionName: params.institutionName || null,
+                userType: resolvedUserType,
+                institutionName: params.institutionName || institutionalData.institutionName || null,
+                department: institutionalData.department || null,
+                batchYear: institutionalData.batchYear || null,
                 platformCode,
             },
         });
@@ -210,8 +290,11 @@ export class AuthController {
                 email: user.email,
                 username: user.username,
                 role: isAdmin ? "ADMIN" : "USER",
+                userType: user.userType,
                 platformCode: user.platformCode,
                 institutionName: user.institutionName,
+                department: user.department,
+                batchYear: user.batchYear,
                 rating: user.rating,
                 highestRank: user.highestRank,
             },

@@ -60,11 +60,17 @@ export function loadGoogleScript() {
   });
 }
 
+let gisCallbackRef = { onSuccess: null, onError: null };
+
 export async function initializeGoogleSignIn(onSuccess, onError) {
   if (!GOOGLE_CLIENT_ID) {
     // If no client ID configured yet, skip GIS initialization to prevent 401 invalid_client
     return;
   }
+
+  // Always refresh active handlers even if already initialized
+  gisCallbackRef.onSuccess = onSuccess;
+  gisCallbackRef.onError = onError;
 
   try {
     await loadGoogleScript();
@@ -75,9 +81,9 @@ export async function initializeGoogleSignIn(onSuccess, onError) {
         client_id: GOOGLE_CLIENT_ID,
         callback: (response) => {
           if (response?.credential) {
-            onSuccess(response.credential);
-          } else if (onError) {
-            onError(new Error("No credential received from Google"));
+            gisCallbackRef.onSuccess?.(response.credential);
+          } else if (gisCallbackRef.onError) {
+            gisCallbackRef.onError(new Error("No credential received from Google"));
           }
         },
         auto_select: false,
@@ -87,7 +93,9 @@ export async function initializeGoogleSignIn(onSuccess, onError) {
       gisInitialized = true;
     }
   } catch (err) {
-    if (onError) onError(err);
+    if (gisCallbackRef.onError) {
+      gisCallbackRef.onError(err);
+    }
   }
 }
 

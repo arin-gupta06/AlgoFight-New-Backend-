@@ -2,6 +2,7 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { AuthController } from "../controllers/auth.controller";
 import { requireAuth } from "../plugins/auth.plugin";
+import { logger } from "@algofight/logger";
 
 const authController = new AuthController();
 
@@ -21,7 +22,8 @@ export async function authRoutes(app: FastifyInstance) {
             });
             return reply.send(result);
         } catch (err: any) {
-            const status = err.statusCode || 401;
+            logger.error({ err: err?.message || err, stack: err?.stack }, "Google auth endpoint error");
+            const status = err.statusCode || 500;
             return reply.status(status).send({ error: "AUTH_FAILED", message: err.message || "Google authentication failed." });
         }
     });

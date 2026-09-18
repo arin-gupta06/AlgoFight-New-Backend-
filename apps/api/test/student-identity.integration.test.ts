@@ -23,7 +23,9 @@ test("API Integration: POST /student/resolve for MITS email", async () => {
     assert.ok(body.preview);
     assert.equal(body.preview.identity.admissionYear, 2024);
     assert.equal(body.preview.identity.branch, "AI");
-    assert.equal(body.preview.identity.branchName, "Artificial Intelligence");
+    assert.equal(body.preview.identity.branchName, "Artificial Intelligence(AI)");
+    assert.equal(body.preview.identity.department, "Centre for Artificial Intelligence");
+    assert.equal(body.preview.identity.programme, "B.Tech");
     assert.equal(body.preview.identity.enrollmentNumber, "16");
 
     await app.close();

@@ -1,7 +1,6 @@
 // frontend/src/services/analytics/core.js
 import { createCanonicalEvent, AnalyticsPriority, EventCategory } from "./canonicalEvent.js";
 import { AlgoFightAdapter } from "./adapters/algoFightAdapter.js";
-import { FirebaseAdapter } from "./adapters/firebaseAdapter.js";
 
 class UnifiedAnalyticsCore {
     constructor() {
@@ -121,12 +120,7 @@ class UnifiedAnalyticsCore {
             this.seenEventIds.delete(oldest);
         }
 
-        // 1. Forward to Firebase Adapter if product-relevant
-        if (canonical.category === EventCategory.PRODUCT) {
-            FirebaseAdapter.sendEvent(canonical);
-        }
-
-        // 2. Route to AlgoFight Buffer according to priority
+        // Route to AlgoFight Buffer according to priority
         if (options.priority === AnalyticsPriority.CRITICAL) {
             // Bypass buffer, transmit immediately
             AlgoFightAdapter.sendBatch([canonical]);

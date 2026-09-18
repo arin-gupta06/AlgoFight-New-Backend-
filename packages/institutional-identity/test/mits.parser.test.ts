@@ -10,7 +10,9 @@ test("MitsIdentityParser: parses 24ai10ar16@mitsgwl.ac.in correctly", () => {
     assert.equal(identity.instituteName, "MITS Gwalior");
     assert.equal(identity.admissionYear, 2024);
     assert.equal(identity.branch, "AI");
-    assert.equal(identity.branchName, "Artificial Intelligence");
+    assert.equal(identity.branchName, "Artificial Intelligence(AI)");
+    assert.equal(identity.department, "Centre for Artificial Intelligence");
+    assert.equal(identity.programme, "B.Tech");
     assert.equal(identity.enrollmentNumber, "16");
     assert.equal(identity.instituteSpecificIdentifiers.batchCode, "24");
     assert.equal(identity.instituteSpecificIdentifiers.sequenceGroup, "10");
@@ -24,13 +26,17 @@ test("MitsIdentityParser: supports other standard branch codes", () => {
     const csIdentity = parser.parse("23cs01rk05", "mitsgwl.ac.in");
     assert.equal(csIdentity.admissionYear, 2023);
     assert.equal(csIdentity.branch, "CS");
-    assert.equal(csIdentity.branchName, "Computer Science & Engineering");
+    assert.equal(csIdentity.branchName, "Computer Science and Engineering");
+    assert.equal(csIdentity.department, "School of Computer Science & Engineering");
+    assert.equal(csIdentity.programme, "B.Tech");
     assert.equal(csIdentity.enrollmentNumber, "05");
 
     const itIdentity = parser.parse("22it02ab42", "mitsgwl.ac.in");
     assert.equal(itIdentity.admissionYear, 2022);
     assert.equal(itIdentity.branch, "IT");
     assert.equal(itIdentity.branchName, "Information Technology");
+    assert.equal(itIdentity.department, "School of Information Technology");
+    assert.equal(itIdentity.programme, "B.Tech");
     assert.equal(itIdentity.enrollmentNumber, "42");
 });
 

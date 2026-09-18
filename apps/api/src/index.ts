@@ -20,6 +20,7 @@ import { adminRoutes } from "./routes/admin.route";
 import { notificationRoutes } from "./routes/notification.route";
 import { analyticsRoutes } from "./routes/analytics.route";
 import { facultyRoutes } from "./routes/faculty.route";
+import { authRoutes } from "./routes/auth.route";
 
 const app = fastify({
     bodyLimit: 1048576, // 1 MB Request Body Limit
@@ -102,6 +103,7 @@ const start = async () => {
         // 5. Route Registrar Helper
         const registerAllRoutes = (instance: any) => {
             instance.register(healthRoutes);
+            instance.register(authRoutes);
             instance.register(submissionRoutes);
             instance.register(problemRoutes);
             instance.register(userRoutes);

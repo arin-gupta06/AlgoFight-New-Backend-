@@ -2,32 +2,59 @@ import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "./Login.css";
 import { motion, AnimatePresence } from "framer-motion";
-import { GoogleIcon, GithubIcon } from "../Common/icons/Icons";
-import CompleteProfileDialog from "../Common/modals/CompleteProfileDialog";
-import { emailPasswordSignIn, googleSignIn, githubSignIn } from "../../firebaseConfig.js";
 import { useAuth } from "../../contexts/AuthContext.jsx";
 import { useNotification } from "../../contexts/NotificationContext.jsx";
+import GoogleAuthButton from "../Common/GoogleAuthButton.jsx";
 
 function Login() {
+  const [authMethod, setAuthMethod] = useState("google"); // "google" | "manual"
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [emailError, setEmailError] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [showOAuthModal, setShowOAuthModal] = useState(false);
-  const [oauthToken, setOauthToken] = useState(null);
-  const [oauthUser, setOauthUser] = useState(null);
+
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, loginManual, loginWithGoogle } = useAuth();
   const { notify } = useNotification();
 
   useEffect(() => {
-    if (user && !showOAuthModal) {
+    if (user) {
       navigate("/home");
     }
-  }, [user, navigate, showOAuthModal]);
+  }, [user, navigate]);
 
-  const handleSubmit = async (e) => {
+  const handleGoogleSuccess = async (credential) => {
+    setLoading(true);
+    try {
+      await loginWithGoogle(credential);
+      notify({
+        type: "success",
+        title: "Signed In",
+        message: "Welcome back! Signed in with Google.",
+      });
+      navigate("/home");
+    } catch (err) {
+      notify({
+        type: "error",
+        title: "Sign-In Failed",
+        message: err?.message || "Google authentication failed.",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleError = (err) => {
+    console.warn("GIS login error:", err);
+    notify({
+      type: "error",
+      title: "Google Sign-In Error",
+      message: err?.message || "Could not complete Google Sign-In.",
+    });
+  };
+
+  const handleManualSubmit = async (e) => {
     e.preventDefault();
     setEmailError("");
     setPasswordError("");
@@ -45,147 +72,146 @@ function Login() {
 
     setLoading(true);
     try {
-      const res = await emailPasswordSignIn(email.trim(), password);
-      if (res.notice) notify(res.notice);
-      if (res.user) {
-        navigate("/home");
-      }
+      await loginManual(email.trim(), password);
+      notify({
+        type: "success",
+        title: "Signed In",
+        message: "Welcome back!",
+      });
+      navigate("/home");
+    } catch (err) {
+      notify({
+        type: "error",
+        title: "Sign-In Failed",
+        message: err?.message || "Invalid email or password.",
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  const handleGoogleAuth = async () => {
-    try {
-      const result = await googleSignIn();
-      if (result?.notice) notify(result.notice);
-      if (result?.user) {
-        const token = await result.user.getIdToken();
-        setOauthToken(token);
-        setOauthUser(result.user);
-        setShowOAuthModal(true);
-      }
-    } catch {
-      notify({ type: "error", title: "Sign-In Error", message: "Google sign-in failed." });
-    }
-  };
-
-  const handleGithubAuth = async () => {
-    try {
-      const result = await githubSignIn();
-      if (result?.notice) notify(result.notice);
-      if (result?.user) {
-        const token = await result.user.getIdToken();
-        setOauthToken(token);
-        setOauthUser(result.user);
-        setShowOAuthModal(true);
-      }
-    } catch {
-      notify({ type: "error", title: "Sign-In Error", message: "GitHub sign-in failed." });
-    }
-  };
-
   return (
     <div className="login-page">
-      <AnimatePresence mode="wait">
-        {!showOAuthModal ? (
-          <motion.div
-            key="login-form-container"
-            initial={{ opacity: 0, scale: 0.96, x: -40 }}
-            animate={{ opacity: 1, scale: 1, x: 0 }}
-            exit={{ opacity: 0, scale: 0.92, x: 40 }}
-            transition={{ duration: 0.4, ease: "easeInOut" }}
-            style={{ width: "100%", display: "flex", justifyContent: "center" }}
-          >
-            <form className="Login-Container" onSubmit={handleSubmit}>
-              <div className="Login-Header">
-                <Link to="/" style={{ color: '#00f0ff', fontSize: '0.85rem', textDecoration: 'none', marginBottom: '8px', display: 'inline-block' }}>← Back to Overview</Link>
-                <h2>LOGIN TO ALGOFIGHT</h2>
-                <span className="auth-subtitle">ENTER THE ARENA WITH YOUR CREDENTIALS</span>
-              </div>
+      <motion.div
+        key="login-form-container"
+        initial={{ opacity: 0, scale: 0.96, y: 30 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ duration: 0.35, ease: "easeOut" }}
+        style={{ width: "100%", display: "flex", justifyContent: "center" }}
+      >
+        <div className="Login-Container">
+          <div className="Login-Heading">
+            <h1>Welcome Back</h1>
+            <p>Enter the competitive coding arena</p>
+          </div>
 
-              <div className="input-group">
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Primary / College Email"
-                  autoComplete="email"
+          {/* Segmented Slidable Switcher */}
+          <div className="auth-mode-switch" role="tablist" aria-label="Sign-in methods">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={authMethod === "google"}
+              className={`auth-mode-btn ${authMethod === "google" ? "active" : ""}`}
+              onClick={() => setAuthMethod("google")}
+            >
+              <span>⚡ Google One-Tap</span>
+              {authMethod === "google" && (
+                <motion.div
+                  className="auth-mode-pill"
+                  layoutId="auth-mode-pill"
+                  transition={{ type: "spring", stiffness: 450, damping: 35 }}
                 />
-                <p className="error-message">{emailError || "\u00A0"}</p>
-              </div>
-
-              <div className="input-group">
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Password"
-                  autoComplete="current-password"
+              )}
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={authMethod === "manual"}
+              className={`auth-mode-btn ${authMethod === "manual" ? "active" : ""}`}
+              onClick={() => setAuthMethod("manual")}
+            >
+              <span>✉️ Email & Password</span>
+              {authMethod === "manual" && (
+                <motion.div
+                  className="auth-mode-pill"
+                  layoutId="auth-mode-pill"
+                  transition={{ type: "spring", stiffness: 450, damping: 35 }}
                 />
-                <p className="error-message">{passwordError || "\u00A0"}</p>
-              </div>
+              )}
+            </button>
+          </div>
 
-              <div className="auth-switch-text">
-                <span>Don't have an account?</span>
-                <Link to="/signup" className="signup-link">Sign Up</Link>
-              </div>
+          {/* Mutually Exclusive Views */}
+          <AnimatePresence mode="wait">
+            {authMethod === "google" ? (
+              <motion.div
+                key="login-google-view"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                transition={{ duration: 0.2, ease: "easeInOut" }}
+                className="google-tab-content"
+              >
+                <GoogleAuthButton
+                  mode="signin"
+                  onSuccess={handleGoogleSuccess}
+                  onError={handleGoogleError}
+                  loading={loading}
+                />
+              </motion.div>
+            ) : (
+              <motion.form
+                key="login-manual-view"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.2, ease: "easeInOut" }}
+                onSubmit={handleManualSubmit}
+                className="Login-Box"
+              >
+                <div className="input-group">
+                  <input
+                    type="email"
+                    placeholder="Email Address"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    autoComplete="email"
+                  />
+                  <p className="error-message">{emailError || "\u00A0"}</p>
+                </div>
 
-              <div className="Login-Separator">
-                <span>OR CONTINUE WITH</span>
-              </div>
+                <div className="input-group">
+                  <input
+                    type="password"
+                    placeholder="Password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    autoComplete="current-password"
+                  />
+                  <p className="error-message">{passwordError || "\u00A0"}</p>
+                </div>
 
-              <div className="Login-Social-Options">
-                <button className="social-btn google" type="button" onClick={handleGoogleAuth} aria-label="Google Login">
-                  <GoogleIcon size={20} />
-                  <span>Google</span>
-                </button>
-                <button className="social-btn github" type="button" onClick={handleGithubAuth} aria-label="GitHub Login">
-                  <GithubIcon size={20} />
-                  <span>GitHub</span>
-                </button>
-              </div>
-
-              <button type="submit" className="auth-submit-btn" disabled={loading}>
-                {loading ? "AUTHENTICATING..." : "ENTER ARENA"}
-              </button>
-
-              <div style={{ marginTop: "16px", textAlign: "center" }}>
-                <Link
-                  to="/student-login"
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: "8px",
-                    width: "100%",
-                    padding: "11px 16px",
-                    background: "rgba(0, 240, 255, 0.08)",
-                    border: "1px solid rgba(0, 240, 255, 0.35)",
-                    borderRadius: "8px",
-                    color: "#00f0ff",
-                    fontSize: "0.82rem",
-                    fontWeight: "700",
-                    letterSpacing: "0.06em",
-                    textDecoration: "none",
-                    transition: "all 0.2s ease"
-                  }}
+                <button
+                  type="submit"
+                  className="auth-submit-btn"
+                  disabled={loading}
+                  style={{ marginTop: "8px", width: "100%" }}
                 >
-                  🏛️ STUDENT LOGIN (MITS GWALIOR & COLLEGES) →
-                </Link>
-              </div>
-            </form>
-          </motion.div>
-        ) : (
-          <CompleteProfileDialog
-            key="complete-profile-dialog"
-            user={oauthUser || user}
-            authToken={oauthToken}
-            onComplete={() => navigate("/home")}
-            onSkip={() => navigate("/home")}
-          />
-        )}
-      </AnimatePresence>
+                  {loading ? "AUTHENTICATING..." : "ENTER ARENA"}
+                </button>
+              </motion.form>
+            )}
+          </AnimatePresence>
+
+          {/* Bottom Switch to Sign Up */}
+          <div className="auth-switch-text" style={{ marginTop: "20px" }}>
+            <span>Don't have an account?</span>
+            <Link to="/signup" className="signup-link">
+              Sign Up
+            </Link>
+          </div>
+        </div>
+      </motion.div>
     </div>
   );
 }

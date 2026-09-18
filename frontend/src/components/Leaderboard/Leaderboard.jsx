@@ -17,9 +17,10 @@ export default function Leaderboard() {
   const [error, setError] = useState(null);
 
   const handleUserClick = (userObj) => {
-    const id = userObj?.id || userObj?.username || userObj?.user;
-    if (id) {
-      navigate(`/profile/${encodeURIComponent(id)}`);
+    const handle = userObj?.username || userObj?.user || userObj?.id;
+    if (handle) {
+      const cleanHandle = typeof handle === "string" && handle.includes("@") ? handle.split("@")[0] : handle;
+      navigate(`/profile/${encodeURIComponent(cleanHandle)}`);
     }
   };
 

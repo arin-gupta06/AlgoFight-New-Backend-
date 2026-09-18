@@ -182,7 +182,8 @@ function Profile() {
                     message: "Entering live battle arena...",
                     duration: 2500,
                 });
-                navigate("/battle/live", { state: { matchData: matchPayload } });
+                const roomCode = matchPayload?.roomCode || matchPayload?.roomId;
+                navigate(roomCode ? `/battle/live/${roomCode}` : "/battle/live", { state: { matchData: matchPayload } });
             };
 
             socket.on("challenge_received", handleChallengeReceived);
@@ -746,6 +747,14 @@ function Profile() {
                             <p className="ap-modal-desc">
                                 <span className="ap-modal-target-name">{incomingChallenge.fromUsername}</span> (Rating: {incomingChallenge.fromRating ?? 0}) has challenged you to an instant battle duel!
                             </p>
+
+                            {incomingChallenge.config && (
+                                <div style={{ display: "flex", justifyContent: "center", gap: "12px", margin: "10px 0", fontSize: "0.8rem", color: "#00e5ff", background: "rgba(0, 229, 255, 0.08)", padding: "6px 12px", borderRadius: "8px", border: "1px solid rgba(0, 229, 255, 0.25)" }}>
+                                    <span>⏱️ {incomingChallenge.config.timeLimitMinutes || 15} Mins</span>
+                                    <span>🎯 {incomingChallenge.config.difficulty || "MEDIUM"}</span>
+                                    <span>📝 {incomingChallenge.config.problemCount || 1} Question{(incomingChallenge.config.problemCount || 1) > 1 ? "s" : ""}</span>
+                                </div>
+                            )}
 
                             <div className="ap-modal-timer-bar">
                                 <div

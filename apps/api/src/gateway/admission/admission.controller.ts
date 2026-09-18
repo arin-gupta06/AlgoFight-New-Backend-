@@ -86,17 +86,22 @@ export class AdmissionController {
         }
 
         // 8. Establish Session & UserTrustContext
-        let session = userSessionStore.getSessionByUserId(identity.id);
+        let session = await userSessionStore.getSessionByUserId(identity.id);
         if (!session) {
-            session = userSessionStore.createSession({
+            session = await userSessionStore.createSession({
                 userId: identity.id,
                 gatewayId: gateway.id,
                 contextId: gateway.context.contextId,
                 ip: request.ip,
                 userAgent: request.headers["user-agent"] as string,
+                email: identity.email,
+                username: identity.username,
+                role: identity.role,
+                platformCode: identity.platformCode,
+                institutionName: identity.institutionName,
             });
         } else {
-            userSessionStore.touchSession(session.sessionId);
+            await userSessionStore.touchSession(session.sessionId);
         }
 
         const now = Math.floor(Date.now() / 1000);

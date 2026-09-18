@@ -19,6 +19,8 @@ import {
     EvaluationService,
 } from "@algofight/application";
 import { battleTimerQueue, JOB_NAMES, createRedisClient } from "@algofight/queue";
+import { userSessionStore } from "../gateway/session/user-session";
+import { googleTokenVerifier } from "../utils/google-auth.util";
 
 export class SocketHandler {
     private readonly userRepo = new PrismaUserRepository();
@@ -242,19 +244,25 @@ export class SocketHandler {
             switch (action) {
                 case "auth":
                 case "identify": {
-                    // 🛡️ AF-003: Cryptographic Firebase Token Verification
+                    // 🛡️ Verify AlgoFight Session Token or Google ID Token
                     let verifiedUid: string | null = null;
                     let verifiedEmail: string | undefined = undefined;
                     let verifiedUsername: string | undefined = undefined;
 
                     const rawToken = data.token || data.rawToken || (typeof data.auth === "object" ? data.auth.token : undefined);
                     if (rawToken) {
-                        const certs = await this.refreshPublicKeys();
-                        const verified = this.verifyToken(rawToken, certs);
-                        if (verified) {
-                            verifiedUid = verified.uid;
-                            verifiedEmail = verified.email;
-                            verifiedUsername = verified.name;
+                        const session = await userSessionStore.getSession(rawToken);
+                        if (session) {
+                            verifiedUid = session.userId;
+                            verifiedEmail = session.email;
+                            verifiedUsername = session.username;
+                        } else {
+                            const googlePayload = await googleTokenVerifier.verifyIdToken(rawToken);
+                            if (googlePayload) {
+                                verifiedUid = googlePayload.sub;
+                                verifiedEmail = googlePayload.email;
+                                verifiedUsername = googlePayload.name;
+                            }
                         }
                     }
 
@@ -356,12 +364,20 @@ export class SocketHandler {
                         break;
                     }
 
+                    const challengeConfig = data.config || {
+                        difficulty: data.difficulty || "MIX",
+                        questionCount: Number(data.questionCount) || 3,
+                        timeLimitMinutes: Number(data.timeLimitMinutes) || 15,
+                        topics: Array.isArray(data.topics) ? data.topics : [],
+                    };
+
                     const challenge = this.connectionManager.createChallenge({
                         fromUserId,
                         fromUsername,
                         fromRating,
                         targetUserId,
                         targetUsername: targetUsername || "Opponent",
+                        config: challengeConfig,
                     });
 
                     if (!challenge) {
@@ -381,12 +397,13 @@ export class SocketHandler {
                         userId: targetUserId,
                         type: "CHALLENGE",
                         title: "⚔️ 1v1 Battle Invite",
-                        message: `${fromUsername} challenged you to an instant 1v1 battle duel!`,
+                        message: `${fromUsername} challenged you to a 1v1 duel (${challengeConfig.difficulty} • ${challengeConfig.questionCount} Qs • ${challengeConfig.timeLimitMinutes}m)!`,
                         metadata: {
                             challengeId: challenge.challengeId,
                             fromUserId,
                             fromUsername,
                             fromRating,
+                            config: challengeConfig,
                         },
                     });
                     break;
@@ -433,13 +450,19 @@ export class SocketHandler {
                     challenge.status = "ACCEPTED";
                     this.connectionManager.removeChallenge(challengeId);
 
+                    const battleConfig = challenge.config || {
+                        difficulty: "MIX",
+                        questionCount: 3,
+                        timeLimitMinutes: 15,
+                    };
+
                     try {
                         const room = await this.battleRoomService.createRoom({
                             hostId: challenge.fromUserId,
                             maxPlayers: 2,
-                            timeLimitMinutes: 15,
-                            difficulty: "MIX",
-                            questionCount: 3,
+                            timeLimitMinutes: battleConfig.timeLimitMinutes || 15,
+                            difficulty: battleConfig.difficulty || "MIX",
+                            questionCount: battleConfig.questionCount || 3,
                             isFriendly: true
                         });
 
@@ -454,27 +477,43 @@ export class SocketHandler {
                         this.connectionManager.updatePresenceStatus(challenge.fromUserId, "IN_BATTLE", room.id);
                         this.connectionManager.updatePresenceStatus(challenge.targetUserId, "IN_BATTLE", room.id);
 
+                        // 🛡️ Activity Session Tracking (Issue 2)
+                        await userSessionStore.setActiveActivity(challenge.fromUserId, {
+                            type: "BATTLE",
+                            activityId: room.roomCode,
+                            joinedAt: Date.now(),
+                            status: "ACTIVE",
+                        });
+                        await userSessionStore.setActiveActivity(challenge.targetUserId, {
+                            type: "BATTLE",
+                            activityId: room.roomCode,
+                            joinedAt: Date.now(),
+                            status: "ACTIVE",
+                        });
+
                         const matchPayload = {
                             roomId: room.id,
                             roomCode: room.roomCode,
                             problems: problems,
-                            timeLimitSeconds: room.timeLimitMinutes * 60,
+                            timeLimitSeconds: (battleConfig.timeLimitMinutes || 15) * 60,
                             players: [challenge.fromUsername, challenge.targetUsername],
                         };
 
                         const battleState = {
                             roomId: room.id,
+                            roomCode: room.roomCode,
+                            hostId: challenge.fromUserId,
                             status: "RUNNING",
-                            timeLimitSeconds: room.timeLimitMinutes * 60,
+                            timeLimitSeconds: (battleConfig.timeLimitMinutes || 15) * 60,
                             startTime: Date.now(),
                             totalQuestions: problems.length,
                             players: [
-                                { userId: challenge.fromUserId, username: challenge.fromUsername, points: 0, solvedProblems: [], solvedCount: 0 },
-                                { userId: challenge.targetUserId, username: challenge.targetUsername, points: 0, solvedProblems: [], solvedCount: 0 }
+                                { userId: challenge.fromUserId, username: challenge.fromUsername, status: "ACTIVE", points: 0, solvedProblems: [], solvedCount: 0 },
+                                { userId: challenge.targetUserId, username: challenge.targetUsername, status: "ACTIVE", points: 0, solvedProblems: [], solvedCount: 0 }
                             ]
                         };
-                        await this.redis.set(`battle_state:${room.id}`, JSON.stringify(battleState), "EX", (room.timeLimitMinutes * 60) + 300);
-                        await battleTimerQueue.add(JOB_NAMES.BATTLE_TIMER, { roomId: room.id }, { delay: (room.timeLimitMinutes * 60) * 1000 });
+                        await this.redis.set(`battle_state:${room.id}`, JSON.stringify(battleState), "EX", ((battleConfig.timeLimitMinutes || 15) * 60) + 300);
+                        await battleTimerQueue.add(JOB_NAMES.BATTLE_TIMER, { roomId: room.id }, { delay: ((battleConfig.timeLimitMinutes || 15) * 60) * 1000 });
 
                         const challengerSocket = this.connectionManager.userSockets.get(challenge.fromUserId);
                         const targetSocket = this.connectionManager.userSockets.get(challenge.targetUserId);
@@ -1167,6 +1206,125 @@ export class SocketHandler {
 
                     this.connectionManager.leaveRoom(roomId, socket);
                     if (session) delete session.roomId;
+                    break;
+                }
+
+                case "kick_player": {
+                    const session = this.socketUsers.get(socket);
+                    const activeUserId = session?.userId || currentUserId.value;
+                    const { roomId, targetUserId, reason } = data;
+                    if (!activeUserId || !roomId || !targetUserId) break;
+
+                    const rawState = await this.redis.get(`battle_state:${roomId}`);
+                    if (!rawState) break;
+                    const state = JSON.parse(rawState);
+
+                    if (state.hostId && state.hostId !== activeUserId) {
+                        this.send(socket, "error", "Unauthorized: only the battle host can remove participants.");
+                        break;
+                    }
+
+                    const player = state.players?.find((p: any) => p.userId === targetUserId);
+                    if (player) {
+                        player.status = "KICKED";
+                        await this.redis.set(`battle_state:${roomId}`, JSON.stringify(state), "EX", 1800);
+
+                        this.connectionManager.broadcastToRoom(roomId, "player_kicked", {
+                            roomId,
+                            targetUserId,
+                            username: player.username,
+                            hostUsername: session?.username || "Host",
+                            reason: reason || "Participant removed by host.",
+                        });
+
+                        const targetSocket = this.connectionManager.userSockets.get(targetUserId);
+                        if (targetSocket) {
+                            this.send(targetSocket, "kicked_from_battle", {
+                                roomId,
+                                reason: reason || "You were removed from this battle by the host.",
+                            });
+                        }
+                    }
+                    break;
+                }
+
+                case "readmit_player": {
+                    const session = this.socketUsers.get(socket);
+                    const activeUserId = session?.userId || currentUserId.value;
+                    const { roomId, targetUserId } = data;
+                    if (!activeUserId || !roomId || !targetUserId) break;
+
+                    const rawState = await this.redis.get(`battle_state:${roomId}`);
+                    if (!rawState) break;
+                    const state = JSON.parse(rawState);
+
+                    if (state.hostId && state.hostId !== activeUserId) {
+                        this.send(socket, "error", "Unauthorized: only the battle host can readmit participants.");
+                        break;
+                    }
+
+                    const player = state.players?.find((p: any) => p.userId === targetUserId);
+                    if (player) {
+                        if (player.disqualified) {
+                            this.send(socket, "error", "Cannot readmit player disqualified for anti-cheat violation.");
+                            break;
+                        }
+                        player.status = "ACTIVE";
+                        await this.redis.set(`battle_state:${roomId}`, JSON.stringify(state), "EX", 1800);
+
+                        this.connectionManager.broadcastToRoom(roomId, "player_readmitted", {
+                            roomId,
+                            targetUserId,
+                            username: player.username,
+                        });
+
+                        const targetSocket = this.connectionManager.userSockets.get(targetUserId);
+                        if (targetSocket) {
+                            this.send(targetSocket, "readmitted_to_battle", { roomId });
+                        }
+                    }
+                    break;
+                }
+
+                case "checkpoint_sync": {
+                    const session = this.socketUsers.get(socket);
+                    const userId = session?.userId || currentUserId.value;
+                    const { roomId, problemId, code, language, revision } = data;
+                    if (userId && roomId && problemId !== undefined) {
+                        const checkpoint = {
+                            userId,
+                            roomId,
+                            problemId,
+                            code: code || "",
+                            language: language || "javascript",
+                            revision: revision || 1,
+                            updatedAt: Date.now(),
+                        };
+                        // Store checkpoint in Redis (Issue 1)
+                        await this.redis.set(`battle_checkpoint:${roomId}:${userId}:${problemId}`, JSON.stringify(checkpoint), "EX", 3600);
+
+                        // Return ACK with confirmed revision
+                        this.send(socket, "checkpoint_ack", {
+                            roomId,
+                            problemId,
+                            revision: revision || 1,
+                            timestamp: Date.now(),
+                        });
+                    }
+                    break;
+                }
+
+                case "check_active_battle": {
+                    const session = this.socketUsers.get(socket);
+                    const userId = session?.userId || currentUserId.value;
+                    if (userId) {
+                        const activity = await userSessionStore.getActiveActivity(userId);
+                        if (activity && activity.status === "ACTIVE") {
+                            this.send(socket, "active_battle_found", activity);
+                        } else {
+                            this.send(socket, "no_active_battle", {});
+                        }
+                    }
                     break;
                 }
 

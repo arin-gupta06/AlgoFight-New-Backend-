@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "./AuthContext";
 import { useUserStore } from "../store/useUserStore";
 import { useGameStore } from "../store/useGameStore";
@@ -12,7 +12,6 @@ const INACTIVE_SOCKET_ROUTES = new Set([
   "/",
   "/login",
   "/signup",
-  "/student-login",
   "/about",
   "/blog",
   "/careers",
@@ -40,6 +39,7 @@ function shouldConnectSocket(pathname) {
 
 export function SocketProvider({ children }) {
   const location = useLocation();
+  const navigate = useNavigate();
   const { user, loading } = useAuth();
 
   // Zustand Store integrations
@@ -65,13 +65,19 @@ export function SocketProvider({ children }) {
     const handleProfileUpdate = (data) => setProfileData(data?.payload || data);
     const handleLeaderboardUpdate = (data) => setLeaderboard(data?.payload || data);
     const handleMatchFound = (data) => {
+      const roomCode = data?.roomCode || data?.roomId;
       setMatchState({
-        matchId: data.roomId,
-        opponent: data.players?.find((p) => p !== username) || "Opponent",
+        matchId: roomCode,
+        opponent: data?.players?.find((p) => p !== username) || "Opponent",
         matchStatus: "found",
-        problems: data.problems,
-        timeLimitSeconds: data.timeLimitSeconds,
+        problems: data?.problems,
+        timeLimitSeconds: data?.timeLimitSeconds,
       });
+
+      // Issue 3: Authoritative navigation ensures BOTH challenged & challenger transition into Battle Workspace
+      if (roomCode && !location.pathname.startsWith(`/battle/live/${roomCode}`)) {
+        navigate(`/battle/live/${roomCode}`, { state: { matchData: data } });
+      }
     };
     const handleMatchStarted = () => setMatchState({ matchStatus: "in-progress" });
     const handleBattleStateSync = (data) => setMatchState({ battleStats: data });
@@ -109,7 +115,7 @@ export function SocketProvider({ children }) {
       socketClient.off("battle_state_sync", handleBattleStateSync);
       socketClient.off("battle_stats_update", handleBattleStateSync);
     };
-  }, [userId, username, loading, shouldConnect, setMatchState, setLeaderboard, setProfileData]);
+  }, [userId, username, loading, shouldConnect, setMatchState, setLeaderboard, setProfileData, navigate, location.pathname]);
 
   const socketWrapper = useMemo(() => {
     const socketClient = getSocket();

@@ -243,11 +243,19 @@ export default function InboxDropdown({ isOpen, onClose }) {
                                             <p>{item.message}</p>
                                             
                                             {item.type === 'CHALLENGE' && !item.read && item.metadata?.challengeId && (
-                                                <div className="inbox-challenge-actions">
-                                                    <button
-                                                        className="inbox-action-btn tone-green"
-                                                        onClick={(e) => handleAcceptChallenge(e, item.metadata.challengeId, item.id)}
-                                                    >
+                                                <div className="inbox-challenge-section">
+                                                    {item.metadata?.config && (
+                                                        <div style={{ display: "flex", gap: "10px", margin: "6px 0", fontSize: "0.75rem", color: "#00e5ff", background: "rgba(0, 229, 255, 0.08)", padding: "4px 8px", borderRadius: "6px", border: "1px solid rgba(0, 229, 255, 0.2)" }}>
+                                                            <span>⏱️ {item.metadata.config.timeLimitMinutes || 15} mins</span>
+                                                            <span>🎯 {item.metadata.config.difficulty || "MEDIUM"}</span>
+                                                            <span>📝 {item.metadata.config.problemCount || 1} Q</span>
+                                                        </div>
+                                                    )}
+                                                    <div className="inbox-challenge-actions">
+                                                        <button
+                                                            className="inbox-action-btn tone-green"
+                                                            onClick={(e) => handleAcceptChallenge(e, item.metadata.challengeId, item.id)}
+                                                        >
                                                         <FontAwesomeIcon icon={faBolt} /> Accept
                                                     </button>
                                                     <button
@@ -256,6 +264,7 @@ export default function InboxDropdown({ isOpen, onClose }) {
                                                     >
                                                         <FontAwesomeIcon icon={faTimes} /> Decline
                                                     </button>
+                                                </div>
                                                 </div>
                                             )}
                                         </div>

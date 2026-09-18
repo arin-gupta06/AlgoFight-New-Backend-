@@ -1,60 +1,67 @@
 import React, { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import "./Signup.css";
 import { motion, AnimatePresence } from "framer-motion";
-import { Link, useNavigate } from "react-router-dom";
-import { GoogleIcon, GithubIcon } from "../Common/icons/Icons";
-import CompleteProfileDialog from "../Common/modals/CompleteProfileDialog";
-import { emailPasswordSignUp, googleSignIn, githubSignIn } from "../../firebaseConfig.js";
 import { useAuth } from "../../contexts/AuthContext";
 import { useNotification } from "../../contexts/NotificationContext.jsx";
+import GoogleAuthButton from "../Common/GoogleAuthButton.jsx";
 
 function Signup() {
-  const [userType, setUserType] = useState("STUDENT"); // "STUDENT" | "FACULTY" | "INDIVIDUAL"
-  const [username, setUsername] = useState("");
-  const [collegeEmail, setCollegeEmail] = useState("");
-  const [secondaryEmail, setSecondaryEmail] = useState("");
-  const [institutionName, setInstitutionName] = useState("");
+  const [authMethod, setAuthMethod] = useState("google"); // "google" | "manual"
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [githubUrl, setGithubUrl] = useState("");
-  const [linkedinUrl, setLinkedinUrl] = useState("");
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
-  const [showOAuthModal, setShowOAuthModal] = useState(false);
-  const [oauthToken, setOauthToken] = useState(null);
-  const [oauthUser, setOauthUser] = useState(null);
 
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, signupManual, loginWithGoogle } = useAuth();
   const { notify } = useNotification();
 
-  const isCollegeUser = userType === "STUDENT" || userType === "FACULTY";
-
   useEffect(() => {
-    if (user && !showOAuthModal) {
+    if (user) {
       navigate("/home");
     }
-  }, [user, navigate, showOAuthModal]);
+  }, [user, navigate]);
 
-  const validate = () => {
+  const handleGoogleSuccess = async (credential) => {
+    setLoading(true);
+    try {
+      await loginWithGoogle(credential);
+      notify({
+        type: "success",
+        title: "Account Created",
+        message: "Welcome to AlgoFight! Signed up with Google.",
+      });
+      navigate("/home");
+    } catch (err) {
+      notify({
+        type: "error",
+        title: "Sign-Up Failed",
+        message: err?.message || "Google registration failed.",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleError = (err) => {
+    console.warn("GIS signup error:", err);
+    notify({
+      type: "error",
+      title: "Google Sign-Up Error",
+      message: err?.message || "Could not complete Google Sign-Up.",
+    });
+  };
+
+  const validateManual = () => {
     const errs = {};
-    if (!username.trim()) errs.username = "Username is required";
+    const cleanEmail = email.trim();
 
-    if (isCollegeUser) {
-      if (!collegeEmail.trim()) {
-        errs.collegeEmail = "College / Institutional Email is mandatory";
-      } else if (!/\S+@\S+\.\S+/.test(collegeEmail)) {
-        errs.collegeEmail = "Invalid email format";
-      }
-      if (!institutionName.trim()) {
-        errs.institutionName = "College / Institution name is mandatory";
-      }
-    } else {
-      if (!collegeEmail.trim()) {
-        errs.collegeEmail = "Email address is required";
-      } else if (!/\S+@\S+\.\S+/.test(collegeEmail)) {
-        errs.collegeEmail = "Invalid email format";
-      }
+    if (!cleanEmail) {
+      errs.email = "Email address is required";
+    } else if (!/\S+@\S+\.\S+/.test(cleanEmail)) {
+      errs.email = "Invalid email format";
     }
 
     if (!password) {
@@ -71,231 +78,176 @@ function Signup() {
     return Object.keys(errs).length === 0;
   };
 
-  const handleSignUpSubmit = async (e) => {
+  const handleManualSignUp = async (e) => {
     e.preventDefault();
-    if (!validate()) return;
+    if (!validateManual()) return;
 
     setLoading(true);
     try {
-      const res = await emailPasswordSignUp({
-        email: collegeEmail.trim(),
+      const cleanEmail = email.trim();
+      const defaultUsername = cleanEmail.split("@")[0].replace(/[^a-zA-Z0-9_]/g, "");
+
+      await signupManual({
+        email: cleanEmail,
         password,
-        username: username.trim(),
-        userType,
-        institutionName: isCollegeUser ? institutionName.trim() : null,
-        secondaryEmail: secondaryEmail.trim() || null,
-        githubUrl: githubUrl.trim() || null,
-        linkedinUrl: linkedinUrl.trim() || null,
+        username: defaultUsername,
+        userType: "INDIVIDUAL",
       });
 
-      if (res.notice) notify(res.notice);
-      if (res.user) {
-        navigate("/home");
-      }
+      notify({
+        type: "success",
+        title: "Account Created",
+        message: "Welcome to AlgoFight! Your account is ready.",
+      });
+      navigate("/home");
+    } catch (err) {
+      notify({
+        type: "error",
+        title: "Sign-Up Failed",
+        message: err?.message || "Registration failed.",
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  const handleGoogleAuth = async () => {
-    try {
-      const result = await googleSignIn();
-      if (result?.notice) notify(result.notice);
-      if (result?.user) {
-        const token = await result.user.getIdToken();
-        setOauthToken(token);
-        setOauthUser(result.user);
-        setShowOAuthModal(true);
-      }
-    } catch {
-      notify({ type: "error", title: "Sign-Up Error", message: "Google sign-up failed." });
-    }
-  };
-
-  const handleGithubAuth = async () => {
-    try {
-      const result = await githubSignIn();
-      if (result?.notice) notify(result.notice);
-      if (result?.user) {
-        const token = await result.user.getIdToken();
-        setOauthToken(token);
-        setOauthUser(result.user);
-        setShowOAuthModal(true);
-      }
-    } catch {
-      notify({ type: "error", title: "Sign-Up Error", message: "GitHub sign-up failed." });
-    }
-  };
-
   return (
     <div className="signup-page">
-      <AnimatePresence mode="wait">
-        {!showOAuthModal ? (
-          <motion.div
-            key="signup-form-container"
-            initial={{ opacity: 0, scale: 0.96, y: 40 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.92, y: -40 }}
-            transition={{ duration: 0.4, ease: "easeInOut" }}
-            style={{ width: "100%", display: "flex", justifyContent: "center" }}
-          >
-            <form className="Signup-Container" onSubmit={handleSignUpSubmit}>
-              <div className="Signup-Header">
-                <Link to="/" style={{ color: '#00f0ff', fontSize: '0.85rem', textDecoration: 'none', marginBottom: '8px', display: 'inline-block' }}>← Back to Overview</Link>
-                <h1>CREATE ACCOUNT</h1>
-                <span className="auth-subtitle">SELECT YOUR IDENTITY & ENTER THE ARENA</span>
-              </div>
+      <motion.div
+        key="signup-form-container"
+        initial={{ opacity: 0, scale: 0.96, y: 30 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ duration: 0.35, ease: "easeOut" }}
+        style={{ width: "100%", display: "flex", justifyContent: "center" }}
+      >
+        <div className="Signup-Container">
+          <div className="Signup-Heading">
+            <h1>Create an Account</h1>
+            <p>Join the next generation of competitive programmers</p>
+          </div>
 
-              {/* Identity Category Selector */}
-              <div className="role-selector-tabs">
-                <button
-                  type="button"
-                  className={`role-tab ${userType === "STUDENT" ? "active" : ""}`}
-                  onClick={() => setUserType("STUDENT")}
-                >
-                  🎓 Student
-                </button>
-                <button
-                  type="button"
-                  className={`role-tab ${userType === "FACULTY" ? "active" : ""}`}
-                  onClick={() => setUserType("FACULTY")}
-                >
-                  🏛️ Faculty
-                </button>
-                <button
-                  type="button"
-                  className={`role-tab ${userType === "INDIVIDUAL" ? "active" : ""}`}
-                  onClick={() => setUserType("INDIVIDUAL")}
-                >
-                  💻 Independent
-                </button>
-              </div>
+          {/* Segmented Slidable Switcher */}
+          <div className="auth-mode-switch" role="tablist" aria-label="Sign-up methods">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={authMethod === "google"}
+              className={`auth-mode-btn ${authMethod === "google" ? "active" : ""}`}
+              onClick={() => setAuthMethod("google")}
+            >
+              <span>⚡ Google One-Tap</span>
+              {authMethod === "google" && (
+                <motion.div
+                  className="auth-mode-pill"
+                  layoutId="auth-mode-pill"
+                  transition={{ type: "spring", stiffness: 450, damping: 35 }}
+                />
+              )}
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={authMethod === "manual"}
+              className={`auth-mode-btn ${authMethod === "manual" ? "active" : ""}`}
+              onClick={() => setAuthMethod("manual")}
+            >
+              <span>✉️ Email & Password</span>
+              {authMethod === "manual" && (
+                <motion.div
+                  className="auth-mode-pill"
+                  layoutId="auth-mode-pill"
+                  transition={{ type: "spring", stiffness: 450, damping: 35 }}
+                />
+              )}
+            </button>
+          </div>
 
-              <div className="Signup-Form-Options">
-                {/* Username */}
-                <div className="input-group">
-                  <input
-                    type="text"
-                    placeholder="Username / Combat Tag"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                  />
-                  <p className="error-message">{errors.username || "\u00A0"}</p>
-                </div>
-
-                {/* Primary / College Email */}
+          {/* Mutually Exclusive Views */}
+          <AnimatePresence mode="wait">
+            {authMethod === "google" ? (
+              <motion.div
+                key="signup-google-view"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                transition={{ duration: 0.2, ease: "easeInOut" }}
+                className="google-tab-content"
+              >
+                <GoogleAuthButton
+                  mode="signup"
+                  onSuccess={handleGoogleSuccess}
+                  onError={handleGoogleError}
+                  loading={loading}
+                />
+              </motion.div>
+            ) : (
+              <motion.form
+                key="signup-manual-view"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.2, ease: "easeInOut" }}
+                onSubmit={handleManualSignUp}
+                className="Signup-Form-Options"
+              >
+                {/* Email Address */}
                 <div className="input-group">
                   <input
                     type="email"
-                    placeholder={isCollegeUser ? "College / Institution Email (Mandatory)" : "Primary Email Address"}
-                    value={collegeEmail}
-                    onChange={(e) => setCollegeEmail(e.target.value)}
+                    placeholder="Email Address"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    autoComplete="email"
                   />
-                  <p className="error-message">{errors.collegeEmail || "\u00A0"}</p>
+                  <p className="error-message">{errors.email || "\u00A0"}</p>
                 </div>
 
-                {/* Institution Name (Mandatory for College users) */}
-                {isCollegeUser && (
-                  <div className="input-group">
-                    <input
-                      type="text"
-                      placeholder="College / University Name (Mandatory)"
-                      value={institutionName}
-                      onChange={(e) => setInstitutionName(e.target.value)}
-                    />
-                    <p className="error-message">{errors.institutionName || "\u00A0"}</p>
-                  </div>
-                )}
-
-                {/* Secondary Email (Optional) */}
-                <div className="input-group">
-                  <input
-                    type="email"
-                    placeholder="Secondary / Personal Email (Optional)"
-                    value={secondaryEmail}
-                    onChange={(e) => setSecondaryEmail(e.target.value)}
-                  />
-                  <p className="error-message">{"\u00A0"}</p>
-                </div>
-                {/* GitHub URL (Optional) */}
-                <div className="input-group">
-                  <input
-                    type="url"
-                    placeholder="GitHub URL (Optional)"
-                    value={githubUrl}
-                    onChange={(e) => setGithubUrl(e.target.value)}
-                  />
-                  <p className="error-message">{"\u00A0"}</p>
-                </div>
-                {/* LinkedIn URL (Optional) */}
-                <div className="input-group">
-                  <input
-                    type="url"
-                    placeholder="LinkedIn URL (Optional)"
-                    value={linkedinUrl}
-                    onChange={(e) => setLinkedinUrl(e.target.value)}
-                  />
-                  <p className="error-message">{"\u00A0"}</p>
-                </div>
-                {/* Password & Confirm */}
+                {/* Password */}
                 <div className="input-group">
                   <input
                     type="password"
                     placeholder="Password (min 6 characters)"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    autoComplete="new-password"
                   />
                   <p className="error-message">{errors.password || "\u00A0"}</p>
                 </div>
 
+                {/* Confirm Password */}
                 <div className="input-group">
                   <input
                     type="password"
                     placeholder="Confirm Password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
+                    autoComplete="new-password"
                   />
                   <p className="error-message">{errors.confirmPassword || "\u00A0"}</p>
                 </div>
 
-                <div className="auth-switch-text">
-                  <span>Already registered?</span>
-                  <Link to="/" className="Login-link">Login</Link>
-                </div>
-
-                <div className="Signup-Separator">
-                  <span>OR REGISTER WITH</span>
-                </div>
-
-                <div className="Signup-Social-Options">
-                  <button className="social-btn google" type="button" onClick={handleGoogleAuth}>
-                    <GoogleIcon size={20} />
-                    <span>Google</span>
-                  </button>
-                  <button className="social-btn github" type="button" onClick={handleGithubAuth}>
-                    <GithubIcon size={20} />
-                    <span>GitHub</span>
-                  </button>
-                </div>
-
-                <button type="submit" className="auth-submit-btn" disabled={loading}>
-                  {loading ? "INITIALIZING COMBAT TAG..." : "REGISTER & GET INSTITUTIONAL CODE"}
+                {/* Submit button */}
+                <button
+                  type="submit"
+                  className="auth-submit-btn"
+                  disabled={loading}
+                  style={{ marginTop: "8px", width: "100%" }}
+                >
+                  {loading ? "INITIALIZING COMBAT TAG..." : "CREATE ACCOUNT"}
                 </button>
-              </div>
-            </form>
-          </motion.div>
-        ) : (
-          <CompleteProfileDialog
-            key="complete-profile-dialog-signup"
-            user={oauthUser || user}
-            authToken={oauthToken}
-            initialGithub={githubUrl}
-            initialLinkedin={linkedinUrl}
-            onComplete={() => navigate("/home")}
-            onSkip={() => navigate("/home")}
-          />
-        )}
-      </AnimatePresence>
+              </motion.form>
+            )}
+          </AnimatePresence>
+
+          {/* Bottom Switch to Login */}
+          <div className="auth-switch-text" style={{ marginTop: "20px" }}>
+            <span>Already registered?</span>
+            <Link to="/login" className="Login-link">
+              Login
+            </Link>
+          </div>
+        </div>
+      </motion.div>
     </div>
   );
 }

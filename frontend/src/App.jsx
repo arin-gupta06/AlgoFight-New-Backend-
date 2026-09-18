@@ -1,5 +1,5 @@
 import React, { Suspense, lazy, useEffect } from 'react';
-import { Routes, Route, Outlet, useLocation } from 'react-router-dom';
+import { Routes, Route, Outlet, useLocation, Navigate } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import { unifiedAnalytics } from './services/analytics.js';
 
@@ -15,7 +15,6 @@ const LandingPage = lazy(() => import('./components/LandingPage/LandingPage.jsx'
 const Home = lazy(() => import('./components/Home/Home.jsx'));
 const Rewards = lazy(() => import('./components/Rewards/Rewards.jsx'));
 const Signup = lazy(() => import('./components/Signup/Signup.jsx'));
-const StudentLogin = lazy(() => import('./components/Login/StudentLogin.jsx'));
 const Profile = lazy(() => import('./components/Profile/Profile.jsx'));
 const LiveBattle = lazy(() => import('./components/Battle/LiveBattle.jsx'));
 const Leaderboard = lazy(() => import('./components/Leaderboard/Leaderboard.jsx'));
@@ -109,7 +108,7 @@ function App() {
             <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
-            <Route path="/student-login" element={<StudentLogin />} />
+            <Route path="/student-login" element={<Navigate to="/login" replace />} />
           </Route>
 
         {/* ================= Main App Routes ================= */}
@@ -125,6 +124,7 @@ function App() {
           <Route path="/battle" element={<ProtectedRoute><BattleArena /></ProtectedRoute>} />
           <Route path="/battle/players" element={<ProtectedRoute><BattleArena defaultTab="players" /></ProtectedRoute>} />
           <Route path="/battle/live" element={<ProtectedRoute><LiveBattle /></ProtectedRoute>} />
+          <Route path="/battle/live/:roomCode" element={<ProtectedRoute><LiveBattle /></ProtectedRoute>} />
           <Route path="/battle/room/:roomCode" element={<ProtectedRoute><RoomLobby /></ProtectedRoute>} />
           <Route path="/practice" element={<ProtectedRoute><Practice /></ProtectedRoute>} />
           <Route path="/practice/:problemId" element={<ProtectedRoute><PracticeWorkspace /></ProtectedRoute>} />

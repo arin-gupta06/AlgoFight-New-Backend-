@@ -15,10 +15,6 @@ export default defineConfig(({ mode }) => {
       host: true,
       port: 5173,
       strictPort: false,
-      headers: {
-        'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
-        'Cross-Origin-Embedder-Policy': 'unsafe-none',
-      },
       proxy: {
         '/api': {
           target: backendTarget,

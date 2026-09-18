@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, useParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { connectSocket, disconnectSocket } from "../../services/socket";
 import { useAuth } from "../../contexts/AuthContext";
 import { useNotification } from "../../contexts/NotificationContext.jsx";
 import { requestJson } from "../../services/api";
 import { useAntiCheat } from "../../hooks/useAntiCheat";
+import { saveLocalDraft, getLocalDraft, markDraftAcked, clearDraft } from "../../services/storage/indexedDbRecovery.js";
 import ProblemStatement from "../Common/problem/ProblemStatement.jsx";
 import DetailedAnalysisModal from "../Common/modals/DetailedAnalysisModal.jsx";
 import RankEmblem from "../Common/gamification/RankEmblem";
@@ -208,13 +209,16 @@ const PostBattleSummaryModal = ({ battleResult, liveState, problems, ratingUpdat
 export default function LiveBattle() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { roomCode: paramRoomCode } = useParams();
   const { user } = useAuth();
   const { notify } = useNotification();
 
   const initialMatch = location.state?.matchData;
-  const initialRoomCode = location.state?.roomCode;
+  const initialRoomCode = paramRoomCode || location.state?.roomCode;
 
   const [status, setStatus] = useState(initialMatch || initialRoomCode ? "matched" : "connecting");
+  const [syncStatus, setSyncStatus] = useState("synced"); // "synced" | "pending_sync" | "degraded"
+  const saveDebounceTimer = useRef(null);
   const statusRef = useRef(status);
   
   useEffect(() => {
@@ -394,7 +398,7 @@ export default function LiveBattle() {
 
   // Fetch full room and problem details from API if problem statement/testcases are missing or on direct match entry
   useEffect(() => {
-    const targetId = roomId || initialMatch?.roomId || initialMatch?.roomCode || initialRoomCode;
+    const targetId = roomId || initialMatch?.roomId || initialMatch?.roomCode || initialRoomCode || paramRoomCode;
     if (!targetId) return;
 
     let active = true;
@@ -420,12 +424,76 @@ export default function LiveBattle() {
     return () => {
       active = false;
     };
-  }, [roomId, initialMatch, initialRoomCode]);
+  }, [roomId, initialMatch, initialRoomCode, paramRoomCode]);
 
+  // Issue 1: Recover code draft from client-side IndexedDB or initialize with language starter
   useEffect(() => {
     if (!problem) return;
-    setCode(getStarterCodeForLanguage(problem, language));
-  }, [language, problem, activeProblemIndex]);
+    const starter = getStarterCodeForLanguage(problem, language);
+    const targetId = roomId || initialMatch?.roomId || initialMatch?.roomCode || initialRoomCode || paramRoomCode;
+    const currentProblemId = problem?.id || activeProblemIndex;
+
+    let active = true;
+    if (targetId && user?.uid) {
+      getLocalDraft("battle", targetId, currentProblemId, user.uid).then((draft) => {
+        if (!active) return;
+        if (draft && draft.code && draft.code.trim().length > 0) {
+          setCode(draft.code);
+          if (draft.language) setLanguage(draft.language);
+          setSyncStatus(draft.syncStatus || "synced");
+        } else {
+          setCode(starter);
+        }
+      });
+    } else {
+      setCode(starter);
+    }
+
+    return () => {
+      active = false;
+    };
+  }, [language, problem, activeProblemIndex, roomId, initialMatch, initialRoomCode, paramRoomCode, user?.uid]);
+
+  // Issue 1: Pause-based (~2s inactivity) debounced checkpoint to local IndexedDB and Redis sync via WebSocket
+  const handleCodeChange = (newCode) => {
+    setCode(newCode);
+    setSyncStatus("pending_sync");
+
+    if (saveDebounceTimer.current) {
+      clearTimeout(saveDebounceTimer.current);
+    }
+
+    saveDebounceTimer.current = setTimeout(async () => {
+      const targetId = roomId || initialMatch?.roomId || initialMatch?.roomCode || initialRoomCode || paramRoomCode;
+      const currentProblemId = problem?.id || activeProblemIndex;
+      if (!targetId || !user?.uid) return;
+
+      try {
+        const record = await saveLocalDraft({
+          activityType: "battle",
+          activityId: targetId,
+          problemId: currentProblemId,
+          userId: user.uid,
+          code: newCode,
+          language,
+        });
+
+        if (socketRef.current?.connected && record) {
+          socketRef.current.emit("checkpoint_sync", {
+            roomId: targetId,
+            problemId: currentProblemId,
+            code: newCode,
+            language,
+            revision: record.localRevision,
+          });
+        } else {
+          setSyncStatus("degraded");
+        }
+      } catch (err) {
+        console.warn("Autosave draft error:", err);
+      }
+    }, 2000);
+  };
 
   const [output, setOutput] = useState("");
   const [lastResult, setLastResult] = useState(null);
@@ -496,13 +564,19 @@ export default function LiveBattle() {
 
   useEffect(() => {
     const handleBeforeUnload = () => {
-      const targetId = roomId || initialMatch?.roomId || initialMatch?.roomCode || initialRoomCode;
-      if (socketRef.current && targetId && status !== "finished") {
-        socketRef.current.emit("leave_battle", {
-          roomId: targetId,
-          userId: user?.uid,
-          username,
-        });
+      const targetId = roomId || initialMatch?.roomId || initialMatch?.roomCode || initialRoomCode || paramRoomCode;
+      const currentProblemId = problem?.id || activeProblemIndex;
+      if (targetId && user?.uid && code) {
+        try {
+          const key = `af_draft_battle_${targetId}_${currentProblemId}_${user.uid}`;
+          localStorage.setItem(key, JSON.stringify({
+            code,
+            language,
+            updatedAt: Date.now(),
+          }));
+        } catch {
+          // ignore
+        }
       }
     };
 
@@ -510,7 +584,7 @@ export default function LiveBattle() {
     return () => {
       window.removeEventListener("beforeunload", handleBeforeUnload);
     };
-  }, [roomId, initialMatch, initialRoomCode, status, user?.uid, username]);
+  }, [roomId, initialMatch, initialRoomCode, paramRoomCode, problem?.id, activeProblemIndex, user?.uid, code, language]);
 
   useEffect(() => {
     let cancelled = false;
@@ -524,7 +598,7 @@ export default function LiveBattle() {
       socketRef.current = socket;
 
       const initiateBattleQueue = () => {
-        const currentTarget = roomId || initialMatch?.roomId || initialMatch?.roomCode || initialRoomCode;
+        const currentTarget = roomId || initialMatch?.roomId || initialMatch?.roomCode || initialRoomCode || paramRoomCode;
         if (currentTarget) {
           socket.emit("join_room_channel", { roomCode: currentTarget, userId: user?.uid, username });
         } else if (statusRef.current !== "matched") {
@@ -789,20 +863,58 @@ export default function LiveBattle() {
       socket.on("rating_updates", (updates) => {
         setRatingUpdates(updates);
       });
+
+      // Issue 1: Server acknowledgment of checkpoint
+      socket.on("checkpoint_ack", (data) => {
+        const targetId = roomId || initialMatch?.roomId || initialMatch?.roomCode || initialRoomCode || paramRoomCode;
+        if (data?.problemId && data?.revision && targetId && user?.uid) {
+          const dKey = `battle_${targetId}_${data.problemId}_${user.uid}`;
+          markDraftAcked({ draftKey: dKey, revision: data.revision });
+          setSyncStatus("synced");
+        }
+      });
+
+      // Issue 4: Host moderation events
+      socket.on("player_kicked", (data) => {
+        if (data?.targetUserId === user?.uid) {
+          notify({
+            type: "error",
+            title: "Removed from Battle",
+            message: data?.reason || "You were removed from this battle by the host.",
+            duration: 6000,
+          });
+          navigate("/battle");
+        } else {
+          notify({
+            type: "warning",
+            title: "Player Kicked",
+            message: `${data?.targetUsername || "A combatant"} was removed by the host.`,
+            duration: 4000,
+          });
+        }
+      });
+
+      socket.on("player_readmitted", (data) => {
+        notify({
+          type: "info",
+          title: "Player Re-admitted",
+          message: `${data?.targetUsername || "Player"} was re-admitted by the host.`,
+          duration: 3500,
+        });
+      });
+
+      socket.on("disconnect", () => {
+        setSyncStatus("degraded");
+      });
     };
 
     setupSocket();
 
     return () => {
       cancelled = true;
-      const targetId = roomId || initialMatch?.roomId || initialMatch?.roomCode || initialRoomCode;
-      if (socketRef.current && targetId && statusRef.current !== "finished") {
-        socketRef.current.emit("leave_battle", {
-          roomId: targetId,
-          userId: user?.uid,
-          username,
-        });
-      }
+
+      // Issue 2 & 4: Do NOT forfeit on component unmount / tab refresh.
+      // Forfeits should ONLY occur on explicit 'Leave Battle' button click or expired grace window.
 
       if (socketRef.current) {
         socketRef.current.off("connect");
@@ -819,11 +931,15 @@ export default function LiveBattle() {
         socketRef.current.off("opponent_reconnected");
         socketRef.current.off("rating_updates");
         socketRef.current.off("matchmaking_timeout");
+        socketRef.current.off("checkpoint_ack");
+        socketRef.current.off("player_kicked");
+        socketRef.current.off("player_readmitted");
+        socketRef.current.off("disconnect");
       }
       
       if (slowNotificationTimer.current) clearTimeout(slowNotificationTimer.current);
     };
-  }, [notify, user?.uid, username, roomId, initialMatch, initialRoomCode]);
+  }, [notify, user?.uid, username, roomId, initialMatch, initialRoomCode, paramRoomCode]);
 
   const onTestCode = () => {
     if (!roomId || !socketRef.current) return;
@@ -847,6 +963,11 @@ export default function LiveBattle() {
 
   const onSubmitCode = () => {
     if (!roomId || !socketRef.current || !problem) return;
+    const targetId = roomId || initialMatch?.roomId || initialMatch?.roomCode || initialRoomCode || paramRoomCode;
+    const currentProblemId = problem?.id || activeProblemIndex;
+    if (targetId && user?.uid) {
+      clearDraft("battle", targetId, currentProblemId, user.uid);
+    }
     setRunning(true);
     setRunMode("submit");
     setExecutionTimeline(["PREPARE"]);
@@ -1032,6 +1153,40 @@ export default function LiveBattle() {
                           {isMe && <span className="you-badge">YOU</span>}
                           {hasLeft && <span className="left-badge">LEFT</span>}
                           {isWinner && <span className="winner-badge"><FontAwesomeIcon icon={faTrophy} /> WIN</span>}
+                          {/* Issue 4: Host participant controls */}
+                          {((liveState?.hostId && liveState.hostId === user?.uid) || (initialMatch?.hostId && initialMatch.hostId === user?.uid)) && !isMe && (
+                            hasLeft ? (
+                              <button
+                                type="button"
+                                className="host-btn readmit-btn"
+                                style={{ marginLeft: "8px", fontSize: "0.68rem", padding: "1px 6px", background: "rgba(0, 229, 255, 0.15)", border: "1px solid #00e5ff", color: "#00e5ff", borderRadius: "4px", cursor: "pointer" }}
+                                onClick={() => {
+                                  const targetId = roomId || initialMatch?.roomId || initialMatch?.roomCode || initialRoomCode || paramRoomCode;
+                                  if (socketRef.current && targetId) {
+                                    socketRef.current.emit("readmit_player", { roomId: targetId, targetUserId: p.userId });
+                                    notify({ type: "info", title: "Host Action", message: `Re-admitting ${p.username}...` });
+                                  }
+                                }}
+                              >
+                                Re-admit
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                className="host-btn kick-btn"
+                                style={{ marginLeft: "8px", fontSize: "0.68rem", padding: "1px 6px", background: "rgba(255, 77, 77, 0.15)", border: "1px solid #ff4d4d", color: "#ff4d4d", borderRadius: "4px", cursor: "pointer" }}
+                                onClick={() => {
+                                  const targetId = roomId || initialMatch?.roomId || initialMatch?.roomCode || initialRoomCode || paramRoomCode;
+                                  if (socketRef.current && targetId) {
+                                    socketRef.current.emit("kick_player", { roomId: targetId, targetUserId: p.userId, reason: "Host moderation" });
+                                    notify({ type: "warning", title: "Host Action", message: `Removed ${p.username} from match.` });
+                                  }
+                                }}
+                              >
+                                Kick
+                              </button>
+                            )
+                          )}
                         </div>
                         <div className="player-score-row">
                           <span className="player-pts">{p.points || 0} pts</span>
@@ -1144,7 +1299,7 @@ export default function LiveBattle() {
             <textarea
               className="livebattle-code-editor"
               value={code}
-              onChange={(e) => setCode(e.target.value)}
+              onChange={(e) => handleCodeChange(e.target.value)}
               spellCheck="false"
               disabled={status === "finished"}
               style={{ 
@@ -1155,6 +1310,23 @@ export default function LiveBattle() {
             <div className="code-editor-statusbar">
               <span>{code ? code.split('\n').length : 0} Lines</span>
               <span>{code ? code.length : 0} Chars</span>
+              <span
+                className={`sync-status-indicator ${syncStatus}`}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "4px",
+                  padding: "1px 8px",
+                  borderRadius: "10px",
+                  fontSize: "0.72rem",
+                  fontWeight: 600,
+                  background: syncStatus === "synced" ? "rgba(124, 255, 193, 0.12)" : syncStatus === "pending_sync" ? "rgba(255, 170, 0, 0.15)" : "rgba(255, 77, 77, 0.18)",
+                  color: syncStatus === "synced" ? "#7cffc1" : syncStatus === "pending_sync" ? "#ffbe3b" : "#ff6b6b",
+                  border: `1px solid ${syncStatus === "synced" ? "rgba(124, 255, 193, 0.3)" : syncStatus === "pending_sync" ? "rgba(255, 170, 0, 0.35)" : "rgba(255, 77, 77, 0.35)"}`,
+                }}
+              >
+                {syncStatus === "synced" ? "☁️ Synced" : syncStatus === "pending_sync" ? "💾 Local Saved" : "⚠️ Local Only (Degraded)"}
+              </span>
               <span className="syntax-badge">{getLanguageLabel(language)}</span>
             </div>
           </div>

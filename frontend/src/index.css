@@ -83,8 +83,6 @@
   --card-padding: var(--spacing-md);
   --card-border-width: 1px;
 
-  /* === Ambient Background Art === */
-  --ambient-bg-art: url('/bg-editor-overlay.svg');
 }
 
 /* ===== BASE RESET ===== */
@@ -149,23 +147,7 @@ body::before {
   z-index: 0;
 }
 
-/* Low-intensity art layer shown mostly around empty/edge spaces */
-body::after {
-  content: '';
-  position: fixed;
-  inset: 0;
-  background-image: var(--ambient-bg-art);
-  background-repeat: no-repeat;
-  background-position: right -6vw center;
-  background-size: min(68vw, 980px) auto;
-  opacity: 0.32;
-  filter: saturate(0.9) contrast(1.08);
-  mix-blend-mode: screen;
-  pointer-events: none;
-  z-index: 0;
-  -webkit-mask-image: radial-gradient(circle at center, transparent 0%, transparent 20%, #000 62%, #000 100%);
-  mask-image: radial-gradient(circle at center, transparent 0%, transparent 20%, #000 62%, #000 100%);
-}
+/* Low-intensity art layer removed per user request */
 
 #root {
   position: relative;

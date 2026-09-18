@@ -16,6 +16,13 @@ export interface UserPresence {
     lastActiveAt: number;
 }
 
+export interface BattleConfig {
+    difficulty?: "EASY" | "MEDIUM" | "HARD" | "MIX";
+    questionCount?: number;
+    timeLimitMinutes?: number;
+    topics?: string[];
+}
+
 export interface DirectChallenge {
     challengeId: string;
     fromUserId: string;
@@ -26,6 +33,7 @@ export interface DirectChallenge {
     createdAt: number;
     expiresAt: number;
     status: "PENDING" | "ACCEPTED" | "DECLINED" | "EXPIRED" | "CANCELLED";
+    config?: BattleConfig;
 }
 
 export class ConnectionManager {
@@ -226,8 +234,9 @@ export class ConnectionManager {
         fromRating?: number;
         targetUserId: string;
         targetUsername: string;
+        config?: BattleConfig;
     }): DirectChallenge | null {
-        const { fromUserId, fromUsername, fromRating, targetUserId, targetUsername } = params;
+        const { fromUserId, fromUsername, fromRating, targetUserId, targetUsername, config } = params;
 
         const resolvedTarget = this.getSocketByIdentifier(targetUserId);
         if (!resolvedTarget) {
@@ -247,6 +256,11 @@ export class ConnectionManager {
             createdAt: now,
             expiresAt: now + 30000, // 30 seconds expiration
             status: "PENDING",
+            config: config || {
+                difficulty: "MIX",
+                questionCount: 3,
+                timeLimitMinutes: 15,
+            },
         };
 
         this.challenges.set(challengeId, challenge);

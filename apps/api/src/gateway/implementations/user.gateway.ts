@@ -8,13 +8,14 @@ import { GatewayMetrics } from "../contracts/gateway-metrics";
 import { logger } from "@algofight/logger";
 import { isAdminEmail } from "../../constants/admins";
 
+import { userSessionStore } from "../session/user-session";
+import { googleTokenVerifier } from "../../utils/google-auth.util";
+
 export class UserGateway implements Gateway {
     public readonly id: string;
     public readonly context: GatewayContext;
 
     private readonly stateMachine: GatewayStateMachine;
-    private cachedCerts: Record<string, string> = {};
-    private certsExpiry = 0;
 
     // Metrics counters
     private activeUsers = new Map<string, number>(); // userId -> lastSeenTimestamp (AF-007)
@@ -41,14 +42,8 @@ export class UserGateway implements Gateway {
     }
 
     public async initialize(context: GatewayContext): Promise<void> {
-        this.stateMachine.transition(GatewayState.WARMING, "Initializing gateway & fetching cryptographic certs");
-        try {
-            await this.refreshPublicKeys();
-            this.stateMachine.transition(GatewayState.READY, "Gateway warmed and ready");
-        } catch (err: any) {
-            this.stateMachine.transition(GatewayState.FAILED, err.message);
-            throw err;
-        }
+        this.stateMachine.transition(GatewayState.WARMING, "Initializing gateway");
+        this.stateMachine.transition(GatewayState.READY, "Gateway warmed and ready");
     }
 
     public async activate(): Promise<void> {
@@ -127,24 +122,35 @@ export class UserGateway implements Gateway {
         if (!token) return null;
 
         try {
-            const certs = await this.refreshPublicKeys();
-            const payload = this.verifyTokenSignature(token, certs);
-
-            if (payload) {
-                const userId = payload.user_id || payload.uid || payload.sub;
-                const isExplicitAdmin = payload.admin || payload.role === "ADMIN" || isAdminEmail(payload.email);
+            // 1. First-Party AlgoFight Session in Redis (Fast Path)
+            const session = await userSessionStore.getSession(token);
+            if (session) {
+                const isExplicitAdmin = session.role === "ADMIN" || isAdminEmail(session.email);
                 return {
-                    id: String(userId),
-                    email: payload.email,
-                    username: payload.name || (payload.email ? payload.email.split("@")[0] : `user_${userId}`),
+                    id: session.userId,
+                    email: session.email,
+                    username: session.username || `user_${session.userId}`,
                     role: isExplicitAdmin ? "ADMIN" : "USER",
-                    platformCode: payload.platformCode,
-                    institutionName: payload.institutionName,
+                    platformCode: session.platformCode,
+                    institutionName: session.institutionName,
                     rawToken: token,
                 };
             }
 
-            // Dev / synthetic fallback when not in strict production
+            // 2. Direct Google OAuth2 Token Verification
+            const googlePayload = await googleTokenVerifier.verifyIdToken(token);
+            if (googlePayload) {
+                const isExplicitAdmin = isAdminEmail(googlePayload.email);
+                return {
+                    id: googlePayload.sub,
+                    email: googlePayload.email,
+                    username: googlePayload.name || (googlePayload.email ? googlePayload.email.split("@")[0] : `user_${googlePayload.sub}`),
+                    role: isExplicitAdmin ? "ADMIN" : "USER",
+                    rawToken: token,
+                };
+            }
+
+            // 3. Dev / synthetic fallback when not in strict production
             if (process.env.NODE_ENV !== "production") {
                 const parts = token.split(".");
                 if (parts.length === 3) {
@@ -211,58 +217,5 @@ export class UserGateway implements Gateway {
             utilization: Number((activeCount / capacity).toFixed(4)),
             lastHeartbeat: this.lastHeartbeat,
         };
-    }
-
-    private async refreshPublicKeys(): Promise<Record<string, string>> {
-        const now = Date.now();
-        if (now < this.certsExpiry && Object.keys(this.cachedCerts).length > 0) {
-            return this.cachedCerts;
-        }
-
-        try {
-            const res = await fetch(
-                "https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com",
-                { signal: AbortSignal.timeout(3000) }
-            );
-            if (res.ok) {
-                this.cachedCerts = await res.json();
-                this.certsExpiry = now + 6 * 60 * 60 * 1000; // 6h TTL
-            }
-        } catch (err: any) {
-            logger.warn({ error: err.message }, "Failed to fetch Google Firebase certificates");
-        }
-
-        return this.cachedCerts;
-    }
-
-    private verifyTokenSignature(token: string, certs: Record<string, string>): any | null {
-        const parts = token.split(".");
-        if (parts.length !== 3) return null;
-
-        const [headerB64, payloadB64, sigB64] = parts;
-        const header = JSON.parse(Buffer.from(headerB64, "base64url").toString("utf-8"));
-        const payload = JSON.parse(Buffer.from(payloadB64, "base64url").toString("utf-8"));
-
-        if (header.alg !== "RS256" || !header.kid) return null;
-
-        const now = Math.floor(Date.now() / 1000);
-        if (payload.exp && payload.exp < now) return null;
-
-        // 🛡️ AF-008: Validate Firebase token claims
-        const projectId = process.env.FIREBASE_PROJECT_ID;
-        if (projectId) {
-            if (payload.aud !== projectId) return null;
-            if (payload.iss !== `https://securetoken.google.com/${projectId}`) return null;
-        }
-        if (payload.auth_time && payload.auth_time > now + 300) return null;
-
-        const cert = certs[header.kid];
-        if (!cert) return null;
-
-        const verifier = crypto.createVerify("RSA-SHA256");
-        verifier.update(`${headerB64}.${payloadB64}`);
-        const sig = Buffer.from(sigB64, "base64url");
-
-        return verifier.verify(cert, sig) ? payload : null;
     }
 }

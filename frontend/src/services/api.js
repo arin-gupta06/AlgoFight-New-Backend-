@@ -1,4 +1,4 @@
-import { auth } from "../firebaseConfig";
+import { getSessionToken, clearAuthStorage } from "./authStorage";
 
 const rawApiUrl = (import.meta.env.VITE_API_URL || "").trim();
 const isLocal = typeof window !== "undefined" && 
@@ -74,8 +74,8 @@ export async function requestJson(path, options = {}) {
 
   const method = (restOptions.method || "GET").toUpperCase();
   const isGet = method === "GET";
-  const userUid = auth.currentUser?.uid || "";
-  const cacheKey = isGet ? `${path}:${includeAuth ? userUid : "anon"}` : null;
+  const sessionToken = getSessionToken();
+  const cacheKey = isGet ? `${path}:${includeAuth && sessionToken ? "auth" : "anon"}` : null;
 
   // 1. Check TTL cache if enabled
   if (isGet && !skipCache && restOptions.cache !== "no-store" && ttlMs > 0 && cacheKey) {
@@ -95,15 +95,8 @@ export async function requestJson(path, options = {}) {
       ...(headers || {}),
     };
 
-    if (includeAuth && auth.currentUser) {
-      try {
-        const token = await auth.currentUser.getIdToken();
-        if (token) {
-          requestHeaders.Authorization = `Bearer ${token}`;
-        }
-      } catch (error) {
-        console.warn("Unable to attach auth token", error);
-      }
+    if ((includeAuth || sessionToken) && sessionToken) {
+      requestHeaders.Authorization = `Bearer ${sessionToken}`;
     }
 
     const res = await fetch(toApiUrl(path), {
@@ -194,34 +187,64 @@ export async function fetchLeaderboard() {
 }
 
 /**
- * Fetch user profile by Firebase UID
+/**
+ * Direct AlgoFight Auth Endpoints (Issue 5)
  */
-export async function fetchUserProfile(uid) {
+export async function loginWithGoogleApi(idToken) {
+  return requestJson("/api/auth/google", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ idToken }),
+  });
+}
+
+export async function loginManualApi(email, password) {
+  return requestJson("/api/auth/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+}
+
+export async function signupManualApi(payload) {
+  return requestJson("/api/auth/signup", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function logoutApi() {
   try {
-    const identifier = uid || auth.currentUser?.email || auth.currentUser?.uid;
-    if (!identifier) return null;
-    let res = await requestJson(`/api/users/${encodeURIComponent(identifier)}?t=${Date.now()}`, {
+    await requestJson("/api/auth/logout", {
+      method: "POST",
+      includeAuth: true,
+    });
+  } catch {
+    // Ignored
+  } finally {
+    clearAuthStorage();
+  }
+}
+
+export async function fetchMeApi() {
+  return requestJson("/api/auth/me", {
+    includeAuth: true,
+    cache: "no-store",
+  });
+}
+
+/**
+ * Fetch user profile by ID or username
+ */
+export async function fetchUserProfile(identifier) {
+  if (!identifier) return null;
+  try {
+    return await requestJson(`/api/users/${encodeURIComponent(identifier)}?t=${Date.now()}`, {
       includeAuth: true,
       cache: "no-store",
     });
-    if (!res && auth.currentUser?.email && identifier !== auth.currentUser.email) {
-      res = await requestJson(`/api/users/${encodeURIComponent(auth.currentUser.email)}?t=${Date.now()}`, {
-        includeAuth: true,
-        cache: "no-store",
-      });
-    }
-    return res;
   } catch {
-    if (auth.currentUser?.email && uid !== auth.currentUser.email) {
-      try {
-        return await requestJson(`/api/users/${encodeURIComponent(auth.currentUser.email)}?t=${Date.now()}`, {
-          includeAuth: true,
-          cache: "no-store",
-        });
-      } catch {
-        return null;
-      }
-    }
     return null;
   }
 }

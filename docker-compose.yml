@@ -1,0 +1,182 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: algofight-postgres
+    restart: unless-stopped
+    command: postgres -c max_connections=200 -c shared_buffers=256MB
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-algofight_secure_pass_mits}
+      POSTGRES_DB: algofight
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d algofight"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - algofight-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: algofight-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --appendfsync everysec --maxmemory 1gb --maxmemory-policy noeviction
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - algofight-network
+
+  piston-1:
+    image: ghcr.io/engineer-man/piston
+    container_name: algofight-piston-1
+    restart: unless-stopped
+    privileged: true
+    ports:
+      - "2001:2000"
+    volumes:
+      - piston_packages:/piston/packages
+    tmpfs:
+      - /tmp:exec,size=1G
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:2000/api/v2/runtimes"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    networks:
+      - algofight-network
+
+  piston-2:
+    image: ghcr.io/engineer-man/piston
+    container_name: algofight-piston-2
+    restart: unless-stopped
+    privileged: true
+    ports:
+      - "2002:2000"
+    volumes:
+      - piston_packages:/piston/packages
+    tmpfs:
+      - /tmp:exec,size=1G
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:2000/api/v2/runtimes"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    networks:
+      - algofight-network
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: algofight-api
+    restart: unless-stopped
+    ports:
+      - "3001:3000" # Host port 3001 -> Container port 3000 (preserves Evolution frontend on host port 3000)
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      piston-1:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-algofight_secure_pass_mits}@postgres:5432/algofight?schema=public
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      PISTON_URL: http://piston-1:2000
+      PISTON_BACKUP_URLS: http://piston-2:2000
+      PISTON_HOST: piston-1
+      ADMIN_SECRET_KEY: ${ADMIN_SECRET_KEY:-algofight_mits_secret_key_2026}
+      GATEWAY_CLUSTER_SECRET: ${GATEWAY_CLUSTER_SECRET:-da20e600e5f93a55c86dcdafc0611c5e32bdc807384ce14c5c653984eb574037}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-*}
+      WS_PORT: 4001
+    command: ["pnpm", "--filter", "@algofight/api", "exec", "tsx", "src/index.ts"]
+    networks:
+      - algofight-network
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: algofight-worker
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      piston-1:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-algofight_secure_pass_mits}@postgres:5432/algofight?schema=public
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      PISTON_URL: http://piston-1:2000
+      PISTON_BACKUP_URLS: http://piston-2:2000
+      PISTON_HOST: piston-1
+      ADMIN_SECRET_KEY: ${ADMIN_SECRET_KEY:-algofight_mits_secret_key_2026}
+    command: ["pnpm", "--filter", "@algofight/worker", "exec", "tsx", "src/index.ts"]
+    networks:
+      - algofight-network
+
+  websocket:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: algofight-websocket
+    restart: unless-stopped
+    ports:
+      - "4001:4001"
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-algofight_secure_pass_mits}@postgres:5432/algofight?schema=public
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      WS_PORT: 4001
+    command: ["pnpm", "--filter", "@algofight/websocket", "exec", "tsx", "src/index.ts"]
+    networks:
+      - algofight-network
+
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: algofight-scheduler
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-algofight_secure_pass_mits}@postgres:5432/algofight?schema=public
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    command: ["pnpm", "--filter", "@algofight/scheduler", "exec", "tsx", "src/index.ts"]
+    networks:
+      - algofight-network
+
+volumes:
+  postgres_data:
+  redis_data:
+  piston_packages:
+
+networks:
+  algofight-network:
+    driver: bridge

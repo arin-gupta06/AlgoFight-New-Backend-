@@ -258,19 +258,23 @@ export class SandboxExecutor implements CodeExecutor {
         const candidates: string[] = [];
         if (targetRuntimeUrl) candidates.push(targetRuntimeUrl);
         if (PISTON_URL && !candidates.includes(PISTON_URL)) candidates.push(PISTON_URL);
-        const publicFallback = "https://emkc.org/api/v2/piston";
-        if (!candidates.includes(publicFallback)) candidates.push(publicFallback);
+
+        // Support local backup runners without ever calling public APIs
+        const backupUrls = (process.env.PISTON_BACKUP_URLS || "").split(",").map(u => u.trim()).filter(Boolean);
+        for (const backup of backupUrls) {
+            if (!candidates.includes(backup)) candidates.push(backup);
+        }
 
         let lastErr: any = null;
 
         for (const candidate of candidates) {
             let executeUrl = candidate.trim().replace(/\/+$/, "");
-            if (executeUrl === "https://emkc.org") {
-                executeUrl = "https://emkc.org/api/v2/piston/execute";
-            } else if (executeUrl.includes("emkc.org")) {
-                executeUrl = executeUrl.endsWith("/execute") ? executeUrl : `${executeUrl}/execute`;
-            } else if (!executeUrl.endsWith("/api/v2/execute")) {
-                executeUrl = executeUrl.endsWith("/execute") ? executeUrl : `${executeUrl}/api/v2/execute`;
+            if (executeUrl.endsWith("/api/v2/execute")) {
+                // Already full execute path
+            } else if (executeUrl.endsWith("/execute")) {
+                // Keep path as is
+            } else {
+                executeUrl = `${executeUrl}/api/v2/execute`;
             }
 
             try {

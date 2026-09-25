@@ -49,7 +49,8 @@ export class SubmissionController {
         if (body.targetRuntimeUrl) {
             targetRuntimeUrl = body.targetRuntimeUrl;
         } else if (body.runtimePort) {
-            targetRuntimeUrl = `http://localhost:${body.runtimePort}`;
+            const pistonHost = (process.env.PISTON_HOST || "localhost").trim();
+            targetRuntimeUrl = `http://${pistonHost}:${body.runtimePort}`;
         } else {
             targetRuntimeUrl = await RuntimePoolManager.getInstance().routeSubmission({
                 submissionId: submission.id,
@@ -106,10 +107,11 @@ export class SubmissionController {
 
         let targetRuntimeUrl: string | undefined = undefined;
         if (process.env.NODE_ENV !== "production") {
-            if (body.targetRuntimeUrl && (body.targetRuntimeUrl.startsWith("http://localhost:") || body.targetRuntimeUrl.startsWith("http://127.0.0.1:"))) {
+            const pistonHost = (process.env.PISTON_HOST || "localhost").trim();
+            if (body.targetRuntimeUrl && (body.targetRuntimeUrl.startsWith("http://localhost:") || body.targetRuntimeUrl.startsWith("http://127.0.0.1:") || body.targetRuntimeUrl.includes(pistonHost))) {
                 targetRuntimeUrl = body.targetRuntimeUrl;
             } else if (body.runtimePort && body.runtimePort > 0 && body.runtimePort < 65536) {
-                targetRuntimeUrl = `http://localhost:${body.runtimePort}`;
+                targetRuntimeUrl = `http://${pistonHost}:${body.runtimePort}`;
             }
         }
 
@@ -210,10 +212,11 @@ export class SubmissionController {
         const poolManager = RuntimePoolManager.getInstance();
         let targetRuntimeUrl: string | undefined = undefined;
         if (process.env.NODE_ENV !== "production") {
-            if (body.targetRuntimeUrl && (body.targetRuntimeUrl.startsWith("http://localhost:") || body.targetRuntimeUrl.startsWith("http://127.0.0.1:"))) {
+            const pistonHost = (process.env.PISTON_HOST || "localhost").trim();
+            if (body.targetRuntimeUrl && (body.targetRuntimeUrl.startsWith("http://localhost:") || body.targetRuntimeUrl.startsWith("http://127.0.0.1:") || body.targetRuntimeUrl.includes(pistonHost))) {
                 targetRuntimeUrl = body.targetRuntimeUrl;
             } else if (body.runtimePort && body.runtimePort > 0 && body.runtimePort < 65536) {
-                targetRuntimeUrl = `http://localhost:${body.runtimePort}`;
+                targetRuntimeUrl = `http://${pistonHost}:${body.runtimePort}`;
             }
         }
 
@@ -255,10 +258,11 @@ export class SubmissionController {
         const poolManager = RuntimePoolManager.getInstance();
         let targetRuntimeUrl: string | undefined = undefined;
         if (process.env.NODE_ENV !== "production") {
-            if (body.targetRuntimeUrl && (body.targetRuntimeUrl.startsWith("http://localhost:") || body.targetRuntimeUrl.startsWith("http://127.0.0.1:"))) {
+            const pistonHost = (process.env.PISTON_HOST || "localhost").trim();
+            if (body.targetRuntimeUrl && (body.targetRuntimeUrl.startsWith("http://localhost:") || body.targetRuntimeUrl.startsWith("http://127.0.0.1:") || body.targetRuntimeUrl.includes(pistonHost))) {
                 targetRuntimeUrl = body.targetRuntimeUrl;
             } else if (body.runtimePort && body.runtimePort > 0 && body.runtimePort < 65536) {
-                targetRuntimeUrl = `http://localhost:${body.runtimePort}`;
+                targetRuntimeUrl = `http://${pistonHost}:${body.runtimePort}`;
             }
         }
 

@@ -78,12 +78,6 @@ export class PistonAdapter {
 
     private resolveExecutionUrl(endpoint: string): string {
         const clean = endpoint.trim().replace(/\/+$/, "");
-        if (clean === "https://emkc.org") {
-            return "https://emkc.org/api/v2/piston/execute";
-        }
-        if (clean.includes("emkc.org")) {
-            return clean.endsWith("/execute") ? clean : `${clean}/execute`;
-        }
         if (clean.endsWith("/api/v2/execute")) {
             return clean;
         }
@@ -130,8 +124,12 @@ export class PistonAdapter {
         const candidates: string[] = [];
         if (targetUrl) candidates.push(targetUrl);
         if (this.PISTON_URL && !candidates.includes(this.PISTON_URL)) candidates.push(this.PISTON_URL);
-        const fallbackPublic = "https://emkc.org/api/v2/piston";
-        if (!candidates.includes(fallbackPublic)) candidates.push(fallbackPublic);
+
+        // Support local backup runners (e.g. secondary Piston containers) without ever calling public APIs
+        const backupUrls = (process.env.PISTON_BACKUP_URLS || "").split(",").map(u => u.trim()).filter(Boolean);
+        for (const backup of backupUrls) {
+            if (!candidates.includes(backup)) candidates.push(backup);
+        }
 
         let lastError: any = null;
 

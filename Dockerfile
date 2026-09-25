@@ -1,5 +1,5 @@
 # Multi-stage / optimized Dockerfile for AlgoFight Monorepo
-FROM node:20-bookworm-slim AS base
+FROM node:22-bookworm-slim AS base
 
 WORKDIR /app
 

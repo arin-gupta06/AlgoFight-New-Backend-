@@ -30,7 +30,7 @@ COPY apps/scheduler/package.json ./apps/scheduler/
 COPY packages/application/package.json ./packages/application/
 COPY packages/config/package.json ./packages/config/
 COPY packages/database/package.json ./packages/database/
-COPY packages/error-handling/package.json ./packages/error-handling/
+COPY packages/error_handling/package.json ./packages/error_handling/
 COPY packages/events/package.json ./packages/events/
 COPY packages/institutional-identity/package.json ./packages/institutional-identity/
 COPY packages/logger/package.json ./packages/logger/
@@ -48,7 +48,7 @@ RUN pnpm install --frozen-lockfile
 FROM dependencies AS builder
 
 # Copy all application and package sources
-COPY tsconfig.base.json tsconfig.json ./
+COPY tsconfig.base.json ./
 COPY apps/ ./apps/
 COPY packages/ ./packages/
 

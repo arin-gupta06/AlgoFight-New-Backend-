@@ -153,6 +153,7 @@ services:
     environment:
       NODE_ENV: production
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required in .env}@postgres:5432/algofight?schema=public
+      ADMIN_SECRET_KEY: ${ADMIN_SECRET_KEY:?ADMIN_SECRET_KEY is required in .env}
       REDIS_HOST: redis
       REDIS_PORT: 6379
       WS_PORT: 4001

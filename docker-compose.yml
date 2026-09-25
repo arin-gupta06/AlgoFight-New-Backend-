@@ -47,10 +47,11 @@ services:
     tmpfs:
       - /tmp:exec,size=1G
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:2000/api/v2/runtimes"]
+      test: ["CMD", "node", "-e", "require('http').get('http://127.0.0.1:2000/api/v2/runtimes',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"]
       interval: 15s
       timeout: 5s
       retries: 5
+      start_period: 10s
     networks:
       - algofight-network
 
@@ -66,10 +67,11 @@ services:
     tmpfs:
       - /tmp:exec,size=1G
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:2000/api/v2/runtimes"]
+      test: ["CMD", "node", "-e", "require('http').get('http://127.0.0.1:2000/api/v2/runtimes',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"]
       interval: 15s
       timeout: 5s
       retries: 5
+      start_period: 10s
     networks:
       - algofight-network
 

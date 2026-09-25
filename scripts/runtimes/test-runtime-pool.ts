@@ -115,7 +115,7 @@ async function runTestSuite() {
         language: "python",
         workload: "LIGHT",
     });
-    assert(typeof selected === "string" && selected.startsWith("http://localhost:"), "Submission routed through active pool");
+    assert(typeof selected === "string" && selected.startsWith("http://"), "Submission routed through active pool");
 
     // Release execution slot
     await poolManager.releaseExecutionSlot(selected);

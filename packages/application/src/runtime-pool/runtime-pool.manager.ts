@@ -24,6 +24,7 @@ export class RuntimePoolManager {
     private broadcastObserver?: RedisBroadcastObserver;
     private redisClient?: any;
 
+    private hasCustomFactory = false;
     private scalingState: "STABLE" | "SCALING_OUT" | "COOLDOWN_DRAIN" = "STABLE";
 
     constructor(options?: {
@@ -31,6 +32,7 @@ export class RuntimePoolManager {
         strategy?: RuntimeRoutingStrategy;
         redisClient?: any;
     }) {
+        this.hasCustomFactory = !!options?.factory;
         this.factory = options?.factory || PistonRuntimeFactoryProvider.getFactory();
         this.routingStrategy = options?.strategy || new LanguageAffinityStrategy();
         this.redisClient = options?.redisClient;
@@ -56,35 +58,45 @@ export class RuntimePoolManager {
     }
 
     private initBaselineRuntimes(): void {
-        const envPistonUrl = (process.env.PISTON_URL || "").trim().replace(/\/+$/, "");
-        const pistonHost = (process.env.PISTON_HOST || "localhost").trim();
+        const isProd = process.env.NODE_ENV === "production";
+        const defaultPrimary = isProd ? "http://piston-1:2000" : "http://localhost:2001";
+        const defaultBackup = isProd ? "http://piston-2:2000" : "http://localhost:2002";
 
-        if (envPistonUrl) {
-            let port = 2000;
-            try {
-                const parsed = new URL(envPistonUrl);
-                port = parsed.port ? parseInt(parsed.port, 10) : (parsed.protocol === "https:" ? 443 : 80);
-            } catch {}
-            this.runtimes.set(envPistonUrl, {
-                id: "piston-primary-configured",
-                url: envPistonUrl,
-                port,
-                status: "HEALTHY",
-                activeJobs: 0,
-                isBaseline: true,
-                createdAt: Date.now(),
-                lastHeartbeat: Date.now(),
-            });
-        }
+        const primaryUrl = (process.env.PISTON_URL || defaultPrimary).trim().replace(/\/+$/, "");
+        const backupUrlsRaw = process.env.PISTON_BACKUP_URLS || defaultBackup;
+        const backupUrls = backupUrlsRaw.split(",").map(u => u.trim().replace(/\/+$/, "")).filter(Boolean);
 
-        for (const port of this.BASELINE_PORTS) {
-            const url = `http://${pistonHost}:${port}`;
-            if (!this.runtimes.has(url)) {
-                const id = `piston-baseline-${port}`;
-                this.runtimes.set(url, {
-                    id,
-                    url,
-                    port,
+        // Register Primary Piston
+        let primaryPort = 2000;
+        try {
+            const parsed = new URL(primaryUrl);
+            primaryPort = parsed.port ? parseInt(parsed.port, 10) : (parsed.protocol === "https:" ? 443 : 80);
+        } catch {}
+
+        this.runtimes.set(primaryUrl, {
+            id: "piston-1",
+            url: primaryUrl,
+            port: primaryPort,
+            status: "HEALTHY",
+            activeJobs: 0,
+            isBaseline: true,
+            createdAt: Date.now(),
+            lastHeartbeat: Date.now(),
+        });
+
+        // Register Backup Piston Runtimes
+        backupUrls.forEach((bUrl, index) => {
+            if (!this.runtimes.has(bUrl)) {
+                let bPort = 2000;
+                try {
+                    const parsed = new URL(bUrl);
+                    bPort = parsed.port ? parseInt(parsed.port, 10) : (parsed.protocol === "https:" ? 443 : 80);
+                } catch {}
+
+                this.runtimes.set(bUrl, {
+                    id: `piston-${index + 2}`,
+                    url: bUrl,
+                    port: bPort,
                     status: "HEALTHY",
                     activeJobs: 0,
                     isBaseline: true,
@@ -92,10 +104,11 @@ export class RuntimePoolManager {
                     lastHeartbeat: Date.now(),
                 });
             }
-        }
+        });
+
         logger.info(
-            { activePoolSize: this.runtimes.size, envPistonUrl, pistonHost },
-            "Runtime Pool Manager initialized baseline instances",
+            { activePoolSize: this.runtimes.size, primaryUrl, backupUrls },
+            "Runtime Pool Manager initialized authoritative baseline instances",
         );
     }
 
@@ -181,6 +194,12 @@ export class RuntimePoolManager {
      * Scale-Out: Spawns an additional Piston container via Factory Method if below max capacity.
      */
     public async scaleOut(reason: string): Promise<RuntimeInstance | null> {
+        const dynamicEnabled = process.env.ENABLE_DYNAMIC_AUTOSCALING === "true" || this.hasCustomFactory;
+        if (!dynamicEnabled) {
+            logger.info({ reason, poolSize: this.runtimes.size }, "Dynamic autoscaling is disabled. Handled by prewarmed baseline runners.");
+            return null;
+        }
+
         if (this.runtimes.size >= this.MAX_POOL_CAPACITY) {
             logger.warn({ current: this.runtimes.size, max: this.MAX_POOL_CAPACITY }, "Scale-out rejected: Max capacity ceiling reached");
             return null;

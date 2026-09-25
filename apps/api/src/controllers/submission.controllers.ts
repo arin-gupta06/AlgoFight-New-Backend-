@@ -44,11 +44,11 @@ export class SubmissionController {
             memoryLimitBytes: problem.memoryLimit,
         });
 
-        // 2. Intelligent Runtime Routing Strategy (or explicit REST API override)
+        // 2. Intelligent Runtime Routing Strategy (or explicit allowlisted REST override)
         let targetRuntimeUrl: string;
-        if (body.targetRuntimeUrl) {
+        if (body.targetRuntimeUrl && this.isSafeRuntimeTarget(body.targetRuntimeUrl)) {
             targetRuntimeUrl = body.targetRuntimeUrl;
-        } else if (body.runtimePort) {
+        } else if (body.runtimePort && process.env.NODE_ENV !== "production") {
             const pistonHost = (process.env.PISTON_HOST || "localhost").trim();
             targetRuntimeUrl = `http://${pistonHost}:${body.runtimePort}`;
         } else {
@@ -106,13 +106,11 @@ export class SubmissionController {
         }
 
         let targetRuntimeUrl: string | undefined = undefined;
-        if (process.env.NODE_ENV !== "production") {
+        if (body.targetRuntimeUrl && this.isSafeRuntimeTarget(body.targetRuntimeUrl)) {
+            targetRuntimeUrl = body.targetRuntimeUrl;
+        } else if (body.runtimePort && body.runtimePort > 0 && body.runtimePort < 65536 && process.env.NODE_ENV !== "production") {
             const pistonHost = (process.env.PISTON_HOST || "localhost").trim();
-            if (body.targetRuntimeUrl && (body.targetRuntimeUrl.startsWith("http://localhost:") || body.targetRuntimeUrl.startsWith("http://127.0.0.1:") || body.targetRuntimeUrl.includes(pistonHost))) {
-                targetRuntimeUrl = body.targetRuntimeUrl;
-            } else if (body.runtimePort && body.runtimePort > 0 && body.runtimePort < 65536) {
-                targetRuntimeUrl = `http://${pistonHost}:${body.runtimePort}`;
-            }
+            targetRuntimeUrl = `http://${pistonHost}:${body.runtimePort}`;
         }
 
         try {
@@ -211,13 +209,11 @@ export class SubmissionController {
     async test(body: TestRunInput) {
         const poolManager = RuntimePoolManager.getInstance();
         let targetRuntimeUrl: string | undefined = undefined;
-        if (process.env.NODE_ENV !== "production") {
+        if (body.targetRuntimeUrl && this.isSafeRuntimeTarget(body.targetRuntimeUrl)) {
+            targetRuntimeUrl = body.targetRuntimeUrl;
+        } else if (body.runtimePort && body.runtimePort > 0 && body.runtimePort < 65536 && process.env.NODE_ENV !== "production") {
             const pistonHost = (process.env.PISTON_HOST || "localhost").trim();
-            if (body.targetRuntimeUrl && (body.targetRuntimeUrl.startsWith("http://localhost:") || body.targetRuntimeUrl.startsWith("http://127.0.0.1:") || body.targetRuntimeUrl.includes(pistonHost))) {
-                targetRuntimeUrl = body.targetRuntimeUrl;
-            } else if (body.runtimePort && body.runtimePort > 0 && body.runtimePort < 65536) {
-                targetRuntimeUrl = `http://${pistonHost}:${body.runtimePort}`;
-            }
+            targetRuntimeUrl = `http://${pistonHost}:${body.runtimePort}`;
         }
 
         let allocatedSlot = false;
@@ -257,13 +253,11 @@ export class SubmissionController {
     async executeDirect(body: ExecuteDirectInput) {
         const poolManager = RuntimePoolManager.getInstance();
         let targetRuntimeUrl: string | undefined = undefined;
-        if (process.env.NODE_ENV !== "production") {
+        if (body.targetRuntimeUrl && this.isSafeRuntimeTarget(body.targetRuntimeUrl)) {
+            targetRuntimeUrl = body.targetRuntimeUrl;
+        } else if (body.runtimePort && body.runtimePort > 0 && body.runtimePort < 65536 && process.env.NODE_ENV !== "production") {
             const pistonHost = (process.env.PISTON_HOST || "localhost").trim();
-            if (body.targetRuntimeUrl && (body.targetRuntimeUrl.startsWith("http://localhost:") || body.targetRuntimeUrl.startsWith("http://127.0.0.1:") || body.targetRuntimeUrl.includes(pistonHost))) {
-                targetRuntimeUrl = body.targetRuntimeUrl;
-            } else if (body.runtimePort && body.runtimePort > 0 && body.runtimePort < 65536) {
-                targetRuntimeUrl = `http://${pistonHost}:${body.runtimePort}`;
-            }
+            targetRuntimeUrl = `http://${pistonHost}:${body.runtimePort}`;
         }
 
         let allocatedSlot = false;
@@ -337,5 +331,25 @@ export class SubmissionController {
                 createdAt: r.createdAt,
             })),
         };
+    }
+
+    /**
+     * Security Guard: Validates that an explicit runtime target is strictly within the approved Piston cluster allowlist.
+     * Prevents SSRF / internal network port scanning.
+     */
+    private isSafeRuntimeTarget(url?: string): boolean {
+        if (!url) return false;
+        try {
+            const parsed = new URL(url);
+            const hostname = parsed.hostname.toLowerCase();
+            const allowedHosts = ["piston-1", "piston-2", "localhost", "127.0.0.1"];
+            return (
+                allowedHosts.includes(hostname) ||
+                hostname.startsWith("algofight-piston") ||
+                hostname.startsWith("piston-")
+            );
+        } catch {
+            return false;
+        }
     }
 }

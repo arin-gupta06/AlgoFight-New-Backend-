@@ -72,14 +72,21 @@ export class LanguageAffinityStrategy implements RuntimeRoutingStrategy {
             return healthyPool[0]?.url || "http://localhost:2000";
         }
 
-        // If workload is HEAVY, prefer containers with port 2001 or marked for compiled
+        // Identify primary vs secondary runtimes by ID, URL, or fallback port
+        const isPrimary = (r: RuntimeInstance) =>
+            r.id === "piston-1" ||
+            r.id.includes("primary") ||
+            r.url.includes("piston-1") ||
+            r.port === 2001;
+
+        // If workload is HEAVY, prefer primary runner
         if (context.workload === "HEAVY") {
-            const heavyCandidate = healthyPool.find((r) => r.port === 2001) || healthyPool[0];
+            const heavyCandidate = healthyPool.find(isPrimary) || healthyPool[0];
             return heavyCandidate.url;
         }
 
-        // For LIGHT workloads, route to secondary containers (e.g. 2002+) to avoid competing with C++
-        const lightCandidates = healthyPool.filter((r) => r.port !== 2001);
+        // For LIGHT workloads, prefer secondary runners to avoid competing with C++
+        const lightCandidates = healthyPool.filter((r) => !isPrimary(r));
         if (lightCandidates.length > 0) {
             return this.leastLoad.selectRuntime(context, lightCandidates, redisClient);
         }

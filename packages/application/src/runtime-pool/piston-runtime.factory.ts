@@ -21,10 +21,14 @@ export class DockerPistonRuntimeFactory extends AbstractRuntimeFactory {
         const id = spec.id || `piston-elastic-${spec.port}`;
         const containerName = `algofight-${id}`;
         const port = spec.port;
-        const url = `http://localhost:${port}`;
+        const isProd = process.env.NODE_ENV === "production";
+        const network = process.env.DOCKER_NETWORK || "algofight-network";
+        const volumeName = process.env.PISTON_VOLUME_NAME || "algofight_piston_packages";
+        // Reachable URL: container DNS name on Docker network in production, or localhost in local dev
+        const url = isProd ? `http://${containerName}:2000` : `http://localhost:${port}`;
         const memoryLimit = spec.memoryLimitBytes ? `--memory=${spec.memoryLimitBytes}` : "--memory=1g";
 
-        logger.info({ containerName, port, url }, "Factory Method: Spawning new Piston container...");
+        logger.info({ containerName, port, url, network, volumeName }, "Factory Method: Spawning new Piston container...");
 
         try {
             // Check if container already exists and remove it to prevent collision
@@ -34,8 +38,10 @@ export class DockerPistonRuntimeFactory extends AbstractRuntimeFactory {
                 // Ignore if container doesn't exist
             }
 
-            // Docker run command mounting the prewarmed packages volume and tmpfs
-            const cmd = `docker run -d --name ${containerName} --restart=unless-stopped --privileged ${memoryLimit} -p ${port}:2000 -v docker_piston_packages:/piston/packages --tmpfs /tmp ghcr.io/engineer-man/piston`;
+            // Docker run command mounting the prewarmed packages volume, network, and tmpfs
+            // In production, internal container network resolution is used without exposing host ports
+            const portFlag = isProd ? "" : `-p ${port}:2000`;
+            const cmd = `docker run -d --name ${containerName} --network ${network} ${portFlag} --restart=unless-stopped --privileged ${memoryLimit} -v ${volumeName}:/piston/packages --tmpfs /tmp ghcr.io/engineer-man/piston`;
             await execAsync(cmd);
 
             this.spawnedContainers.set(url, containerName);

@@ -8,7 +8,7 @@ services:
     command: postgres -c max_connections=200 -c shared_buffers=256MB
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-algofight_secure_pass_mits}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required in .env}
       POSTGRES_DB: algofight
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -88,19 +88,22 @@ services:
         condition: service_healthy
       piston-1:
         condition: service_healthy
+      piston-2:
+        condition: service_healthy
     environment:
       NODE_ENV: production
       PORT: 3000
-      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-algofight_secure_pass_mits}@postgres:5432/algofight?schema=public
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required in .env}@postgres:5432/algofight?schema=public
       REDIS_HOST: redis
       REDIS_PORT: 6379
       PISTON_URL: http://piston-1:2000
       PISTON_BACKUP_URLS: http://piston-2:2000
       PISTON_HOST: piston-1
-      ADMIN_SECRET_KEY: ${ADMIN_SECRET_KEY:-algofight_mits_secret_key_2026}
-      GATEWAY_CLUSTER_SECRET: ${GATEWAY_CLUSTER_SECRET:-da20e600e5f93a55c86dcdafc0611c5e32bdc807384ce14c5c653984eb574037}
+      ADMIN_SECRET_KEY: ${ADMIN_SECRET_KEY:?ADMIN_SECRET_KEY is required in .env}
+      GATEWAY_CLUSTER_SECRET: ${GATEWAY_CLUSTER_SECRET:?GATEWAY_CLUSTER_SECRET is required in .env}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-*}
       WS_PORT: 4001
+      ENABLE_DYNAMIC_AUTOSCALING: "false"
     command: ["pnpm", "--filter", "@algofight/api", "exec", "tsx", "src/index.ts"]
     networks:
       - algofight-network
@@ -118,15 +121,18 @@ services:
         condition: service_healthy
       piston-1:
         condition: service_healthy
+      piston-2:
+        condition: service_healthy
     environment:
       NODE_ENV: production
-      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-algofight_secure_pass_mits}@postgres:5432/algofight?schema=public
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required in .env}@postgres:5432/algofight?schema=public
       REDIS_HOST: redis
       REDIS_PORT: 6379
       PISTON_URL: http://piston-1:2000
       PISTON_BACKUP_URLS: http://piston-2:2000
       PISTON_HOST: piston-1
-      ADMIN_SECRET_KEY: ${ADMIN_SECRET_KEY:-algofight_mits_secret_key_2026}
+      ADMIN_SECRET_KEY: ${ADMIN_SECRET_KEY:?ADMIN_SECRET_KEY is required in .env}
+      ENABLE_DYNAMIC_AUTOSCALING: "false"
     command: ["pnpm", "--filter", "@algofight/worker", "exec", "tsx", "src/index.ts"]
     networks:
       - algofight-network
@@ -144,7 +150,7 @@ services:
         condition: service_healthy
     environment:
       NODE_ENV: production
-      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-algofight_secure_pass_mits}@postgres:5432/algofight?schema=public
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required in .env}@postgres:5432/algofight?schema=public
       REDIS_HOST: redis
       REDIS_PORT: 6379
       WS_PORT: 4001
@@ -165,7 +171,7 @@ services:
         condition: service_healthy
     environment:
       NODE_ENV: production
-      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-algofight_secure_pass_mits}@postgres:5432/algofight?schema=public
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required in .env}@postgres:5432/algofight?schema=public
       REDIS_HOST: redis
       REDIS_PORT: 6379
     command: ["pnpm", "--filter", "@algofight/scheduler", "exec", "tsx", "src/index.ts"]
@@ -176,6 +182,7 @@ volumes:
   postgres_data:
   redis_data:
   piston_packages:
+    name: algofight_piston_packages
 
 networks:
   algofight-network:

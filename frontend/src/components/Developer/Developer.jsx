@@ -21,6 +21,7 @@ import { faLinkedin, faGithub } from "@fortawesome/free-brands-svg-icons";
 import vivekPic from "../../assets/devs/vivek.png";
 import krishPic from "../../assets/devs/krish.jpg";
 import arinPic from "../../assets/devs/arin.png";
+import atulPic from "../../assets/devs/atul.png";
 import BackgroundPaths from "../BackgroundPaths/BackgroundPaths";
 import "../BackgroundPaths/BackgroundPaths.css";
 import Footer from "../Common/Footer/Footer";
@@ -230,8 +231,12 @@ function Developer() {
           <div className="mentor-card-inner">
             <div className="mentor-avatar-wrap">
               <div className="mentor-avatar-glow" />
-              <div className="mentor-avatar-icon-box">
-                <FontAwesomeIcon icon={faChalkboardUser} className="mentor-icon" />
+              <div className="mentor-avatar-img-box">
+                <img
+                  src={atulPic}
+                  alt="Mr. Atul Chauhan"
+                  className="mentor-avatar-img"
+                />
               </div>
               <div className="mentor-tag-chip">
                 <span>Programmer of MITS DU</span>

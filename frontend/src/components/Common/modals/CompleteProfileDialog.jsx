@@ -5,6 +5,7 @@ import { GithubIcon } from "../icons/Icons";
 import { useAuth } from "../../../contexts/AuthContext";
 import { useNotification } from "../../../contexts/NotificationContext";
 import { toApiUrl } from "../../../services/api";
+import { getSessionToken } from "../../../services/authStorage";
 import "./CompleteProfileDialog.css";
 
 function LinkedInIcon({ size = 18, className = "" }) {
@@ -45,7 +46,7 @@ export default function CompleteProfileDialog({
         setLoading(true);
 
         try {
-            const token = authToken || (currentUser ? await currentUser.getIdToken() : null);
+            const token = authToken || (typeof currentUser?.getIdToken === "function" ? await currentUser.getIdToken().catch(() => null) : getSessionToken());
             if (currentUser) {
                 const response = await fetch(toApiUrl("/api/users"), {
                     method: "POST",

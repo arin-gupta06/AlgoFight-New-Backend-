@@ -50,6 +50,15 @@ export async function facultyRoutes(app: FastifyInstance) {
         );
     });
 
+    // 1b. Directory of registered faculties (for Super Admin overview)
+    app.get("/faculty/faculties", { preHandler: [requireFacultyOrAdmin] }, async (req) => {
+        const query = req.query as any;
+        return facultyController.listFaculties({
+            search: query?.search,
+            department: query?.department,
+        });
+    });
+
     // 2. Dispatch reminder or announcement
     app.post("/faculty/reminders", { preHandler: [requireFacultyOrAdmin] }, async (req) => {
         const body = req.body as any;
@@ -58,7 +67,9 @@ export async function facultyRoutes(app: FastifyInstance) {
 
     // 3. Get dispatched reminders
     app.get("/faculty/reminders", { preHandler: [requireFacultyOrAdmin] }, async (req) => {
-        return facultyController.getReminders(req.user);
+        const query = req.query as any;
+        const targetFacultyId = query?.targetFacultyId || query?.facultyId;
+        return facultyController.getReminders(req.user, targetFacultyId);
     });
 
     // 3b. Delete reminder
@@ -75,7 +86,9 @@ export async function facultyRoutes(app: FastifyInstance) {
 
     // 5. Get Quizzes
     app.get("/faculty/quizzes", { preHandler: [requireFacultyOrAdmin] }, async (req) => {
-        return facultyController.getQuizzes(req.user);
+        const query = req.query as any;
+        const targetFacultyId = query?.targetFacultyId || query?.facultyId;
+        return facultyController.getQuizzes(req.user, targetFacultyId);
     });
 
     // 5b. Delete Quiz
@@ -86,6 +99,8 @@ export async function facultyRoutes(app: FastifyInstance) {
 
     // 6. Get Faculty Dashboard Stats
     app.get("/faculty/stats", { preHandler: [requireFacultyOrAdmin] }, async (req) => {
-        return facultyController.getFacultyStats(req.user);
+        const query = req.query as any;
+        const targetFacultyId = query?.targetFacultyId || query?.facultyId;
+        return facultyController.getFacultyStats(req.user, targetFacultyId);
     });
 }

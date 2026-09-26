@@ -18,9 +18,16 @@ import {
   faListCheck,
   faGraduationCap,
   faCalendarCheck,
+  faArrowLeft,
+  faArrowRight,
+  faUserTie,
+  faShieldHalved,
+  faEnvelope,
+  faIdBadge,
 } from "@fortawesome/free-solid-svg-icons";
 import { useAuth } from "../../contexts/AuthContext";
 import { useNotification } from "../../contexts/NotificationContext";
+import { isAdminUser } from "../../constants/admins";
 import {
   fetchFacultyStats,
   fetchFacultyReminders,
@@ -31,6 +38,7 @@ import {
   deleteFacultyQuiz,
   fetchFacultyStudents,
   fetchPracticeProblems,
+  fetchRegisteredFaculties,
 } from "../../services/api";
 import ProblemImportModal from "../Practice/ProblemImportModal.jsx";
 import BackgroundPaths from "../BackgroundPaths/BackgroundPaths.jsx";
@@ -60,6 +68,15 @@ const BATCH_YEARS = ["ALL", "2024", "2025", "2026", "2027", "2028"];
 export default function FacultyControlHub() {
   const { user, profileData } = useAuth();
   const { notify } = useNotification();
+
+  const isSuperAdmin = Boolean(isAdminUser(user) || profileData?.role === "ADMIN");
+
+  // Super Admin Faculty Navigation State
+  const [selectedFaculty, setSelectedFaculty] = useState(null);
+  const [facultiesList, setFacultiesList] = useState([]);
+  const [loadingFaculties, setLoadingFaculties] = useState(false);
+  const [facultySearch, setFacultySearch] = useState("");
+  const [facultyDeptFilter, setFacultyDeptFilter] = useState("ALL");
 
   // Active Tab: "reminders" | "quizzes" | "students" | "problems"
   const [activeTab, setActiveTab] = useState("reminders");
@@ -111,11 +128,31 @@ export default function FacultyControlHub() {
   const [allProblems, setAllProblems] = useState([]);
   const [showImportModal, setShowImportModal] = useState(false);
 
+  const activeFacultyId = selectedFaculty ? selectedFaculty.id : "";
+
+  // 0. Fetch Registered Faculties for Super Admin Directory
+  const loadFaculties = useCallback(async () => {
+    try {
+      setLoadingFaculties(true);
+      const res = await fetchRegisteredFaculties({
+        search: facultySearch,
+        department: facultyDeptFilter,
+      });
+      if (Array.isArray(res?.faculties)) {
+        setFacultiesList(res.faculties);
+      }
+    } catch {
+      // Handled gracefully
+    } finally {
+      setLoadingFaculties(false);
+    }
+  }, [facultySearch, facultyDeptFilter]);
+
   // 1. Fetch Stats
-  const loadStats = useCallback(async () => {
+  const loadStats = useCallback(async (facultyId = activeFacultyId) => {
     try {
       setLoadingStats(true);
-      const res = await fetchFacultyStats();
+      const res = await fetchFacultyStats(facultyId);
       if (res?.stats) {
         setStats(res.stats);
       }
@@ -124,13 +161,13 @@ export default function FacultyControlHub() {
     } finally {
       setLoadingStats(false);
     }
-  }, []);
+  }, [activeFacultyId]);
 
   // 2. Fetch Reminders
-  const loadReminders = useCallback(async () => {
+  const loadReminders = useCallback(async (facultyId = activeFacultyId) => {
     try {
       setLoadingReminders(true);
-      const res = await fetchFacultyReminders();
+      const res = await fetchFacultyReminders(facultyId);
       if (Array.isArray(res?.reminders)) {
         setReminders(res.reminders);
       }
@@ -139,13 +176,13 @@ export default function FacultyControlHub() {
     } finally {
       setLoadingReminders(false);
     }
-  }, []);
+  }, [activeFacultyId]);
 
   // 3. Fetch Quizzes
-  const loadQuizzes = useCallback(async () => {
+  const loadQuizzes = useCallback(async (facultyId = activeFacultyId) => {
     try {
       setLoadingQuizzes(true);
-      const res = await fetchFacultyQuizzes();
+      const res = await fetchFacultyQuizzes(facultyId);
       if (Array.isArray(res?.quizzes)) {
         setQuizzes(res.quizzes);
       }
@@ -154,10 +191,10 @@ export default function FacultyControlHub() {
     } finally {
       setLoadingQuizzes(false);
     }
-  }, []);
+  }, [activeFacultyId]);
 
   // 4. Fetch Students
-  const loadStudents = useCallback(async () => {
+  const loadStudents = useCallback(async (facultyId = activeFacultyId) => {
     try {
       setLoadingStudents(true);
       const res = await fetchFacultyStudents({
@@ -166,6 +203,7 @@ export default function FacultyControlHub() {
         search: studentSearch,
         page: 1,
         limit: 50,
+        facultyId,
       });
       if (Array.isArray(res?.students)) {
         setStudents(res.students);
@@ -176,7 +214,7 @@ export default function FacultyControlHub() {
     } finally {
       setLoadingStudents(false);
     }
-  }, [filterDept, filterBatch, studentSearch]);
+  }, [filterDept, filterBatch, studentSearch, activeFacultyId]);
 
   // 5. Fetch Problems for Quiz Picker
   const loadAvailableProblems = useCallback(async () => {
@@ -190,16 +228,24 @@ export default function FacultyControlHub() {
     }
   }, []);
 
+  // Sync directory when in Super Admin overview
   useEffect(() => {
-    loadStats();
-    loadAvailableProblems();
-  }, [loadStats, loadAvailableProblems]);
+    if (isSuperAdmin && !selectedFaculty) {
+      loadFaculties();
+    }
+  }, [isSuperAdmin, selectedFaculty, loadFaculties]);
 
+  // Sync data when inspecting specific faculty or regular faculty
   useEffect(() => {
-    if (activeTab === "reminders") loadReminders();
-    if (activeTab === "quizzes") loadQuizzes();
-    if (activeTab === "students") loadStudents();
-  }, [activeTab, loadReminders, loadQuizzes, loadStudents]);
+    if (!isSuperAdmin || selectedFaculty) {
+      const fid = selectedFaculty?.id || "";
+      loadStats(fid);
+      loadAvailableProblems();
+      if (activeTab === "reminders") loadReminders(fid);
+      if (activeTab === "quizzes") loadQuizzes(fid);
+      if (activeTab === "students") loadStudents(fid);
+    }
+  }, [isSuperAdmin, selectedFaculty, activeTab, loadStats, loadAvailableProblems, loadReminders, loadQuizzes, loadStudents]);
 
   // Dispatch Reminder Handler
   const handleDispatchReminder = async (e) => {
@@ -298,32 +344,276 @@ export default function FacultyControlHub() {
   return (
     <BackgroundPaths>
       <div className="faculty-hub-root">
-        {/* Header Bar */}
-        <div className="faculty-hub-header">
-          <div>
-            <div className="faculty-header-badge">
-              <span className="faculty-badge-dot" />
-              <span>FACULTY ACADEMIC CONSOLE</span>
-            </div>
-            <h1 className="faculty-hub-title">Academic & Assessment Command</h1>
-            <p className="faculty-hub-subtitle">
-              Dispatch real-time broadcast reminders, curate institutional challenge sets, set timed assessments, and monitor cohort progress.
-            </p>
-          </div>
+        {isSuperAdmin && !selectedFaculty ? (
+          <div className="faculty-admin-directory-view">
+            {/* Header */}
+            <div className="faculty-hub-header">
+              <div>
+                <div className="faculty-header-badge admin-badge">
+                  <span className="faculty-badge-dot admin-dot" />
+                  <span>SUPER ADMIN FACULTY COMMAND</span>
+                </div>
+                <h1 className="faculty-hub-title">Registered Faculty Directory</h1>
+                <p className="faculty-hub-subtitle">
+                  Inspect registered academic faculty across the platform. Click on any faculty member row to open and inspect their dedicated Faculty Hub.
+                </p>
+              </div>
 
-          <div className="faculty-identity-card">
-            <div className="faculty-avatar-box">
-              <FontAwesomeIcon icon={faChalkboardUser} />
+              <div className="faculty-identity-card admin-card">
+                <div className="faculty-avatar-box admin-avatar">
+                  <FontAwesomeIcon icon={faUserTie} />
+                </div>
+                <div className="faculty-identity-meta">
+                  <h4>{user?.displayName || "Super Admin"}</h4>
+                  <p>
+                    <FontAwesomeIcon icon={faShieldHalved} style={{ marginRight: "6px" }} />
+                    Platform Administrator • Full Faculty Clearance
+                  </p>
+                </div>
+              </div>
             </div>
-            <div className="faculty-identity-meta">
-              <h4>{profileData?.name || user?.displayName || user?.email?.split("@")[0] || "Faculty Member"}</h4>
-              <p>
-                <FontAwesomeIcon icon={faBuildingColumns} style={{ marginRight: "6px" }} />
-                {profileData?.institutionName || "Verified Institution"} • {profileData?.department || "Dept. of Computing"}
-              </p>
+
+            {/* KPI Summary Cards */}
+            <div className="faculty-stats-grid">
+              <div className="faculty-stat-card">
+                <div className="stat-icon-wrapper stat-icon-purple">
+                  <FontAwesomeIcon icon={faChalkboardUser} />
+                </div>
+                <div>
+                  <div className="stat-content-val">
+                    {loadingFaculties ? "..." : facultiesList.length}
+                  </div>
+                  <div className="stat-content-label">Registered Faculties</div>
+                </div>
+              </div>
+
+              <div className="faculty-stat-card">
+                <div className="stat-icon-wrapper stat-icon-cyan">
+                  <FontAwesomeIcon icon={faBuildingColumns} />
+                </div>
+                <div>
+                  <div className="stat-content-val">
+                    {loadingFaculties ? "..." : new Set(facultiesList.map((f) => f.institutionName || "Default")).size}
+                  </div>
+                  <div className="stat-content-label">Active Institutions</div>
+                </div>
+              </div>
+
+              <div className="faculty-stat-card">
+                <div className="stat-icon-wrapper stat-icon-amber">
+                  <FontAwesomeIcon icon={faGraduationCap} />
+                </div>
+                <div>
+                  <div className="stat-content-val">
+                    {loadingFaculties ? "..." : new Set(facultiesList.map((f) => f.department).filter(Boolean)).size}
+                  </div>
+                  <div className="stat-content-label">Departments Represented</div>
+                </div>
+              </div>
+
+              <div className="faculty-stat-card">
+                <div className="stat-icon-wrapper stat-icon-emerald">
+                  <FontAwesomeIcon icon={faStopwatch} />
+                </div>
+                <div>
+                  <div className="stat-content-val">
+                    {loadingFaculties ? "..." : facultiesList.reduce((acc, f) => acc + (f.quizCount || 0), 0)}
+                  </div>
+                  <div className="stat-content-label">Total Quizzes Managed</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Search & Filter Toolbar */}
+            <div className="faculty-directory-toolbar glass-panel">
+              <div className="directory-search-box">
+                <FontAwesomeIcon icon={faSearch} className="search-icon" />
+                <input
+                  type="text"
+                  placeholder="Search faculty by name, email, platform code..."
+                  value={facultySearch}
+                  onChange={(e) => setFacultySearch(e.target.value)}
+                  className="directory-search-input"
+                />
+              </div>
+
+              <div className="directory-filter-box">
+                <FontAwesomeIcon icon={faFilter} className="filter-icon" />
+                <select
+                  value={facultyDeptFilter}
+                  onChange={(e) => setFacultyDeptFilter(e.target.value)}
+                  className="directory-filter-select"
+                >
+                  {DEPARTMENTS.map((dept) => (
+                    <option key={dept} value={dept}>
+                      {dept === "ALL" ? "All Departments" : dept}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <button
+                type="button"
+                className="refresh-directory-btn"
+                onClick={loadFaculties}
+                disabled={loadingFaculties}
+              >
+                <FontAwesomeIcon icon={faArrowRotateRight} className={loadingFaculties ? "fa-spin" : ""} />
+                <span>Refresh</span>
+              </button>
+            </div>
+
+            {/* Faculties Registry Table */}
+            <div className="faculty-directory-table-wrap glass-panel">
+              <div className="table-header-title">
+                <h3>Accredited Faculty Members ({facultiesList.length})</h3>
+                <span className="table-header-tip">Click on any faculty row to open their dedicated Faculty Hub</span>
+              </div>
+
+              <div className="directory-table-responsive">
+                <table className="faculty-directory-table">
+                  <thead>
+                    <tr>
+                      <th>Faculty Member</th>
+                      <th>Department / School</th>
+                      <th>Institution</th>
+                      <th>Platform Code</th>
+                      <th>Assessments</th>
+                      <th>Announcements</th>
+                      <th>Registered</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {loadingFaculties ? (
+                      <tr>
+                        <td colSpan={8} className="table-loading-cell">
+                          <FontAwesomeIcon icon={faSpinner} className="fa-spin" /> Loading registered faculty members...
+                        </td>
+                      </tr>
+                    ) : facultiesList.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} className="table-empty-cell">
+                          No faculty members match the current search or department filter.
+                        </td>
+                      </tr>
+                    ) : (
+                      facultiesList.map((faculty) => (
+                        <tr
+                          key={faculty.id}
+                          className="faculty-row-clickable"
+                          onClick={() => setSelectedFaculty(faculty)}
+                          title="Click to open this faculty's Hub"
+                        >
+                          <td>
+                            <div className="faculty-cell-user">
+                              <div className="faculty-cell-avatar">
+                                {(faculty.displayName || faculty.username || "F").charAt(0).toUpperCase()}
+                              </div>
+                              <div className="faculty-cell-names">
+                                <strong className="faculty-cell-name">{faculty.displayName || faculty.username}</strong>
+                                <span className="faculty-cell-email">{faculty.email}</span>
+                              </div>
+                            </div>
+                          </td>
+                          <td>
+                            <span className="faculty-dept-badge">{faculty.department || "General Faculty"}</span>
+                          </td>
+                          <td>
+                            <span className="faculty-inst-text">{faculty.institutionName || "MITS Gwalior"}</span>
+                          </td>
+                          <td>
+                            <code className="faculty-code-pill">{faculty.platformCode || "FACULTY"}</code>
+                          </td>
+                          <td>
+                            <span className="metric-pill quiz-metric">
+                              <FontAwesomeIcon icon={faStopwatch} /> {faculty.quizCount ?? 0}
+                            </span>
+                          </td>
+                          <td>
+                            <span className="metric-pill reminder-metric">
+                              <FontAwesomeIcon icon={faBullhorn} /> {faculty.reminderCount ?? 0}
+                            </span>
+                          </td>
+                          <td>
+                            <span className="faculty-date-text">
+                              {new Date(faculty.createdAt).toLocaleDateString()}
+                            </span>
+                          </td>
+                          <td>
+                            <button
+                              type="button"
+                              className="open-faculty-hub-btn"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedFaculty(faculty);
+                              }}
+                            >
+                              <span>Open Hub</span>
+                              <FontAwesomeIcon icon={faArrowRight} />
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
-        </div>
+        ) : (
+          <div className="faculty-hub-detail-view">
+            {/* Super Admin Inspection Banner (Page 2) */}
+            {isSuperAdmin && selectedFaculty && (
+              <div className="superadmin-inspection-banner glass-panel">
+                <div className="inspection-banner-left">
+                  <button
+                    type="button"
+                    className="back-to-directory-btn"
+                    onClick={() => setSelectedFaculty(null)}
+                  >
+                    <FontAwesomeIcon icon={faArrowLeft} />
+                    <span>Back to Faculty Directory</span>
+                  </button>
+                  <div className="inspection-target-info">
+                    <span className="admin-inspect-chip">SUPER ADMIN INSPECTION</span>
+                    <span className="inspecting-label">
+                      Viewing Hub for: <strong>{selectedFaculty.displayName || selectedFaculty.username}</strong> ({selectedFaculty.email})
+                    </span>
+                  </div>
+                </div>
+                <div className="inspection-banner-right">
+                  <span className="faculty-dept-pill">{selectedFaculty.department || "Academic Faculty"}</span>
+                </div>
+              </div>
+            )}
+
+            {/* Header Bar */}
+            <div className="faculty-hub-header">
+              <div>
+                <div className="faculty-header-badge">
+                  <span className="faculty-badge-dot" />
+                  <span>FACULTY ACADEMIC CONSOLE</span>
+                </div>
+                <h1 className="faculty-hub-title">Academic & Assessment Command</h1>
+                <p className="faculty-hub-subtitle">
+                  Dispatch real-time broadcast reminders, curate institutional challenge sets, set timed assessments, and monitor cohort progress.
+                </p>
+              </div>
+
+              <div className="faculty-identity-card">
+                <div className="faculty-avatar-box">
+                  <FontAwesomeIcon icon={faChalkboardUser} />
+                </div>
+                <div className="faculty-identity-meta">
+                  <h4>{selectedFaculty ? (selectedFaculty.displayName || selectedFaculty.username) : (profileData?.name || user?.displayName || user?.email?.split("@")[0] || "Faculty Member")}</h4>
+                  <p>
+                    <FontAwesomeIcon icon={faBuildingColumns} style={{ marginRight: "6px" }} />
+                    {selectedFaculty ? (selectedFaculty.institutionName || "Verified Institution") : (profileData?.institutionName || "Verified Institution")} • {selectedFaculty ? (selectedFaculty.department || "Dept. of Computing") : (profileData?.department || "Dept. of Computing")}
+                  </p>
+                </div>
+              </div>
+            </div>
 
         {/* Stats Grid */}
         <div className="faculty-stats-grid">
@@ -984,17 +1274,19 @@ export default function FacultyControlHub() {
             </div>
           </div>
         )}
-
-        {/* Excel & Document Question Import Overlay Modal */}
-        <ProblemImportModal
-          isOpen={showImportModal}
-          onClose={() => setShowImportModal(false)}
-          onImportSuccess={() => {
-            loadAvailableProblems();
-            loadStats();
-          }}
-        />
       </div>
+    )}
+
+      {/* Excel & Document Question Import Overlay Modal */}
+      <ProblemImportModal
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        onImportSuccess={() => {
+          loadAvailableProblems();
+          loadStats();
+        }}
+      />
+    </div>
       <Footer />
     </BackgroundPaths>
   );

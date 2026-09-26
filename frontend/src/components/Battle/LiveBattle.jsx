@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation, useParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { connectSocket, disconnectSocket } from "../../services/socket";
+import { getSessionToken } from "../../services/authStorage";
 import { useAuth } from "../../contexts/AuthContext";
 import { useNotification } from "../../contexts/NotificationContext.jsx";
 import { requestJson } from "../../services/api";
@@ -591,7 +592,9 @@ export default function LiveBattle() {
     let socket = null;
 
     const setupSocket = async () => {
-      const token = user ? await user.getIdToken().catch(() => null) : null;
+      const token = typeof user?.getIdToken === "function"
+        ? await user.getIdToken().catch(() => null)
+        : (user ? getSessionToken() : null);
       if (cancelled) return;
 
       socket = connectSocket(token, user?.uid || null, username);

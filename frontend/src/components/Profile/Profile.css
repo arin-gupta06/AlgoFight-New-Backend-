@@ -702,3 +702,55 @@
     }
 }
 
+/* Faculty Profile Overrides */
+.faculty-badge-display {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 18px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, rgba(168, 85, 247, 0.16), rgba(99, 102, 241, 0.1));
+    border: 1px solid rgba(168, 85, 247, 0.35);
+    box-shadow: 0 0 20px rgba(168, 85, 247, 0.2);
+}
+
+.faculty-badge-icon {
+    font-size: 1.5rem;
+    color: #c084fc;
+}
+
+.faculty-badge-text {
+    display: flex;
+    flex-direction: column;
+}
+
+.faculty-badge-title {
+    font-size: 0.85rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    color: #f3e8ff;
+}
+
+.faculty-badge-sub {
+    font-size: 0.72rem;
+    color: #d8b4fe;
+    font-weight: 600;
+}
+
+.profile-stat-icon.tone-purple {
+    color: #c084fc;
+    background: rgba(168, 85, 247, 0.12);
+    border-color: rgba(168, 85, 247, 0.35);
+}
+
+.profile-student-card.faculty-theme {
+    border-color: rgba(168, 85, 247, 0.28);
+    background: linear-gradient(145deg, rgba(168, 85, 247, 0.08), rgba(18, 20, 28, 0.6));
+    box-shadow: 0 10px 30px rgba(168, 85, 247, 0.1);
+}
+
+.profile-content-grid.faculty-view {
+    grid-template-columns: 1fr;
+}
+
+

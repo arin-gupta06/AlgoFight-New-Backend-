@@ -2,6 +2,7 @@
 import { prisma } from "@algofight/database";
 import { InboxNotificationService } from "../services/inbox-notification.service";
 import { logger } from "@algofight/logger";
+import { isAdminEmail } from "../constants/admins";
 
 export interface FacultyStudentQuery {
     department?: string;
@@ -10,6 +11,8 @@ export interface FacultyStudentQuery {
     search?: string;
     page?: number;
     limit?: number;
+    targetFacultyId?: string;
+    facultyId?: string;
 }
 
 export interface DispatchReminderPayload {
@@ -35,9 +38,26 @@ export interface CreateQuizPayload {
 
 export class FacultyController {
     /**
+     * Resolve effective faculty context: allows Super Admins to inspect any faculty's view
+     */
+    private async resolveFacultyContext(user: any, targetFacultyId?: string) {
+        if (targetFacultyId && (user?.role === "ADMIN" || isAdminEmail(user?.email))) {
+            try {
+                const target = await prisma.user.findUnique({
+                    where: { id: targetFacultyId },
+                    select: { id: true, username: true, email: true, institutionName: true, department: true, userType: true }
+                });
+                if (target) return target;
+            } catch {}
+        }
+        return user;
+    }
+
+    /**
      * Retrieve student roster for faculty's department/institution with eligibility filtering
      */
     async getStudents(query: FacultyStudentQuery, facultyUser: any) {
+        const effectiveUser = await this.resolveFacultyContext(facultyUser, query.targetFacultyId || query.facultyId);
         const page = Math.max(1, query.page || 1);
         const limit = Math.min(100, Math.max(1, query.limit || 50));
         const skip = (page - 1) * limit;
@@ -47,10 +67,10 @@ export class FacultyController {
         };
 
         // If faculty belongs to an institution, scope to that institution
-        if (facultyUser?.institutionName) {
-            where.institutionName = { equals: facultyUser.institutionName, mode: "insensitive" };
-        } else if (facultyUser?.institutionDomain) {
-            where.institutionDomain = facultyUser.institutionDomain;
+        if (effectiveUser?.institutionName) {
+            where.institutionName = { equals: effectiveUser.institutionName, mode: "insensitive" };
+        } else if (effectiveUser?.institutionDomain) {
+            where.institutionDomain = effectiveUser.institutionDomain;
         }
 
         if (query.department && query.department !== "ALL") {
@@ -186,13 +206,14 @@ export class FacultyController {
     /**
      * Retrieve reminders dispatched by the faculty member
      */
-    async getReminders(facultyUser: any) {
+    async getReminders(facultyUser: any, targetFacultyId?: string) {
+        const effectiveUser = await this.resolveFacultyContext(facultyUser, targetFacultyId);
         const reminders = await prisma.systemBroadcast.findMany({
             where: {
                 OR: [
-                    { createdBy: facultyUser.username },
-                    { createdBy: facultyUser.email },
-                    { createdBy: facultyUser.id },
+                    { createdBy: effectiveUser.username },
+                    { createdBy: effectiveUser.email },
+                    { createdBy: effectiveUser.id },
                 ],
             },
             orderBy: { createdAt: "desc" },
@@ -228,10 +249,11 @@ export class FacultyController {
     /**
      * Retrieve all quizzes created by this faculty
      */
-    async getQuizzes(facultyUser: any) {
+    async getQuizzes(facultyUser: any, targetFacultyId?: string) {
+        const effectiveUser = await this.resolveFacultyContext(facultyUser, targetFacultyId);
         const quizzes = await prisma.quiz.findMany({
             where: {
-                creatorId: facultyUser.id,
+                creatorId: effectiveUser.id,
             },
             orderBy: { createdAt: "desc" },
         });
@@ -284,25 +306,26 @@ export class FacultyController {
     /**
      * Get faculty overview stats
      */
-    async getFacultyStats(facultyUser: any) {
+    async getFacultyStats(facultyUser: any, targetFacultyId?: string) {
+        const effectiveUser = await this.resolveFacultyContext(facultyUser, targetFacultyId);
         const [studentCount, quizCount, reminderCount] = await Promise.all([
             prisma.user.count({
                 where: {
                     userType: "STUDENT",
-                    ...(facultyUser.institutionName
-                        ? { institutionName: { equals: facultyUser.institutionName, mode: "insensitive" } }
+                    ...(effectiveUser.institutionName
+                        ? { institutionName: { equals: effectiveUser.institutionName, mode: "insensitive" } }
                         : {}),
                 },
             }),
             prisma.quiz.count({
-                where: { creatorId: facultyUser.id },
+                where: { creatorId: effectiveUser.id },
             }),
             prisma.systemBroadcast.count({
                 where: {
                     OR: [
-                        { createdBy: facultyUser.username },
-                        { createdBy: facultyUser.email },
-                        { createdBy: facultyUser.id },
+                        { createdBy: effectiveUser.username },
+                        { createdBy: effectiveUser.email },
+                        { createdBy: effectiveUser.id },
                     ],
                 },
             }),
@@ -312,8 +335,83 @@ export class FacultyController {
             studentCount,
             quizCount,
             reminderCount,
-            institutionName: facultyUser.institutionName,
-            department: facultyUser.department,
+            institutionName: effectiveUser.institutionName,
+            department: effectiveUser.department,
+            inspectedFaculty: targetFacultyId ? {
+                id: effectiveUser.id,
+                username: effectiveUser.username,
+                email: effectiveUser.email,
+                department: effectiveUser.department,
+            } : null,
+        };
+    }
+
+    /**
+     * Retrieve all registered faculties on the platform (for Super Admin Directory)
+     */
+    async listFaculties(query?: { search?: string; department?: string }) {
+        const where: any = {
+            userType: "FACULTY",
+        };
+
+        if (query?.department && query.department !== "ALL") {
+            where.department = { contains: query.department, mode: "insensitive" };
+        }
+
+        if (query?.search?.trim()) {
+            const s = query.search.trim();
+            where.OR = [
+                { username: { contains: s, mode: "insensitive" } },
+                { email: { contains: s, mode: "insensitive" } },
+                { platformCode: { contains: s, mode: "insensitive" } },
+                { institutionName: { contains: s, mode: "insensitive" } },
+                { department: { contains: s, mode: "insensitive" } },
+            ];
+        }
+
+        const faculties = await prisma.user.findMany({
+            where,
+            orderBy: { createdAt: "desc" },
+            select: {
+                id: true,
+                username: true,
+                email: true,
+                platformCode: true,
+                institutionName: true,
+                department: true,
+                branch: true,
+                userType: true,
+                createdAt: true,
+            },
+        });
+
+        // Compute counts of quizzes & reminders per faculty
+        const facultiesWithCounts = await Promise.all(
+            faculties.map(async (f) => {
+                const [quizCount, reminderCount] = await Promise.all([
+                    prisma.quiz.count({ where: { creatorId: f.id } }).catch(() => 0),
+                    prisma.systemBroadcast.count({
+                        where: {
+                            OR: [
+                                { createdBy: f.username },
+                                { createdBy: f.email },
+                                { createdBy: f.id },
+                            ],
+                        },
+                    }).catch(() => 0),
+                ]);
+
+                return {
+                    ...f,
+                    quizCount,
+                    reminderCount,
+                };
+            })
+        );
+
+        return {
+            total: facultiesWithCounts.length,
+            faculties: facultiesWithCounts,
         };
     }
 }

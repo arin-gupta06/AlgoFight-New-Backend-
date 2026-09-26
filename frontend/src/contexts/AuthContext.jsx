@@ -24,32 +24,36 @@ export function useAuth() {
   return useContext(AuthContext);
 }
 
+// Normalize user object with helper getIdToken() for backwards-compatibility
+export const formatUser = (userData, token) => {
+  if (!userData) return null;
+  const currentToken = token || getSessionToken();
+  return {
+    uid: userData.id || userData.uid,
+    id: userData.id || userData.uid,
+    email: userData.email,
+    displayName: userData.username || userData.displayName || "Player",
+    username: userData.username || userData.displayName || "Player",
+    photoURL: userData.photoURL || null,
+    role: userData.role || "USER",
+    platformCode: userData.platformCode,
+    rating: userData.rating,
+    highestRank: userData.highestRank,
+    getIdToken: async () => currentToken || getSessionToken(),
+  };
+};
+
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(() => getStoredUser());
+  const [user, setUser] = useState(() => {
+    const stored = getStoredUser();
+    return stored ? formatUser(stored, getSessionToken()) : null;
+  });
   const [profileData, setProfileData] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const setGlobalUser = useUserStore((state) => state.setUser);
   const clearGlobalUser = useUserStore((state) => state.clearUser);
   const setGlobalProfileData = useUserStore((state) => state.setProfileData);
-
-  // Normalize user object with helper getIdToken() for backwards-compatibility
-  const formatUser = (userData, token) => {
-    if (!userData) return null;
-    return {
-      uid: userData.id || userData.uid,
-      id: userData.id || userData.uid,
-      email: userData.email,
-      displayName: userData.username || userData.displayName || "Player",
-      username: userData.username || userData.displayName || "Player",
-      photoURL: userData.photoURL || null,
-      role: userData.role || "USER",
-      platformCode: userData.platformCode,
-      rating: userData.rating,
-      highestRank: userData.highestRank,
-      getIdToken: async () => token || getSessionToken(),
-    };
-  };
 
   const applyAuthenticatedState = useCallback(
     (authUser, token, profile) => {

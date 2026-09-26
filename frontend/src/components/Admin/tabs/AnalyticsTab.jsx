@@ -267,54 +267,62 @@ export default function AnalyticsTab({
                 </tr>
               </thead>
               <tbody>
-                {analyticsData?.topIpOrigins?.map((rec) => (
-                  <tr key={rec.ip}>
-                    <td>
-                      <span
-                        className={`ip-chip ${rec.ip === "127.0.0.1" ? "ip-local" : "ip-remote"}`}
-                        onClick={(e) => handleCopyIp(rec.ip, e)}
-                        title="Click to copy IP"
-                      >
-                        <FontAwesomeIcon icon={faGlobe} /> {rec.ip}
-                        {copiedIp === rec.ip && (
-                          <span className="copied-tag">
-                            <FontAwesomeIcon icon={faCheck} />
-                          </span>
-                        )}
-                      </span>
-                    </td>
-                    <td>
-                      <strong className="cyan-text">{rec.totalRequests}</strong> hits
-                    </td>
-                    <td>
-                      <span className={`method-badge meth-${rec.primaryMethod.toLowerCase()}`}>
-                        {rec.primaryMethod}
-                      </span>
-                    </td>
-                    <td>
-                      <code>{rec.topPath}</code>
-                    </td>
-                    <td>{rec.lastSeen}</td>
-                    <td>
-                      {rec.username ? (
-                        <strong className="green-text">
-                          <FontAwesomeIcon icon={faUser} /> {rec.username}
-                        </strong>
-                      ) : (
-                        <span style={{ color: "#94a3b8" }}>Guest Visitor</span>
-                      )}
-                    </td>
-                    <td>
-                      <button
-                        type="button"
-                        className="inspect-ip-btn"
-                        onClick={() => handleFilterByIp(rec.ip)}
-                      >
-                        <FontAwesomeIcon icon={faMagnifyingGlass} /> Filter Logs
-                      </button>
+                {(!analyticsData?.topIpOrigins || analyticsData.topIpOrigins.length === 0) ? (
+                  <tr>
+                    <td colSpan={7} style={{ textAlign: "center", padding: "28px", color: "#8494ad", fontSize: "0.85rem" }}>
+                      No origin client IP activity recorded yet. Live telemetry will populate automatically.
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  analyticsData?.topIpOrigins?.map((rec) => (
+                    <tr key={rec.ip}>
+                      <td>
+                        <span
+                          className={`ip-chip ${rec.ip === "127.0.0.1" ? "ip-local" : "ip-remote"}`}
+                          onClick={(e) => handleCopyIp(rec.ip, e)}
+                          title="Click to copy IP"
+                        >
+                          <FontAwesomeIcon icon={faGlobe} /> {rec.ip}
+                          {copiedIp === rec.ip && (
+                            <span className="copied-tag">
+                              <FontAwesomeIcon icon={faCheck} />
+                            </span>
+                          )}
+                        </span>
+                      </td>
+                      <td>
+                        <strong className="cyan-text">{rec.totalRequests}</strong> hits
+                      </td>
+                      <td>
+                        <span className={`method-badge meth-${rec.primaryMethod?.toLowerCase() || 'get'}`}>
+                          {rec.primaryMethod || 'GET'}
+                        </span>
+                      </td>
+                      <td>
+                        <code>{rec.topPath}</code>
+                      </td>
+                      <td>{rec.lastSeen}</td>
+                      <td>
+                        {rec.username ? (
+                          <strong className="green-text">
+                            <FontAwesomeIcon icon={faUser} /> {rec.username}
+                          </strong>
+                        ) : (
+                          <span style={{ color: "#94a3b8" }}>Guest Visitor</span>
+                        )}
+                      </td>
+                      <td>
+                        <button
+                          type="button"
+                          className="inspect-ip-btn"
+                          onClick={() => handleFilterByIp(rec.ip)}
+                        >
+                          <FontAwesomeIcon icon={faMagnifyingGlass} /> Filter Logs
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>

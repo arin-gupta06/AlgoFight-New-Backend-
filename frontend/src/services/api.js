@@ -418,6 +418,8 @@ export async function fetchAdminAuditLogs(adminKey, { category = "ALL", severity
 export async function fetchAdminAnalytics(adminKey) {
   return requestJson(`/api/admin/analytics`, {
     headers: { "x-admin-key": adminKey },
+    skipCache: true,
+    cache: "no-store",
   });
 }
 
@@ -460,18 +462,32 @@ export async function importProblemsBulk(problems) {
 /**
  * Faculty Control Hub APIs
  */
-export async function fetchFacultyStudents({ department = "", branch = "", batchYear = "", search = "", page = 1, limit = 50 } = {}) {
+export async function fetchFacultyStudents({ department = "", branch = "", batchYear = "", search = "", page = 1, limit = 50, facultyId = "" } = {}) {
   const params = new URLSearchParams();
   if (department && department !== "ALL") params.set("department", department);
   if (branch && branch !== "ALL") params.set("branch", branch);
   if (batchYear && batchYear !== "ALL") params.set("batchYear", batchYear);
   if (search) params.set("search", search);
+  if (facultyId) params.set("facultyId", facultyId);
   params.set("page", String(page));
   params.set("limit", String(limit));
 
   return requestJson(`/api/faculty/students?${params.toString()}`, {
     includeAuth: true,
     cache: "no-store",
+  });
+}
+
+export async function fetchRegisteredFaculties({ search = "", department = "" } = {}) {
+  const params = new URLSearchParams();
+  if (search) params.set("search", search);
+  if (department && department !== "ALL") params.set("department", department);
+  const queryStr = params.toString() ? `?${params.toString()}` : "";
+
+  return requestJson(`/api/faculty/faculties${queryStr}`, {
+    includeAuth: true,
+    cache: "no-store",
+    skipCache: true,
   });
 }
 
@@ -485,10 +501,12 @@ export async function dispatchFacultyReminder(payload) {
   });
 }
 
-export async function fetchFacultyReminders() {
-  return requestJson("/api/faculty/reminders", {
+export async function fetchFacultyReminders(facultyId = "") {
+  const url = facultyId ? `/api/faculty/reminders?facultyId=${encodeURIComponent(facultyId)}` : "/api/faculty/reminders";
+  return requestJson(url, {
     includeAuth: true,
     cache: "no-store",
+    skipCache: true,
   });
 }
 
@@ -508,10 +526,12 @@ export async function createFacultyQuiz(payload) {
   });
 }
 
-export async function fetchFacultyQuizzes() {
-  return requestJson("/api/faculty/quizzes", {
+export async function fetchFacultyQuizzes(facultyId = "") {
+  const url = facultyId ? `/api/faculty/quizzes?facultyId=${encodeURIComponent(facultyId)}` : "/api/faculty/quizzes";
+  return requestJson(url, {
     includeAuth: true,
     cache: "no-store",
+    skipCache: true,
   });
 }
 
@@ -522,10 +542,12 @@ export async function deleteFacultyQuiz(id) {
   });
 }
 
-export async function fetchFacultyStats() {
-  return requestJson("/api/faculty/stats", {
+export async function fetchFacultyStats(facultyId = "") {
+  const url = facultyId ? `/api/faculty/stats?facultyId=${encodeURIComponent(facultyId)}` : "/api/faculty/stats";
+  return requestJson(url, {
     includeAuth: true,
     cache: "no-store",
+    skipCache: true,
   });
 }
 

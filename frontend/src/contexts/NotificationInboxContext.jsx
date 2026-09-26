@@ -8,6 +8,7 @@ import {
     clearUserNotifications,
 } from '../services/api';
 import { getSocket } from '../services/socket';
+import { getSessionToken } from '../services/authStorage';
 
 const NotificationInboxContext = createContext();
 
@@ -87,7 +88,9 @@ export function NotificationInboxProvider({ children }) {
         let active = true;
 
         const setupSocket = async () => {
-            const token = await user.getIdToken().catch(() => null);
+            const token = typeof user?.getIdToken === 'function'
+                ? await user.getIdToken().catch(() => null)
+                : getSessionToken();
             if (!active) return;
 
             const socket = getSocket();

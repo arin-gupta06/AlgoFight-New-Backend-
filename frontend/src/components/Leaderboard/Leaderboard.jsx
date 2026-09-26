@@ -27,7 +27,10 @@ export default function Leaderboard() {
   useEffect(() => {
     fetchLeaderboard()
       .then((res) => {
-        setData(res);
+        const studentLeaderboard = Array.isArray(res)
+          ? res.filter((u) => u.userType !== "FACULTY" && u.role !== "FACULTY")
+          : [];
+        setData(studentLeaderboard);
         setLoading(false);
       })
       .catch((err) => {

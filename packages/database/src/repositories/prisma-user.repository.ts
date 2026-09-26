@@ -121,6 +121,9 @@ export class PrismaUserRepository implements UserRepository {
 
     async getTopUsers(limit: number = 20): Promise<UserEntity[]> {
         return prisma.user.findMany({
+            where: {
+                userType: { not: "FACULTY" },
+            },
             take: limit,
             orderBy: { rating: "desc" },
         });
@@ -228,6 +231,11 @@ export class PrismaUserRepository implements UserRepository {
         if (excludeUserId) {
             conditions.push({ id: { not: excludeUserId } });
         }
+
+        // Exclude faculty members from player matchmaking & duel listings
+        conditions.push({
+            userType: { not: "FACULTY" },
+        });
 
         if (search && search.trim()) {
             const query = search.trim();

@@ -25,6 +25,7 @@ import {
   faRobot,
   faShieldHalved,
   faSignal,
+  faChalkboardUser,
 } from "@fortawesome/free-solid-svg-icons";
 import "./BattleArena.css";
 
@@ -32,7 +33,7 @@ export default function BattleArena({ defaultTab }) {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { user } = useAuth();
+  const { user, profileData } = useAuth();
 
   const initialTab = defaultTab || searchParams.get("tab") || "modes";
   const [activeTab, setActiveTab] = useState(initialTab); // "modes" | "players"
@@ -79,6 +80,7 @@ export default function BattleArena({ defaultTab }) {
   }, [location.state, user]);
 
   const { rating, matchesWon, winRate } = normalizeUserStats(profile || {});
+  const isFaculty = profileData?.userType === "FACULTY" || profile?.userType === "FACULTY";
 
   return (
     <BackgroundPaths>
@@ -93,7 +95,7 @@ export default function BattleArena({ defaultTab }) {
             <div className="arena-header-top">
               <div className="hero-badge">
                 <span className="badge-pulse-dot" />
-                <span>COMPETITIVE ARENA</span>
+                <span>{isFaculty ? "FACULTY PORTAL" : "COMPETITIVE ARENA"}</span>
               </div>
               <div className="telemetry-bar">
                 <span><FontAwesomeIcon icon={faSignal} className="text-cyan" /> 24ms Low Latency</span>
@@ -110,41 +112,68 @@ export default function BattleArena({ defaultTab }) {
             </p>
           </motion.div>
 
-          {/* Player Stats Grid */}
-          <section className="arena-stats">
-            <div className="stat-card tone-gold">
-              <div className="stat-icon-wrapper">
-                <RankEmblem rating={rating} size={30} glow={false} />
+          {isFaculty ? (
+            <motion.div
+              className="faculty-arena-notice"
+              initial={{ opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.3 }}
+            >
+              <div className="faculty-notice-badge">
+                <FontAwesomeIcon icon={faChalkboardUser} />
+                <span>FACULTY ACADEMIC ACCOUNT</span>
               </div>
-              <div className="stat-info">
-                <div className="stat-number stat-yellow">{rating}</div>
-                <div className="stat-label">Global Rating</div>
+              <h2>Academic Non-Combat Account</h2>
+              <p>
+                Competitive battle matchmaking and ELO ladder ranks are reserved exclusively for student combatants.
+                As a faculty member, you have administrative oversight to monitor students, track progress, create quizzes, or solve problems in the practice zone.
+              </p>
+              <div className="faculty-notice-actions">
+                <button className="btn-primary-glow" onClick={() => navigate("/faculty")}>
+                  <FontAwesomeIcon icon={faChalkboardUser} /> Open Faculty Hub
+                </button>
+                <button className="btn-secondary-glow" onClick={() => navigate("/practice")}>
+                  <FontAwesomeIcon icon={faBullseye} /> Go to Practice Arena
+                </button>
               </div>
-              <div className="stat-pill-badge">ELO RANKED</div>
-            </div>
+            </motion.div>
+          ) : (
+            <>
+              {/* Player Stats Grid */}
+              <section className="arena-stats">
+                <div className="stat-card tone-gold">
+                  <div className="stat-icon-wrapper">
+                    <RankEmblem rating={rating} size={30} glow={false} />
+                  </div>
+                  <div className="stat-info">
+                    <div className="stat-number stat-yellow">{rating}</div>
+                    <div className="stat-label">Global Rating</div>
+                  </div>
+                  <div className="stat-pill-badge">ELO RANKED</div>
+                </div>
 
-            <div className="stat-card tone-pink">
-              <div className="stat-icon-wrapper">
-                <FontAwesomeIcon icon={faBullseye} />
-              </div>
-              <div className="stat-info">
-                <div className="stat-number stat-pink">{matchesWon}</div>
-                <div className="stat-label">Battles Won</div>
-              </div>
-              <div className="stat-pill-badge pink">VICTORIES</div>
-            </div>
+                <div className="stat-card tone-pink">
+                  <div className="stat-icon-wrapper">
+                    <FontAwesomeIcon icon={faBullseye} />
+                  </div>
+                  <div className="stat-info">
+                    <div className="stat-number stat-pink">{matchesWon}</div>
+                    <div className="stat-label">Battles Won</div>
+                  </div>
+                  <div className="stat-pill-badge pink">VICTORIES</div>
+                </div>
 
-            <div className="stat-card tone-cyan">
-              <div className="stat-icon-wrapper">
-                <FontAwesomeIcon icon={faBolt} />
-              </div>
-              <div className="stat-info">
-                <div className="stat-number stat-cyan">{winRate}%</div>
-                <div className="stat-label">Win Rate</div>
-              </div>
-              <div className="stat-pill-badge cyan">ACCURACY</div>
-            </div>
-          </section>
+                <div className="stat-card tone-cyan">
+                  <div className="stat-icon-wrapper">
+                    <FontAwesomeIcon icon={faBolt} />
+                  </div>
+                  <div className="stat-info">
+                    <div className="stat-number stat-cyan">{winRate}%</div>
+                    <div className="stat-label">Win Rate</div>
+                  </div>
+                  <div className="stat-pill-badge cyan">ACCURACY</div>
+                </div>
+              </section>
 
           {/* Tab Switcher: Combat Modes vs Available Players */}
           <div className="arena-nav-container">
@@ -261,15 +290,17 @@ export default function BattleArena({ defaultTab }) {
             </motion.section>
           )}
 
-          {/* Tab 2: Available Players Directory */}
-          {activeTab === "players" && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.2 }}
-            >
-              <AvailablePlayers onPlayerCountChange={setOnlineCount} />
-            </motion.div>
+              {/* Tab 2: Available Players Directory */}
+              {activeTab === "players" && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <AvailablePlayers onPlayerCountChange={setOnlineCount} />
+                </motion.div>
+              )}
+            </>
           )}
         </div>
 

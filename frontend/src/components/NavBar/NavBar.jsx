@@ -47,7 +47,8 @@ const Navbar = () => {
   };
 
   const isAdmin = isAdminUser(user);
-  const isFaculty = profileData?.userType === "FACULTY" || isAdmin;
+  const isFacultyUser = profileData?.userType === "FACULTY";
+  const hasFacultyAccess = isFacultyUser || isAdmin;
   const isExploreActive = ['/about', '/developer', '/admin', '/faculty'].includes(location.pathname);
 
   return (
@@ -62,10 +63,24 @@ const Navbar = () => {
           {/* Streamlined Desktop Navigation Links */}
           <div className="navbar-links desktop-links">
             <ul className="nav-menu">
-              <li><Link to="/battle" className={`nav-link-pill ${isActive('/battle')}`}>Battle</Link></li>
-              <li><Link to="/practice" className={`nav-link-pill ${isActive('/practice')}`}>Practice</Link></li>
-              <li><Link to="/leaderboard" className={`nav-link-pill ${isActive('/leaderboard')}`}>Leaderboard</Link></li>
-              <li><Link to="/rewards" className={`nav-link-pill ${isActive('/rewards')}`}>Rewards</Link></li>
+              {isFacultyUser ? (
+                <>
+                  <li>
+                    <Link to="/faculty" className={`nav-link-pill ${isActive('/faculty')}`} style={{ borderColor: 'rgba(168, 85, 247, 0.4)', color: '#e9d5ff' }}>
+                      <FontAwesomeIcon icon={faChalkboardUser} style={{ marginRight: '6px', color: '#c084fc' }} />
+                      Faculty Hub
+                    </Link>
+                  </li>
+                  <li><Link to="/practice" className={`nav-link-pill ${isActive('/practice')}`}>Practice</Link></li>
+                </>
+              ) : (
+                <>
+                  <li><Link to="/battle" className={`nav-link-pill ${isActive('/battle')}`}>Battle</Link></li>
+                  <li><Link to="/practice" className={`nav-link-pill ${isActive('/practice')}`}>Practice</Link></li>
+                  <li><Link to="/leaderboard" className={`nav-link-pill ${isActive('/leaderboard')}`}>Leaderboard</Link></li>
+                  <li><Link to="/rewards" className={`nav-link-pill ${isActive('/rewards')}`}>Rewards</Link></li>
+                </>
+              )}
               <li
                 className="nav-explore-wrapper"
                 onMouseEnter={() => setIsMoreOpen(true)}
@@ -96,7 +111,7 @@ const Navbar = () => {
                         <FontAwesomeIcon icon={faCode} className="explore-icon" />
                         <span>Developers</span>
                       </Link>
-                      {isFaculty && (
+                      {(hasFacultyAccess && !isFacultyUser) && (
                         <Link to="/faculty" className={`explore-item faculty-item ${isActive('/faculty')}`}>
                           <FontAwesomeIcon icon={faChalkboardUser} className="explore-icon faculty-icon" />
                           <span>Faculty Hub</span>
@@ -190,13 +205,27 @@ const Navbar = () => {
               transition={{ duration: 0.25, ease: 'easeInOut' }}
             >
               <ul className="mobile-nav-list">
-                <li><Link to="/practice" className={isActive('/practice')}>Practice</Link></li>
-                <li><Link to="/battle" className={isActive('/battle')}>Battle</Link></li>
-                <li><Link to="/leaderboard" className={isActive('/leaderboard')}>Leaderboard</Link></li>
-                <li><Link to="/rewards" className={isActive('/rewards')}>Rewards</Link></li>
+                {isFacultyUser ? (
+                  <>
+                    <li>
+                      <Link to="/faculty" className={`mobile-admin-link ${isActive('/faculty')}`} style={{ borderColor: 'rgba(168, 85, 247, 0.4)', color: '#e9d5ff' }}>
+                        <FontAwesomeIcon icon={faChalkboardUser} style={{ marginRight: '8px', color: '#c084fc' }} />
+                        Faculty Hub
+                      </Link>
+                    </li>
+                    <li><Link to="/practice" className={isActive('/practice')}>Practice</Link></li>
+                  </>
+                ) : (
+                  <>
+                    <li><Link to="/practice" className={isActive('/practice')}>Practice</Link></li>
+                    <li><Link to="/battle" className={isActive('/battle')}>Battle</Link></li>
+                    <li><Link to="/leaderboard" className={isActive('/leaderboard')}>Leaderboard</Link></li>
+                    <li><Link to="/rewards" className={isActive('/rewards')}>Rewards</Link></li>
+                  </>
+                )}
                 <li><Link to="/about" className={isActive('/about')}>About</Link></li>
                 <li><Link to="/developer" className={isActive('/developer')}>Developers</Link></li>
-                {isFaculty && (
+                {(hasFacultyAccess && !isFacultyUser) && (
                   <li>
                     <Link to="/faculty" className={`mobile-admin-link ${isActive('/faculty')}`} style={{ borderColor: 'rgba(168, 85, 247, 0.4)', color: '#e9d5ff' }}>
                       <FontAwesomeIcon icon={faChalkboardUser} style={{ marginRight: '8px', color: '#c084fc' }} />

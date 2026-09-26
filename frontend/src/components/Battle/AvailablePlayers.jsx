@@ -21,6 +21,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { fetchAvailablePlayers } from "../../services/api";
 import { connectSocket, getSocket } from "../../services/socket";
+import { getSessionToken } from "../../services/authStorage";
 import { useAuth } from "../../contexts/AuthContext";
 import { useNotification } from "../../contexts/NotificationContext";
 import RankEmblem, { getRankTier } from "../Common/gamification/RankEmblem";
@@ -72,7 +73,9 @@ export default function AvailablePlayers({ onPlayerCountChange }) {
 
         const initSocket = async () => {
             if (user) {
-                token = await user.getIdToken().catch(() => null);
+                token = typeof user.getIdToken === "function"
+                    ? await user.getIdToken().catch(() => null)
+                    : getSessionToken();
             }
             if (!active) return;
 
@@ -228,6 +231,7 @@ export default function AvailablePlayers({ onPlayerCountChange }) {
 
         // Populate from DB baseline
         for (const p of dbPlayers) {
+            if (p.userType === "FACULTY" || p.role === "FACULTY") continue;
             const isMe = p.id === currentUserId || p.email === user?.email;
             map.set(p.id, {
                 id: p.id,
@@ -246,6 +250,7 @@ export default function AvailablePlayers({ onPlayerCountChange }) {
 
         // Overlay with live presence entries
         for (const [userId, pres] of onlinePresences.entries()) {
+            if (pres.userType === "FACULTY" || pres.role === "FACULTY") continue;
             const existing = map.get(userId);
             const isMe = userId === currentUserId || pres.username === currentUsername;
             if (existing) {

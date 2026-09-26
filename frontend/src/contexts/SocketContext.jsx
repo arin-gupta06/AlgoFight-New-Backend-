@@ -5,6 +5,7 @@ import { useUserStore } from "../store/useUserStore";
 import { useGameStore } from "../store/useGameStore";
 import { useGlobalStore } from "../store/useGlobalStore";
 import { getSocket, connectSocket, disconnectSocket } from "../services/socket";
+import { getSessionToken } from "../services/authStorage";
 
 export const SocketContext = createContext(null);
 
@@ -94,7 +95,7 @@ export function SocketProvider({ children }) {
     let active = true;
     (async () => {
       try {
-        const token = user?.getIdToken ? await user.getIdToken() : null;
+        const token = typeof user?.getIdToken === "function" ? await user.getIdToken() : (user ? getSessionToken() : null);
         if (active) {
           connectSocket(token, userId, username);
         }

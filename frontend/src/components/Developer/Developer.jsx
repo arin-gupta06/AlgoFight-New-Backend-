@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -10,7 +10,12 @@ import {
   faTerminal,
   faServer,
   faMicrochip,
-  faNetworkWired
+  faNetworkWired,
+  faGraduationCap,
+  faChalkboardUser,
+  faEnvelope,
+  faCopy,
+  faCheck,
 } from "@fortawesome/free-solid-svg-icons";
 import { faLinkedin, faGithub } from "@fortawesome/free-brands-svg-icons";
 import vivekPic from "../../assets/devs/vivek.png";
@@ -109,6 +114,14 @@ const childVariants = {
 };
 
 function Developer() {
+  const [copiedEmail, setCopiedEmail] = useState(false);
+
+  const handleCopyMentorEmail = () => {
+    navigator.clipboard.writeText("atul@mitsgwalior.in");
+    setCopiedEmail(true);
+    setTimeout(() => setCopiedEmail(false), 2400);
+  };
+
   return (
     <BackgroundPaths>
       <div className="developer-page">
@@ -199,6 +212,82 @@ function Developer() {
               </div>
             </motion.article>
           ))}
+        </motion.section>
+
+        {/* Faculty Mentor Section */}
+        <motion.section
+          className="faculty-mentor-panel"
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.25 }}
+          transition={{ duration: 0.45, ease: "easeOut" }}
+        >
+          <div className="mentor-header-badge">
+            <FontAwesomeIcon icon={faGraduationCap} />
+            <span>INSTITUTIONAL MENTORSHIP & TECHNICAL GUIDANCE</span>
+          </div>
+
+          <div className="mentor-card-inner">
+            <div className="mentor-avatar-wrap">
+              <div className="mentor-avatar-glow" />
+              <div className="mentor-avatar-icon-box">
+                <FontAwesomeIcon icon={faChalkboardUser} className="mentor-icon" />
+              </div>
+              <div className="mentor-tag-chip">
+                <span>Programmer of MITS DU</span>
+              </div>
+            </div>
+
+            <div className="mentor-content">
+              <div className="mentor-title-row">
+                <div>
+                  <h2 className="mentor-name">Mr. Atul Chauhan</h2>
+                  <div className="mentor-role-badge">
+                    <FontAwesomeIcon icon={faCodeBranch} />
+                    <span>Faculty Mentor & Technical Advisor</span>
+                  </div>
+                </div>
+                <div className="mentor-tag-pill">
+                  Programmer of MITS DU
+                </div>
+              </div>
+
+              <p className="mentor-institution">
+                Madhav Institute of Technology &amp; Science (Deemed to be University), Gwalior
+              </p>
+
+              <p className="mentor-bio">
+                Providing distinguished institutional mentorship, systems guidance, and architectural advisory for AlgoFight at MITS DU. Inspires and steers student engineers to build high-throughput real-time platforms, develop disciplined algorithmic problem-solving capabilities, and adhere to industry-standard software engineering benchmarks.
+              </p>
+
+              <div className="mentor-skills-list">
+                <span>Programmer of MITS DU</span>
+                <span>Institutional Guidance</span>
+                <span>Systems Engineering</span>
+                <span>Pedagogical Advisory</span>
+                <span>Competitive Programming Steering</span>
+              </div>
+
+              <div className="mentor-contact-actions">
+                <a
+                  href="mailto:atul@mitsgwalior.in"
+                  className="mentor-email-btn"
+                  title="Send email to Mr. Atul Chauhan"
+                >
+                  <FontAwesomeIcon icon={faEnvelope} />
+                  <span>atul@mitsgwalior.in</span>
+                </a>
+                <button
+                  className="mentor-copy-btn"
+                  onClick={handleCopyMentorEmail}
+                  title="Copy email address"
+                >
+                  <FontAwesomeIcon icon={copiedEmail ? faCheck : faCopy} />
+                  <span>{copiedEmail ? "Copied!" : "Copy Email"}</span>
+                </button>
+              </div>
+            </div>
+          </div>
         </motion.section>
 
         <motion.section

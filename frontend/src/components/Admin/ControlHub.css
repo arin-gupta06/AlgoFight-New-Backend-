@@ -2299,11 +2299,138 @@
   font-size: 1.8rem;
   font-weight: 800;
   line-height: 1.1;
+  color: #f8fafc;
+}
+
+.kpi-big-num.cyan {
+  color: #00e5ff;
+  text-shadow: 0 0 16px rgba(0, 229, 255, 0.4);
+}
+
+.kpi-big-num.green {
+  color: #10b981;
+  text-shadow: 0 0 16px rgba(16, 185, 129, 0.4);
+}
+
+.kpi-big-num.purple {
+  color: #c084fc;
+  text-shadow: 0 0 16px rgba(192, 132, 252, 0.4);
+}
+
+.kpi-big-num.gold {
+  color: #fbbf24;
+  text-shadow: 0 0 16px rgba(251, 191, 36, 0.4);
 }
 
 .kpi-footnote {
   font-size: 0.68rem;
   color: #64748b;
+}
+
+.top-routes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px 0 6px;
+}
+
+.route-stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.route-item-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.route-rank {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: #00e5ff;
+  min-width: 24px;
+}
+
+.route-path {
+  font-family: 'Fira Code', monospace;
+  font-size: 0.8rem;
+  color: #e2e8f0;
+  background: rgba(255, 255, 255, 0.04);
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  flex: 1;
+  word-break: break-all;
+}
+
+.route-hits {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+
+.route-progress-track {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.route-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #00e5ff, #3b82f6);
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+.cyan-text {
+  color: #00e5ff;
+  font-weight: 700;
+}
+
+.green-text {
+  color: #10b981;
+  font-weight: 700;
+}
+
+.method-badge {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.68rem;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 4px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.meth-get {
+  background: rgba(56, 189, 248, 0.15);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+}
+
+.meth-post {
+  background: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.meth-put {
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.meth-delete {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
 }
 
 .analytics-split-layout {

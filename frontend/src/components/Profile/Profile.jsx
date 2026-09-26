@@ -19,11 +19,14 @@ import {
     faCheck,
     faTimes,
     faCopy,
+    faChalkboardUser,
+    faGraduationCap,
 } from '@fortawesome/free-solid-svg-icons';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import { fetchUserProfile } from '../../services/api';
 import { connectSocket, getSocket } from '../../services/socket';
+import { getSessionToken } from '../../services/authStorage';
 import { calculateArenaPointBreakdown, normalizeUserStats, getRankProgressByRating } from '../../utils/playerMetrics';
 import BackgroundPaths from '../BackgroundPaths/BackgroundPaths';
 import '../BackgroundPaths/BackgroundPaths.css';
@@ -89,7 +92,9 @@ function Profile() {
 
         const initSocket = async () => {
             if (user) {
-                token = await user.getIdToken().catch(() => null);
+                token = typeof user.getIdToken === "function"
+                    ? await user.getIdToken().catch(() => null)
+                    : getSessionToken();
             }
             if (!active) return;
 
@@ -328,6 +333,7 @@ function Profile() {
     }, [email, user?.email]);
 
     const isInstitutional = Boolean(profile?.academicProfile || profile?.institutionName || academicFallback);
+    const isFacultyProfile = profile?.userType === "FACULTY" || profile?.role === "FACULTY";
 
     const {
         rating,
@@ -410,8 +416,41 @@ function Profile() {
         setOfflineChallengeTarget(null);
     };
 
-    const profileStats = useMemo(
-        () => [
+    const profileStats = useMemo(() => {
+        if (isFacultyProfile) {
+            return [
+                {
+                    label: 'Academic Role',
+                    value: 'Faculty',
+                    hint: profile?.department || 'Academic Department',
+                    icon: faChalkboardUser,
+                    tone: 'purple',
+                },
+                {
+                    label: 'Institution',
+                    value: profile?.institutionName || 'MITS Gwalior',
+                    hint: 'Deemed to be University',
+                    icon: faGraduationCap,
+                    tone: 'gold',
+                },
+                {
+                    label: 'Practice Solved',
+                    value: practiceSolved,
+                    hint: `${practiceSubmissions} submissions • ${practiceAccuracy}% efficiency`,
+                    icon: faCheckCircle,
+                    tone: 'green',
+                },
+                {
+                    label: 'Platform Code',
+                    value: profile?.platformCode || 'Active',
+                    hint: 'Institutional Platform Identity',
+                    icon: faShieldHalved,
+                    tone: 'cyan',
+                },
+            ];
+        }
+
+        return [
             {
                 label: 'Current Rating',
                 value: rating,
@@ -447,9 +486,21 @@ function Profile() {
                 icon: faBolt,
                 tone: 'green',
             },
-        ],
-        [rating, rank, arenaPoints, matchesPlayed, matchesWon, lossCount, winRate, practiceSolved, practiceSubmissions, practiceAccuracy]
-    );
+        ];
+    }, [
+        isFacultyProfile,
+        profile,
+        rating,
+        rank,
+        arenaPoints,
+        matchesPlayed,
+        matchesWon,
+        lossCount,
+        winRate,
+        practiceSolved,
+        practiceSubmissions,
+        practiceAccuracy
+    ]);
 
     const achievements = useMemo(
         () => [
@@ -513,10 +564,10 @@ function Profile() {
                             <div className="profile-identity-copy">
                                 <div className="hero-badge">
                                     <span className="badge-pulse-dot" />
-                                    <span>{isOwnProfile ? "PLAYER PROFILE" : "COMPETITOR PROFILE"}</span>
+                                    <span>{isFacultyProfile ? (isOwnProfile ? "FACULTY PORTAL PROFILE" : "FACULTY ACADEMIC PROFILE") : (isOwnProfile ? "PLAYER PROFILE" : "COMPETITOR PROFILE")}</span>
                                 </div>
                                 <h1 className="profile-display-name">{displayName}</h1>
-                            <p>{email || 'Competitor'}</p>
+                            <p>{email || (isFacultyProfile ? 'Faculty Member' : 'Competitor')}</p>
                             {(profile?.platformCode || user?.platformCode) && (
                                 <div
                                     className="profile-code-badge"
@@ -541,7 +592,7 @@ function Profile() {
                         </div>
 
                         <div className="profile-header-actions">
-                            {!isOwnProfile && (
+                            {!isFacultyProfile && !isOwnProfile && (
                                 <button
                                     className="profile-challenge-btn"
                                     onClick={handleSendChallenge}
@@ -550,70 +601,113 @@ function Profile() {
                                     <FontAwesomeIcon icon={faBolt} /> Invite to Friendly Battle
                                 </button>
                             )}
-                            <RankEmblem rank={rank} rating={rating} size={48} showBadge={true} glow={true} />
+                            {isFacultyProfile ? (
+                                <div className="faculty-badge-display">
+                                    <FontAwesomeIcon icon={faChalkboardUser} className="faculty-badge-icon" />
+                                    <div className="faculty-badge-text">
+                                        <span className="faculty-badge-title">FACULTY EDUCATOR</span>
+                                        <span className="faculty-badge-sub">{profile?.department || "Academic Mentor"}</span>
+                                    </div>
+                                </div>
+                            ) : (
+                                <RankEmblem rank={rank} rating={rating} size={48} showBadge={true} glow={true} />
+                            )}
                         </div>
                     </div>
 
                     {profileError ? <div className="profile-warning">{profileError}</div> : null}
                 </section>
 
-                {/* Institutional Student Identity Card */}
-                {isInstitutional && (
-                    <section className="profile-student-card">
+                {/* Institutional Student / Faculty Identity Card */}
+                {isFacultyProfile ? (
+                    <section className="profile-student-card faculty-theme">
                         <div className="student-card-header">
                             <div className="student-card-badge">
                                 <span className="student-card-icon">🏛️</span>
-                                <span className="student-card-title">INSTITUTIONAL STUDENT IDENTITY</span>
+                                <span className="student-card-title">INSTITUTIONAL FACULTY IDENTITY</span>
                             </div>
-                            {(profile?.academicProfile?.academicYear || academicFallback?.academicYear) && (
-                                <span className="academic-session-tag">Academic Session {profile?.academicProfile?.academicYear || academicFallback?.academicYear}</span>
-                            )}
+                            <span className="academic-session-tag">Academic Faculty & Mentor</span>
                         </div>
                         <div className="student-card-grid">
                             <div className="student-info-item">
                                 <span className="info-label">Institute</span>
-                                <span className="info-value highlight-cyan">{profile?.institutionName || academicFallback?.institutionName || "MITS Gwalior"}</span>
+                                <span className="info-value highlight-cyan">{profile?.institutionName || "Madhav Institute of Technology & Science (MITS DU)"}</span>
                             </div>
                             <div className="student-info-item">
                                 <span className="info-label">Department</span>
-                                <span className="info-value">{profile?.department || academicFallback?.department || "School of Engineering"}</span>
+                                <span className="info-value">{profile?.department || "School of Engineering"}</span>
                             </div>
                             <div className="student-info-item">
-                                <span className="info-label">Branch & Programme</span>
-                                <span className="info-value">{profile?.branch || academicFallback?.branch || "Computer Science & Design"}{academicFallback?.programme ? ` (${academicFallback.programme})` : ""}</span>
+                                <span className="info-label">Designation / Role</span>
+                                <span className="info-value highlight-sem">Faculty Educator</span>
                             </div>
                             <div className="student-info-item">
-                                <span className="info-label">Batch</span>
-                                <span className="info-value">{profile?.batchYear || profile?.admissionYear || academicFallback?.batchYear || "2024"}</span>
-                            </div>
-                            <div className="student-info-item">
-                                <span className="info-label">Year</span>
-                                <span className="info-value highlight-year">
-                                    {profile?.academicProfile?.yearLabel || academicFallback?.yearLabel || "3rd Year"}
-                                </span>
-                            </div>
-                            <div className="student-info-item">
-                                <span className="info-label">Semester</span>
-                                <span className="info-value highlight-sem">
-                                    {profile?.academicProfile?.semesterLabel || academicFallback?.semesterLabel || "5th Semester"}
-                                    {(profile?.academicProfile?.semesterType || academicFallback?.semesterType) && (
-                                        <span className={`sem-type-badge ${(profile?.academicProfile?.semesterType || academicFallback?.semesterType).toLowerCase()}`}>
-                                            {profile?.academicProfile?.semesterType || academicFallback?.semesterType}
-                                        </span>
-                                    )}
-                                </span>
-                            </div>
-                            <div className="student-info-item">
-                                <span className="info-label">Roll / Enrollment</span>
-                                <span className="info-value font-mono">{profile?.enrollmentNumber || profile?.studentIdentityMetadata?.rollNumber || academicFallback?.rollNumber || "15"}</span>
+                                <span className="info-label">Platform Code</span>
+                                <span className="info-value font-mono">{profile?.platformCode || "Active"}</span>
                             </div>
                         </div>
-                        {(profile?.academicProfile?.statusNote || academicFallback?.statusNote) && (
-                            <div className="student-card-note">
-                                ℹ️ {profile?.academicProfile?.statusNote || academicFallback?.statusNote}
-                            </div>
-                        )}
+                        <div className="student-card-note">
+                            ℹ️ Faculty accounts are dedicated to student mentorship, assignments, quiz administration, and algorithmic practice.
+                        </div>
                     </section>
+                ) : (
+                    isInstitutional && (
+                        <section className="profile-student-card">
+                            <div className="student-card-header">
+                                <div className="student-card-badge">
+                                    <span className="student-card-icon">🏛️</span>
+                                    <span className="student-card-title">INSTITUTIONAL STUDENT IDENTITY</span>
+                                </div>
+                                {(profile?.academicProfile?.academicYear || academicFallback?.academicYear) && (
+                                    <span className="academic-session-tag">Academic Session {profile?.academicProfile?.academicYear || academicFallback?.academicYear}</span>
+                                )}
+                            </div>
+                            <div className="student-card-grid">
+                                <div className="student-info-item">
+                                    <span className="info-label">Institute</span>
+                                    <span className="info-value highlight-cyan">{profile?.institutionName || academicFallback?.institutionName || "MITS Gwalior"}</span>
+                                </div>
+                                <div className="student-info-item">
+                                    <span className="info-label">Department</span>
+                                    <span className="info-value">{profile?.department || academicFallback?.department || "School of Engineering"}</span>
+                                </div>
+                                <div className="student-info-item">
+                                    <span className="info-label">Branch & Programme</span>
+                                    <span className="info-value">{profile?.branch || academicFallback?.branch || "Computer Science & Design"}{academicFallback?.programme ? ` (${academicFallback.programme})` : ""}</span>
+                                </div>
+                                <div className="student-info-item">
+                                    <span className="info-label">Batch</span>
+                                    <span className="info-value">{profile?.batchYear || profile?.admissionYear || academicFallback?.batchYear || "2024"}</span>
+                                </div>
+                                <div className="student-info-item">
+                                    <span className="info-label">Year</span>
+                                    <span className="info-value highlight-year">
+                                        {profile?.academicProfile?.yearLabel || academicFallback?.yearLabel || "3rd Year"}
+                                    </span>
+                                </div>
+                                <div className="student-info-item">
+                                    <span className="info-label">Semester</span>
+                                    <span className="info-value highlight-sem">
+                                        {profile?.academicProfile?.semesterLabel || academicFallback?.semesterLabel || "5th Semester"}
+                                        {(profile?.academicProfile?.semesterType || academicFallback?.semesterType) && (
+                                            <span className={`sem-type-badge ${(profile?.academicProfile?.semesterType || academicFallback?.semesterType).toLowerCase()}`}>
+                                                {profile?.academicProfile?.semesterType || academicFallback?.semesterType}
+                                            </span>
+                                        )}
+                                    </span>
+                                </div>
+                                <div className="student-info-item">
+                                    <span className="info-label">Roll / Enrollment</span>
+                                    <span className="info-value font-mono">{profile?.enrollmentNumber || profile?.studentIdentityMetadata?.rollNumber || academicFallback?.rollNumber || "15"}</span>
+                                </div>
+                            </div>
+                            {(profile?.academicProfile?.statusNote || academicFallback?.statusNote) && (
+                                <div className="student-card-note">
+                                    ℹ️ {profile?.academicProfile?.statusNote || academicFallback?.statusNote}
+                                </div>
+                            )}
+                        </section>
+                    )
                 )}
 
                 <section className="profile-stat-grid">
@@ -630,97 +724,133 @@ function Profile() {
                         </article>
                     ))}
                 </section>
-            </section>
-
-            <section className="profile-content-grid">
-                <article className="profile-panel">
-                    <div className="profile-panel-head">
-                        <h2>Progress Overview</h2>
-                        <span className="profile-chip">Live</span>
-                    </div>
-
-                    <div className="profile-progress-list">
-                        <div className="profile-progress-item">
-                            <div className="profile-progress-head">
-                                <span>
-                                    {rankProgress.isMaxTier 
-                                        ? "Peak Tier (Supreme)" 
-                                        : `${rankProgress.ratingToNextTier} rating to ${rankProgress.nextTier?.label || rankProgress.nextTier?.name || "Next Tier"}`}
-                                </span>
-                                <strong>
-                                    {rating} / {rankProgress.isMaxTier ? "2000+" : (rankProgress.nextTier?.minRating || 400)}
-                                </strong>
-                            </div>
-                            <div className="profile-progress-track">
-                                <div 
-                                    className="profile-progress-fill" 
-                                    style={{ 
-                                        width: `${rankProgress.progressWithinTier}%`,
-                                        background: rankProgress.currentTier.gradient || "linear-gradient(90deg, #38bdf8, #818cf8)"
-                                    }} 
-                                />
-                            </div>
+            {!isFacultyProfile ? (
+                <section className="profile-content-grid">
+                    <article className="profile-panel">
+                        <div className="profile-panel-head">
+                            <h2>Progress Overview</h2>
+                            <span className="profile-chip">Live</span>
                         </div>
 
-                        <div className="profile-progress-item">
-                            <div className="profile-progress-head">
-                                <span>Activity Level</span>
-                                <strong>{matchesPlayed + practiceSolved} total actions</strong>
-                            </div>
-                            <div className="profile-progress-track">
-                                <div className="profile-progress-fill tone-pink" style={{ width: `${activityProgress}%` }} />
-                            </div>
-                        </div>
-
-                        <div className="profile-progress-item">
-                            <div className="profile-progress-head">
-                                <span>Practice Mastery</span>
-                                <strong>{practiceSolved} solved</strong>
-                            </div>
-                            <div className="profile-progress-track">
-                                <div className="profile-progress-fill tone-violet" style={{ width: `${practiceProgress}%` }} />
-                            </div>
-                        </div>
-
-                        <div className="profile-progress-item">
-                            <div className="profile-progress-head">
-                                <span>Consistency</span>
-                                <strong>{winRate}% win rate</strong>
-                            </div>
-                            <div className="profile-progress-track">
-                                <div className="profile-progress-fill tone-green" style={{ width: `${consistencyProgress}%` }} />
-                            </div>
-                        </div>
-                    </div>
-                </article>
-
-                <article className="profile-panel">
-                    <div className="profile-panel-head">
-                        <h2>Achievements</h2>
-                        <span className="profile-chip">Milestones</span>
-                    </div>
-
-                    <ul className="profile-achievement-list">
-                        {achievements.map((achievement) => (
-                            <li key={achievement.title} className={achievement.unlocked ? 'is-unlocked' : ''}>
-                                <div className="achievement-left">
-                                    <div className="achievement-icon">
-                                        <FontAwesomeIcon icon={achievement.icon} />
-                                    </div>
-                                    <div>
-                                        <h4>{achievement.title}</h4>
-                                        <p>{achievement.description}</p>
-                                    </div>
+                        <div className="profile-progress-list">
+                            <div className="profile-progress-item">
+                                <div className="profile-progress-head">
+                                    <span>
+                                        {rankProgress.isMaxTier 
+                                            ? "Peak Tier (Supreme)" 
+                                            : `${rankProgress.ratingToNextTier} rating to ${rankProgress.nextTier?.label || rankProgress.nextTier?.name || "Next Tier"}`}
+                                    </span>
+                                    <strong>
+                                        {rating} / {rankProgress.isMaxTier ? "2000+" : (rankProgress.nextTier?.minRating || 400)}
+                                    </strong>
                                 </div>
+                                <div className="profile-progress-track">
+                                    <div 
+                                        className="profile-progress-fill" 
+                                        style={{ 
+                                            width: `${rankProgress.progressWithinTier}%`,
+                                            background: rankProgress.currentTier.gradient || "linear-gradient(90deg, #38bdf8, #818cf8)"
+                                        }} 
+                                    />
+                                </div>
+                            </div>
 
-                                <span className="achievement-status">
-                                    <FontAwesomeIcon icon={achievement.unlocked ? faCheckCircle : faMedal} />
-                                    {achievement.unlocked ? 'Unlocked' : 'Locked'}
-                                </span>
-                            </li>
-                        ))}
-                    </ul>
-                </article>
+                            <div className="profile-progress-item">
+                                <div className="profile-progress-head">
+                                    <span>Activity Level</span>
+                                    <strong>{matchesPlayed + practiceSolved} total actions</strong>
+                                </div>
+                                <div className="profile-progress-track">
+                                    <div className="profile-progress-fill tone-pink" style={{ width: `${activityProgress}%` }} />
+                                </div>
+                            </div>
+
+                            <div className="profile-progress-item">
+                                <div className="profile-progress-head">
+                                    <span>Practice Mastery</span>
+                                    <strong>{practiceSolved} solved</strong>
+                                </div>
+                                <div className="profile-progress-track">
+                                    <div className="profile-progress-fill tone-violet" style={{ width: `${practiceProgress}%` }} />
+                                </div>
+                            </div>
+
+                            <div className="profile-progress-item">
+                                <div className="profile-progress-head">
+                                    <span>Consistency</span>
+                                    <strong>{winRate}% win rate</strong>
+                                </div>
+                                <div className="profile-progress-track">
+                                    <div className="profile-progress-fill tone-green" style={{ width: `${consistencyProgress}%` }} />
+                                </div>
+                            </div>
+                        </div>
+                    </article>
+
+                    <article className="profile-panel">
+                        <div className="profile-panel-head">
+                            <h2>Achievements</h2>
+                            <span className="profile-chip">Milestones</span>
+                        </div>
+
+                        <ul className="profile-achievement-list">
+                            {achievements.map((achievement) => (
+                                <li key={achievement.title} className={achievement.unlocked ? 'is-unlocked' : ''}>
+                                    <div className="achievement-left">
+                                        <div className="achievement-icon">
+                                            <FontAwesomeIcon icon={achievement.icon} />
+                                        </div>
+                                        <div>
+                                            <h4>{achievement.title}</h4>
+                                            <p>{achievement.description}</p>
+                                        </div>
+                                    </div>
+
+                                    <span className="achievement-status">
+                                        <FontAwesomeIcon icon={achievement.unlocked ? faCheckCircle : faMedal} />
+                                        {achievement.unlocked ? 'Unlocked' : 'Locked'}
+                                    </span>
+                                </li>
+                            ))}
+                        </ul>
+                    </article>
+                </section>
+            ) : (
+                <section className="profile-content-grid faculty-view">
+                    <article className="profile-panel">
+                        <div className="profile-panel-head">
+                            <h2>Academic Mentorship & Practice Oversight</h2>
+                            <span className="profile-chip">Faculty Portal</span>
+                        </div>
+                        <p style={{ color: '#94a3b8', fontSize: '0.95rem', lineHeight: '1.6', margin: '0 0 20px' }}>
+                            Faculty accounts possess administrative oversight to guide student cohorts, review live student submissions, create curriculum quizzes, and test algorithmic problems directly in the practice zone.
+                        </p>
+                        <div className="profile-progress-list">
+                            <div className="profile-progress-item">
+                                <div className="profile-progress-head">
+                                    <span>Practice Problem Solving</span>
+                                    <strong>{practiceSolved} Problems Solved</strong>
+                                </div>
+                                <div className="profile-progress-track">
+                                    <div className="profile-progress-fill tone-violet" style={{ width: `${Math.min(100, (practiceSolved / 50) * 100)}%` }} />
+                                </div>
+                            </div>
+                        </div>
+                        <div style={{ marginTop: '24px', display: 'flex', gap: '14px', flexWrap: 'wrap' }}>
+                            <button className="profile-challenge-btn" onClick={() => navigate('/faculty')}>
+                                <FontAwesomeIcon icon={faChalkboardUser} /> Open Faculty Hub
+                            </button>
+                            <button
+                                className="profile-challenge-btn"
+                                onClick={() => navigate('/practice')}
+                                style={{ background: 'rgba(56, 189, 248, 0.15)', borderColor: 'rgba(56, 189, 248, 0.4)', color: '#38bdf8' }}
+                            >
+                                <FontAwesomeIcon icon={faCode} /> Explore Practice Arena
+                            </button>
+                        </div>
+                    </article>
+                </section>
+            )}
             </section>
 
             {/* Outgoing Challenge Dialog */}

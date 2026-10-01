@@ -1269,7 +1269,12 @@ export default function LiveBattle() {
       });
 
       socket.on("player_readmitted", (data) => {
-        if (data?.targetUserId === user?.uid) {
+        const isMe = data?.targetUserId === user?.uid || data?.userId === user?.uid;
+        if (isMe) {
+          setIsSelfDisqualified(false);
+          setIsDisqualified(false);
+          resetViolations();
+          setReentryStatus("approved");
           if (data?.persistedTimeRemaining !== undefined && !isNaN(Number(data.persistedTimeRemaining))) {
             const rest = Math.max(0, Number(data.persistedTimeRemaining));
             setTimeLeft(rest);
@@ -1286,14 +1291,17 @@ export default function LiveBattle() {
             message: "You were re-admitted by the host. Your remaining battle time has been restored!",
             duration: 4000,
           });
+          setActiveEvent((prev) => (prev ? { ...prev, isDisqualified: false } : prev));
+          setTimeout(() => setReentryStatus("idle"), 3000);
         } else {
           notify({
             type: "info",
             title: "Player Re-admitted",
-            message: `${data?.targetUsername || "Player"} was re-admitted by the host.`,
+            message: `${data?.targetUsername || data?.username || "Player"} was re-admitted by the host.`,
             duration: 3500,
           });
         }
+        setIncomingPardonRequest((prev) => (prev && (prev.targetUserId === data?.targetUserId || prev.userId === data?.targetUserId) ? null : prev));
       });
 
       socket.on("timer_restored", (data) => {
@@ -1310,6 +1318,10 @@ export default function LiveBattle() {
       });
 
       socket.on("readmitted_to_battle", (data) => {
+        setIsSelfDisqualified(false);
+        setIsDisqualified(false);
+        resetViolations();
+        setReentryStatus("approved");
         if (data?.persistedTimeRemaining !== undefined && !isNaN(Number(data.persistedTimeRemaining))) {
           const rest = Math.max(0, Number(data.persistedTimeRemaining));
           setTimeLeft(rest);
@@ -1326,6 +1338,8 @@ export default function LiveBattle() {
           message: data?.message || "You have been re-admitted to the battle by the host. Your time has been restored.",
           duration: 4000,
         });
+        setActiveEvent((prev) => (prev ? { ...prev, isDisqualified: false } : prev));
+        setTimeout(() => setReentryStatus("idle"), 3000);
       });
 
       socket.on("anti_cheat_disqualified", (data) => {
@@ -1347,7 +1361,7 @@ export default function LiveBattle() {
         notify({
           type: "warning",
           title: "Re-Entry Requested",
-          message: `${data.username || "A player"} was disqualified for anti-cheat (${data.tabSwitches || 3} tab switches) and is asking for pardon.`,
+          message: `${data.username || data.targetUsername || "A player"} was disqualified for anti-cheat (${data.tabSwitches || 3} tab switches) and is asking for pardon.`,
           duration: 8000,
         });
       });
@@ -1367,6 +1381,7 @@ export default function LiveBattle() {
           setActiveEvent((prev) => (prev ? { ...prev, isDisqualified: false } : prev));
           setTimeout(() => setReentryStatus("idle"), 3000);
         }
+        setIncomingPardonRequest((prev) => (prev && (prev.targetUserId === data?.targetUserId || prev.userId === data?.targetUserId) ? null : prev));
       });
 
       socket.on("anticheat_reentry_rejected", (data) => {
@@ -1379,6 +1394,7 @@ export default function LiveBattle() {
             duration: 6000,
           });
         }
+        setIncomingPardonRequest((prev) => (prev && (prev.targetUserId === data?.targetUserId || prev.userId === data?.targetUserId) ? null : prev));
       });
 
       socket.on("anticheat_reentry_pending", () => {
@@ -1452,16 +1468,17 @@ export default function LiveBattle() {
 
   const handleApprovePardon = (req) => {
     const targetId = roomId || initialMatch?.roomId || initialMatch?.roomCode || initialRoomCode || paramRoomCode;
-    if (socketRef.current && targetId && req?.userId) {
+    const targetUserId = req?.targetUserId || req?.userId;
+    if (socketRef.current && targetId && targetUserId) {
       socketRef.current.emit("approve_anticheat_reentry", {
         roomId: targetId,
-        targetUserId: req.userId,
+        targetUserId,
       });
       setIncomingPardonRequest(null);
       notify({
         type: "success",
         title: "Pardon Approved",
-        message: `Approved re-entry for ${req.username || "player"}.`,
+        message: `Approved re-entry for ${req?.targetUsername || req?.username || "player"}.`,
         duration: 3500,
       });
     }
@@ -1469,16 +1486,17 @@ export default function LiveBattle() {
 
   const handleDeclinePardon = (req) => {
     const targetId = roomId || initialMatch?.roomId || initialMatch?.roomCode || initialRoomCode || paramRoomCode;
-    if (socketRef.current && targetId && req?.userId) {
+    const targetUserId = req?.targetUserId || req?.userId;
+    if (socketRef.current && targetId && targetUserId) {
       socketRef.current.emit("reject_anticheat_reentry", {
         roomId: targetId,
-        targetUserId: req.userId,
+        targetUserId,
       });
       setIncomingPardonRequest(null);
       notify({
         type: "info",
         title: "Request Declined",
-        message: `Declined re-entry for ${req.username || "player"}.`,
+        message: `Declined re-entry for ${req?.targetUsername || req?.username || "player"}.`,
         duration: 3000,
       });
     }
@@ -1685,7 +1703,7 @@ export default function LiveBattle() {
                   <FontAwesomeIcon icon={faShieldHalved} />
                 </div>
                 <div className="pardon-text">
-                  <strong>Pardon Request: {incomingPardonRequest.username || "A Player"}</strong>
+                  <strong>Pardon Request: {incomingPardonRequest.username || incomingPardonRequest.targetUsername || "A Player"}</strong>
                   <span>
                     Disqualified for {incomingPardonRequest.tabSwitches || 3} tab switches. Approve re-entry to the battle?
                   </span>

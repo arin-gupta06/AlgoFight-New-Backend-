@@ -14,6 +14,8 @@
     "@fortawesome/free-brands-svg-icons": "^7.2.0",
     "@fortawesome/free-solid-svg-icons": "^7.1.0",
     "@fortawesome/react-fontawesome": "^3.1.0",
+    "@splinetool/react-spline": "^4.1.0",
+    "@splinetool/runtime": "^2.0.64",
     "@tailwindcss/vite": "^4.1.14",
     "@vitejs/plugin-react": "^5.0.4",
     "framer-motion": "^12.23.24",
@@ -23,6 +25,7 @@
     "react-router-dom": "^7.9.4",
     "socket.io-client": "^4.8.3",
     "tailwindcss": "^4.1.14",
+    "three": "^0.186.1",
     "vite": "^7.1.7",
     "xlsx": "^0.18.5",
     "zustand": "^5.0.15"

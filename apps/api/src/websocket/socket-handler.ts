@@ -1304,8 +1304,10 @@ export class SocketHandler {
                         this.connectionManager.sendToUser(hostId, "anticheat_pardon_requested", {
                             roomId,
                             roomCode,
+                            userId,
                             targetUserId: userId,
-                            targetUsername: username,
+                            username: username || "A Player",
+                            targetUsername: username || "A Player",
                             tabSwitches: playerSwitches,
                             timestamp: Date.now(),
                         });
@@ -1370,6 +1372,7 @@ export class SocketHandler {
 
                         this.connectionManager.sendToUser(targetUserId, "anticheat_reentry_approved", {
                             roomId,
+                            targetUserId,
                             message: "Your re-entry request was approved by the host! You may resume coding.",
                             tabSwitches: player.tabSwitches || 0,
                         });
@@ -1388,6 +1391,7 @@ export class SocketHandler {
 
                     this.connectionManager.sendToUser(targetUserId, "anticheat_reentry_rejected", {
                         roomId,
+                        targetUserId,
                         message: reason || "Your re-entry request was declined by the host.",
                     });
                     break;

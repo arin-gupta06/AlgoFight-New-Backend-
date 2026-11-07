@@ -16,15 +16,21 @@ Allow: /careers
 Allow: /help
 Allow: /contact
 Allow: /developer
+Allow: /developers
+Allow: /login
 Allow: /terms
 Allow: /privacy
 Allow: /cookies
 
-# Disallow private / administrative routes
+# Disallow private user states and authenticated administrative routes
 Disallow: /admin
 Disallow: /admin/*
 Disallow: /api/admin/*
+Disallow: /faculty
 Disallow: /faculty/*
+Disallow: /profile
+Disallow: /battle/room/
+Disallow: /battle/live/
 
 # Host & Sitemap Location
 Host: https://algofight.com

@@ -148,6 +148,7 @@ function App() {
             <Route path="/help" element={<Help />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/developer" element={<Developer />} />
+            <Route path="/developers" element={<Developer />} />
             <Route path="/terms" element={<Terms />} />
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/cookies" element={<Cookies />} />

@@ -317,6 +317,51 @@ export default function AboutContent({ isModal = false, onCloseModal }) {
           </div>
         </motion.article>
       </section>
+
+      {/* Engineering Architects Spotlight */}
+      <motion.section
+        className="dash-card learn-mission-panel"
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.45, delay: 0.3 }}
+      >
+        <div className="learn-panel-header">
+          <span className="dash-pill-tag tag-cyan">ENGINEERING TEAM</span>
+          <h2 className="learn-section-title">Built by AlgoFight Architects</h2>
+          <p className="learn-section-sub">
+            AlgoFight was created and engineered from the ground up by student developers at Madhav Institute of Technology & Science (MITS DU), Gwalior, under distinguished faculty guidance.
+          </p>
+        </div>
+
+        <div className="mission-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))' }}>
+          <article className="dash-card mission-card">
+            <h3 className="mission-title">Arin Gupta</h3>
+            <p className="mission-copy" style={{ color: '#00f0ff', fontWeight: 600 }}>Full Stack Architect & Systems Lead</p>
+            <p className="mission-copy">Distributed state machines, real-time WebSocket pipelines, and cryptographic gateways.</p>
+          </article>
+          <article className="dash-card mission-card">
+            <h3 className="mission-title">Vivek Chaurasiya</h3>
+            <p className="mission-copy" style={{ color: '#00ff88', fontWeight: 600 }}>Backend & Sandbox Infrastructure Lead</p>
+            <p className="mission-copy">Isolated code evaluation clusters, Prisma query optimization, and distributed Redis job queues.</p>
+          </article>
+          <article className="dash-card mission-card">
+            <h3 className="mission-title">Krish Dargar</h3>
+            <p className="mission-copy" style={{ color: '#ff007a', fontWeight: 600 }}>Frontend & UI/UX Systems Architect</p>
+            <p className="mission-copy">Cyber glassmorphic design language, reactive UI state machines, and micro-animations.</p>
+          </article>
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '24px' }}>
+          <button
+            type="button"
+            className="btn-hero-compete"
+            onClick={() => handleAction('/developer')}
+          >
+            <span>Meet All Developers & Mentors</span>
+            <FontAwesomeIcon icon={faArrowRight} style={{ marginLeft: '8px' }} />
+          </button>
+        </div>
+      </motion.section>
     </div>
   );
 }

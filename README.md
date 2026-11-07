@@ -208,9 +208,12 @@ node apps/api/test_mm.js
 
 ## 👥 Authors & Contributors
 
-- **Vivek Chaurasiya**
-- **Arin Gupta**
-- **Krish Darger**
+- **Arin Gupta** — Full Stack Architect & Systems Lead ([GitHub](https://github.com/arin-gupta06) | [LinkedIn](https://www.linkedin.com/in/arin-gupta-2b94b032a/))
+- **Vivek Chaurasiya** — Backend & Sandbox Infrastructure Lead ([GitHub](https://github.com/VivekChaurasiya95) | [LinkedIn](https://www.linkedin.com/in/vivek-chaurasiya-722037315))
+- **Krish Dargar** (Krish Darger) — Frontend & UI/UX Systems Architect ([GitHub](https://github.com/KD2303) | [LinkedIn](https://www.linkedin.com/in/krish-dargar-101774324/))
+
+### 🎓 Institutional Mentorship
+- **Mr. Atul Chauhan** — Faculty Mentor & Technical Advisor, Madhav Institute of Technology & Science (Deemed to be University), Gwalior
 
 ---
 

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -118,6 +118,42 @@ const childVariants = {
 function Developer() {
   const [copiedEmail, setCopiedEmail] = useState(false);
 
+  useEffect(() => {
+    const prevTitle = document.title;
+    document.title = "AlgoFight Developers & Creators | Arin Gupta, Vivek Chaurasiya, Krish Dargar";
+
+    const metaDesc = document.querySelector('meta[name="description"]');
+    const prevDesc = metaDesc ? metaDesc.getAttribute("content") : null;
+    if (metaDesc) {
+      metaDesc.setAttribute(
+        "content",
+        "Meet the core developers and architects of AlgoFight: Arin Gupta (Full Stack Architect & Systems Lead), Vivek Chaurasiya (Backend & Sandbox Infrastructure Lead), and Krish Dargar (Frontend & UI/UX Systems Architect), mentored by Mr. Atul Chauhan at MITS DU Gwalior."
+      );
+    }
+
+    const metaKeywords = document.querySelector('meta[name="keywords"]');
+    const prevKeywords = metaKeywords ? metaKeywords.getAttribute("content") : null;
+    if (metaKeywords) {
+      metaKeywords.setAttribute(
+        "content",
+        "AlgoFight developers, AlgoFight creators, AlgoFight team, Arin Gupta, Vivek Chaurasiya, Krish Dargar, Krish Darger, Atul Chauhan, MITS Gwalior AlgoFight, software architects, competitive programming creators"
+      );
+    }
+
+    const canonicalLink = document.querySelector('link[rel="canonical"]');
+    const prevCanonical = canonicalLink ? canonicalLink.getAttribute("href") : null;
+    if (canonicalLink) {
+      canonicalLink.setAttribute("href", "https://algofight.com/developer");
+    }
+
+    return () => {
+      document.title = prevTitle;
+      if (metaDesc && prevDesc) metaDesc.setAttribute("content", prevDesc);
+      if (metaKeywords && prevKeywords) metaKeywords.setAttribute("content", prevKeywords);
+      if (canonicalLink && prevCanonical) canonicalLink.setAttribute("href", prevCanonical);
+    };
+  }, []);
+
   const handleCopyMentorEmail = () => {
     navigator.clipboard.writeText("atul@mitsgwalior.in");
     setCopiedEmail(true);
@@ -155,7 +191,14 @@ function Developer() {
               key={member.name}
               variants={childVariants}
               className={`dev-profile-card dash-card dev-column-card ${member.tone}`}
+              itemScope
+              itemType="https://schema.org/Person"
             >
+              <meta itemProp="url" content={`https://algofight.com/developer#${member.name.toLowerCase().replace(/\s+/g, '-')}`} />
+              {member.name === "Krish Dargar" && (
+                <meta itemProp="alternateName" content="Krish Darger" />
+              )}
+
               {/* Category Badge */}
               <div className="card-header-badge">
                 <FontAwesomeIcon icon={member.headerIcon} />
@@ -172,6 +215,7 @@ function Developer() {
                       alt={member.name}
                       className="card-avatar-img"
                       style={member.imgStyle}
+                      itemProp="image"
                     />
                   </div>
                   <div className="card-tag-chip">
@@ -183,17 +227,17 @@ function Developer() {
                 <div className="card-content">
                   <div className="card-title-row">
                     <div>
-                      <h2 className="card-name">{member.name}</h2>
+                      <h2 className="card-name" itemProp="name">{member.name}</h2>
                       <div className="card-role-badge">
                         <FontAwesomeIcon icon={member.icon} />
-                        <span>{member.role}</span>
+                        <span itemProp="jobTitle">{member.role}</span>
                       </div>
                     </div>
                     <div className="card-tag-pill">{member.stack}</div>
                   </div>
 
-                  <p className="card-institution">{member.institution}</p>
-                  <p className="card-bio">{member.bio}</p>
+                  <p className="card-institution" itemProp="affiliation">{member.institution}</p>
+                  <p className="card-bio" itemProp="description">{member.bio}</p>
 
                   <div className="card-skills-list">
                     {member.skills.map((skill) => (
@@ -209,6 +253,7 @@ function Developer() {
                         rel="noreferrer"
                         className="card-primary-btn"
                         title={`${member.name} on LinkedIn`}
+                        itemProp="sameAs"
                       >
                         <FontAwesomeIcon icon={faLinkedin} />
                         <span>LinkedIn</span>
@@ -221,6 +266,7 @@ function Developer() {
                         rel="noreferrer"
                         className="card-secondary-btn"
                         title={`${member.name} on GitHub`}
+                        itemProp="sameAs"
                       >
                         <FontAwesomeIcon icon={faGithub} />
                         <span>GitHub</span>
@@ -240,6 +286,8 @@ function Developer() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.25 }}
           transition={{ duration: 0.45, ease: "easeOut" }}
+          itemScope
+          itemType="https://schema.org/Person"
         >
           {/* Category Badge */}
           <div className="card-header-badge">
@@ -257,6 +305,7 @@ function Developer() {
                   alt={mentor.name}
                   className="card-avatar-img"
                   style={mentor.imgStyle}
+                  itemProp="image"
                 />
               </div>
               <div className="card-tag-chip">
@@ -268,17 +317,17 @@ function Developer() {
             <div className="card-content">
               <div className="card-title-row">
                 <div>
-                  <h2 className="card-name">{mentor.name}</h2>
+                  <h2 className="card-name" itemProp="name">{mentor.name}</h2>
                   <div className="card-role-badge">
                     <FontAwesomeIcon icon={mentor.icon} />
-                    <span>{mentor.role}</span>
+                    <span itemProp="jobTitle">{mentor.role}</span>
                   </div>
                 </div>
                 <div className="card-tag-pill">{mentor.stack}</div>
               </div>
 
-              <p className="card-institution">{mentor.institution}</p>
-              <p className="card-bio">{mentor.bio}</p>
+              <p className="card-institution" itemProp="affiliation">{mentor.institution}</p>
+              <p className="card-bio" itemProp="description">{mentor.bio}</p>
 
               <div className="card-skills-list">
                 {mentor.skills.map((skill) => (
@@ -291,6 +340,7 @@ function Developer() {
                   href={`mailto:${mentor.email}`}
                   className="card-primary-btn mentor-email-btn"
                   title={`Send email to ${mentor.name}`}
+                  itemProp="email"
                 >
                   <FontAwesomeIcon icon={faEnvelope} />
                   <span>{mentor.email}</span>

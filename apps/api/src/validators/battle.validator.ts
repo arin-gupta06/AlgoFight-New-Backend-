@@ -11,6 +11,7 @@ export const CreateBattleRoomSchema = z.object({
     isPublic: z.boolean().optional().default(true),
     battleMode: z.enum(["DUEL_1V1", "SQUAD_BATTLE", "PRACTICE_SOLO"]).optional().default("DUEL_1V1"),
     squadSize: z.number().int().min(2).max(6).optional().default(2),
+    hostRole: z.enum(["PARTICIPANT", "VIEWER"]).optional().default("PARTICIPANT"),
 });
 
 export const JoinRoomSchema = z.object({

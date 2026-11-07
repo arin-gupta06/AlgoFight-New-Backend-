@@ -17,6 +17,8 @@ import {
   faBullhorn,
   faChevronDown,
   faLock,
+  faEye,
+  faUserShield,
 } from "@fortawesome/free-solid-svg-icons";
 import { requestJson, fetchPracticeProblems } from "../../services/api";
 import { useAuth } from "../../contexts/AuthContext";
@@ -153,6 +155,7 @@ export default function CreateRoomModal({ isOpen, onClose }) {
   const navigate = useNavigate();
 
   // Mode: "AUTO" (Random Auto-Pick) or "CUSTOM" (User chooses specific problems)
+  const [hostRole, setHostRole] = useState("PARTICIPANT"); // "PARTICIPANT" (active competitor) or "VIEWER" (spectator/proctor)
   const [battleMode, setBattleMode] = useState("DUEL_1V1"); // "DUEL_1V1" or "SQUAD_BATTLE"
   const [squadSize, setSquadSize] = useState(2); // 2 (2v2), 3 (3v3), or 4 (4v4)
   const [selectionMode, setSelectionMode] = useState("AUTO");
@@ -262,6 +265,7 @@ export default function CreateRoomModal({ isOpen, onClose }) {
       const isSquad = battleMode === "SQUAD_BATTLE";
       const payload = {
         hostId: user.uid || user.email,
+        hostRole,
         maxPlayers: isSquad ? squadSize * 2 : Number(maxPlayers),
         timeLimitMinutes: Number(timeLimit),
         difficulty: selectionMode === "CUSTOM" ? "CUSTOM" : difficulty,
@@ -289,10 +293,10 @@ export default function CreateRoomModal({ isOpen, onClose }) {
       notify({
         type: "success",
         title: "Room Created!",
-        message: `Room Code: ${roomCode}`,
+        message: `Room Code: ${roomCode}${hostRole === "VIEWER" ? " (Supervisor/Viewer Mode)" : ""}`,
       });
       onClose();
-      navigate(`/battle/room/${roomCode}`);
+      navigate(`/battle/room/${roomCode}`, { state: { hostRole } });
     } catch (err) {
       notify({
         type: "error",
@@ -322,6 +326,77 @@ export default function CreateRoomModal({ isOpen, onClose }) {
             <button className="modal-close-btn" onClick={onClose}>
               <FontAwesomeIcon icon={faTimes} />
             </button>
+          </div>
+
+          {/* Host Perspective: Participant vs Spectator/Proctor */}
+          <div className="host-role-selector-box" style={{ margin: "14px 0 16px" }}>
+            <div className="form-group-header" style={{ marginBottom: "8px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <label style={{ fontSize: "0.85rem", fontWeight: 800, letterSpacing: "0.04em", color: "#cbd5e1" }}>
+                <FontAwesomeIcon icon={faUserShield} style={{ marginRight: "6px", color: "#38bdf8" }} />
+                HOST PERSPECTIVE & ROLE
+              </label>
+              {(user?.role === "FACULTY" || user?.role === "ADMIN" || user?.userType === "FACULTY") && (
+                <span style={{ fontSize: "0.7rem", fontWeight: 800, color: "#a855f7", background: "rgba(168, 85, 247, 0.15)", padding: "2px 8px", borderRadius: "12px", border: "1px solid rgba(168, 85, 247, 0.3)" }}>
+                  🎓 Faculty / Admin Proctoring Enabled
+                </span>
+              )}
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+              <div
+                className={`match-type-card ${hostRole === "PARTICIPANT" ? "active-rated" : ""}`}
+                onClick={() => setHostRole("PARTICIPANT")}
+                style={{
+                  padding: "12px",
+                  borderRadius: "8px",
+                  border: hostRole === "PARTICIPANT" ? "1px solid #38bdf8" : "1px solid rgba(255,255,255,0.1)",
+                  background: hostRole === "PARTICIPANT" ? "rgba(56, 189, 248, 0.12)" : "rgba(15, 23, 42, 0.5)",
+                  cursor: "pointer",
+                  transition: "all 0.2s ease",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "4px" }}>
+                  <span style={{ fontWeight: 800, fontSize: "0.88rem", color: hostRole === "PARTICIPANT" ? "#38bdf8" : "#e2e8f0" }}>
+                    ⚔️ Active Competitor
+                  </span>
+                  {hostRole === "PARTICIPANT" && (
+                    <span style={{ background: "#38bdf8", color: "#0f172a", fontSize: "0.65rem", fontWeight: 900, padding: "2px 6px", borderRadius: "4px" }}>
+                      ACTIVE
+                    </span>
+                  )}
+                </div>
+                <p style={{ fontSize: "0.72rem", color: "#94a3b8", margin: 0, lineHeight: 1.35 }}>
+                  Compete in the match, write code, submit solutions, and occupy a player seat in the arena.
+                </p>
+              </div>
+
+              <div
+                className={`match-type-card ${hostRole === "VIEWER" ? "active-unrated" : ""}`}
+                onClick={() => setHostRole("VIEWER")}
+                style={{
+                  padding: "12px",
+                  borderRadius: "8px",
+                  border: hostRole === "VIEWER" ? "1px solid #a855f7" : "1px solid rgba(255,255,255,0.1)",
+                  background: hostRole === "VIEWER" ? "rgba(168, 85, 247, 0.14)" : "rgba(15, 23, 42, 0.5)",
+                  cursor: "pointer",
+                  transition: "all 0.2s ease",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "4px" }}>
+                  <span style={{ fontWeight: 800, fontSize: "0.88rem", color: hostRole === "VIEWER" ? "#c084fc" : "#e2e8f0" }}>
+                    <FontAwesomeIcon icon={faEye} style={{ marginRight: "5px" }} />
+                    Viewer / Proctor
+                  </span>
+                  {hostRole === "VIEWER" && (
+                    <span style={{ background: "#a855f7", color: "#ffffff", fontSize: "0.65rem", fontWeight: 900, padding: "2px 6px", borderRadius: "4px" }}>
+                      ACTIVE
+                    </span>
+                  )}
+                </div>
+                <p style={{ fontSize: "0.72rem", color: "#94a3b8", margin: 0, lineHeight: 1.35 }}>
+                  Observe without coding. Freely proctor competitors, monitor submissions, and moderate without taking a seat.
+                </p>
+              </div>
+            </div>
           </div>
 
           {/* Battle Format Selector: Standard Duel vs Squad Battle */}

@@ -73,7 +73,8 @@ export class BattleController {
         problemIds?: string[],
         isPublic = true,
         battleMode: "DUEL_1V1" | "SQUAD_BATTLE" | "PRACTICE_SOLO" = "DUEL_1V1",
-        squadSize = 2
+        squadSize = 2,
+        hostRole: "PARTICIPANT" | "VIEWER" = "PARTICIPANT"
     ) {
         const resolvedHostId = await this.resolveUser(authUser);
         const hostUser = await this.userRepository.getUserById(resolvedHostId);
@@ -87,7 +88,15 @@ export class BattleController {
             problemIds,
             battleMode,
             squadSize,
+            hostRole,
         });
+
+        try {
+            await this.redis.set(`room_host_role:${room.id}`, hostRole, "EX", 86400);
+            await this.redis.set(`room_host_role:${room.roomCode}`, hostRole, "EX", 86400);
+        } catch (_) {}
+
+        (room as any).hostRole = hostRole;
 
         if (isPublic) {
             const publicMeta = {
@@ -100,10 +109,11 @@ export class BattleController {
                 questionCount: room.questionCount,
                 timeLimitMinutes: room.timeLimitMinutes,
                 maxPlayers: room.maxPlayers,
-                currentPlayers: 1,
+                currentPlayers: hostRole === "VIEWER" ? 0 : 1,
                 isFriendly: room.isFriendly ?? false,
                 createdAt: room.createdAt ? new Date(room.createdAt).toISOString() : new Date().toISOString(),
                 isPublic: true,
+                hostRole,
             };
 
             try {
@@ -221,16 +231,72 @@ export class BattleController {
 
     async getRoom(idOrCode: string, currentUserId?: string) {
         const room: any = await this.battleRoomService.getRoom(idOrCode);
-        if (room && currentUserId) {
+        if (room) {
             try {
-                const saved = await this.redis.get(`battle_timer_persisted:${room.id}:${currentUserId}`)
-                    || await this.redis.get(`battle_timer_persisted:${room.roomCode}:${currentUserId}`);
-                if (saved) {
-                    room.persistedTimeRemaining = parseInt(saved, 10);
+                const hostRole = (await this.redis.get(`room_host_role:${room.id}`))
+                    || (await this.redis.get(`room_host_role:${room.roomCode}`));
+                if (hostRole) {
+                    room.hostRole = hostRole;
                 }
-            } catch {}
+            } catch (_) {}
+
+            if (currentUserId) {
+                try {
+                    const saved = await this.redis.get(`battle_timer_persisted:${room.id}:${currentUserId}`)
+                        || await this.redis.get(`battle_timer_persisted:${room.roomCode}:${currentUserId}`);
+                    if (saved) {
+                        room.persistedTimeRemaining = parseInt(saved, 10);
+                    }
+                } catch (_) {}
+            }
         }
         return room;
+    }
+
+    async toggleHostRole(roomIdOrCode: string, userId: string, targetRole?: "PARTICIPANT" | "VIEWER") {
+        const room: any = await this.battleRoomService.getRoom(roomIdOrCode);
+        const resolvedId = await this.resolveUser({ id: userId });
+        if (room.hostId !== resolvedId && room.host?.id !== resolvedId) {
+            throw new Error("Only the room host can switch host role.");
+        }
+
+        const currentRole = (await this.redis.get(`room_host_role:${room.id}`)) || room.hostRole || "PARTICIPANT";
+        const newRole = targetRole || (currentRole === "VIEWER" ? "PARTICIPANT" : "VIEWER");
+
+        if (newRole === "VIEWER") {
+            // Remove host from participants if present
+            await prisma.battleParticipant.deleteMany({
+                where: { roomId: room.id, userId: resolvedId },
+            }).catch(() => {});
+        } else {
+            // Add host to participants
+            const exists = await prisma.battleParticipant.findUnique({
+                where: { roomId_userId: { roomId: room.id, userId: resolvedId } },
+            });
+            if (!exists) {
+                await prisma.battleParticipant.create({
+                    data: {
+                        roomId: room.id,
+                        userId: resolvedId,
+                        isReady: true,
+                    },
+                }).catch(() => {});
+            }
+        }
+
+        await this.redis.set(`room_host_role:${room.id}`, newRole, "EX", 86400);
+        await this.redis.set(`room_host_role:${room.roomCode}`, newRole, "EX", 86400);
+
+        try {
+            await this.redis.publish("battle-events", JSON.stringify({
+                event: "HOST_ROLE_UPDATED",
+                roomId: room.id,
+                roomCode: room.roomCode,
+                hostRole: newRole,
+            }));
+        } catch (_) {}
+
+        return { success: true, hostRole: newRole };
     }
 
     async persistPlayerTime(idOrCode: string, userId: string, timeRemaining: number) {

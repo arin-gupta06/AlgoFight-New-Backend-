@@ -42,6 +42,7 @@ import {
   faTriangleExclamation,
   faCopy,
   faRobot,
+  faEye,
 } from "@fortawesome/free-solid-svg-icons";
 import {
   SUPPORTED_LANGUAGES,
@@ -264,6 +265,15 @@ export default function LiveBattle() {
     isAutoBotRef.current = isAutoBot;
   }, [isAutoBot]);
 
+  const [roomHostRole, setRoomHostRole] = useState(initialMatch?.hostRole || null);
+  const [roomHostId, setRoomHostId] = useState(initialMatch?.hostId || null);
+
+  const isViewer = Boolean(
+    location.state?.isViewer ||
+    initialMatch?.isViewer ||
+    (user?.uid && (roomHostId === user?.uid || initialMatch?.hostId === user?.uid) && (roomHostRole === "VIEWER" || initialMatch?.hostRole === "VIEWER"))
+  );
+
   const [status, setStatus] = useState(() => {
     if (initialMatch || initialRoomCode) return "matched";
     if (isAutoBot) return "bot_spawning";
@@ -361,9 +371,32 @@ export default function LiveBattle() {
   const [isEmotePickerOpen, setIsEmotePickerOpen] = useState(false);
   const [emoteCooldownRemaining, setEmoteCooldownRemaining] = useState(0);
   const [emoteSoundEnabled, setEmoteSoundEnabled] = useState(true);
+  const [emotesEnabled, setEmotesEnabled] = useState(() => {
+    try {
+      const saved = localStorage.getItem("algofight_emotes_enabled");
+      return saved !== null ? JSON.parse(saved) : true;
+    } catch (e) {
+      return true;
+    }
+  });
   const emoteCooldownTimerRef = useRef(null);
 
+  const handleToggleEmotes = () => {
+    setEmotesEnabled((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem("algofight_emotes_enabled", JSON.stringify(next));
+      } catch (e) {}
+      if (!next) {
+        setActiveEmotes({});
+        setLatestBroadcastEmote(null);
+      }
+      return next;
+    });
+  };
+
   const handleIncomingEmote = (data) => {
+    if (!emotesEnabled) return;
     if (!data?.emoteCodepoint) return;
     const isMe =
       data.senderUserId === user?.uid ||
@@ -604,9 +637,9 @@ export default function LiveBattle() {
 
   const currentTargetRoomId = roomId || initialMatch?.roomId || initialMatch?.roomCode || initialRoomCode || paramRoomCode;
 
-  // Anti-Cheat Hook
+  // Anti-Cheat Hook (bypassed for spectators / proctors)
   const { isBlurred, violations, tabSwitches, isDisqualified, setIsDisqualified, resetViolations } = useAntiCheat(
-    status === "matched" && !isSelfDisqualified,
+    status === "matched" && !isSelfDisqualified && !isViewer,
     {
       roomId: currentTargetRoomId,
       onTabSwitch: (count) => {
@@ -759,6 +792,8 @@ export default function LiveBattle() {
         const roomData = data?.room || data;
         if (roomData) {
           if (roomData.id) setRoomId(roomData.id);
+          if (roomData.hostRole) setRoomHostRole(roomData.hostRole);
+          if (roomData.hostId) setRoomHostId(roomData.hostId);
           if (Array.isArray(roomData.problems) && roomData.problems.length > 0) {
             setProblems(roomData.problems);
           }
@@ -1839,6 +1874,14 @@ export default function LiveBattle() {
   };
 
   const onSubmitCode = () => {
+    if (isViewer) {
+      notify({
+        type: "info",
+        title: "Spectator Mode",
+        message: "You are currently spectating/proctoring this battle room. Submissions are disabled for spectators.",
+      });
+      return;
+    }
     if (!roomId || !socketRef.current || !problem) return;
     setRunning(true);
     setRunMode("submit");
@@ -2123,7 +2166,7 @@ export default function LiveBattle() {
         />
 
         {/* Floating Arena Taunt Notification Banner */}
-        <ArenaTauntBroadcast broadcastEmote={latestBroadcastEmote} />
+        {emotesEnabled && <ArenaTauntBroadcast broadcastEmote={latestBroadcastEmote} />}
 
         {/* Battle Emote Picker Modal Popover */}
         <AnimatePresence>
@@ -2135,6 +2178,8 @@ export default function LiveBattle() {
               cooldownRemaining={emoteCooldownRemaining}
               soundEnabled={emoteSoundEnabled}
               onToggleSound={() => setEmoteSoundEnabled((prev) => !prev)}
+              emotesEnabled={emotesEnabled}
+              onToggleEmotes={handleToggleEmotes}
             />
           )}
         </AnimatePresence>
@@ -2171,6 +2216,33 @@ export default function LiveBattle() {
                   </button>
                 )}
               </div>
+              {isViewer && (
+                <div
+                  className="spectator-mode-pill"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    padding: "3px 10px",
+                    borderRadius: "16px",
+                    background: "rgba(168, 85, 247, 0.22)",
+                    border: "1px solid rgba(168, 85, 247, 0.5)",
+                    color: "#e9d5ff",
+                    fontWeight: 800,
+                    fontSize: "0.74rem",
+                    letterSpacing: "0.03em",
+                  }}
+                  title="Anti-cheat disabled. Observing and supervising match."
+                >
+                  <FontAwesomeIcon icon={faEye} />
+                  <span>SPECTATOR / PROCTOR</span>
+                  {(user?.role === "FACULTY" || user?.role === "ADMIN" || user?.userType === "FACULTY") && (
+                    <span style={{ color: "#38bdf8", fontWeight: 700, fontSize: "0.68rem", marginLeft: "2px" }}>
+                      • 🎓 FACULTY
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Active Problem Headline in Header */}
@@ -2230,7 +2302,7 @@ export default function LiveBattle() {
                       <div className={`player-score-card ${isMe ? 'is-me' : 'is-opponent'} ${hasLeft ? 'is-left' : ''} ${isWinner ? 'is-winner' : ''}`}>
                         {/* Emote Speech Bubble */}
                         <AnimatePresence>
-                          {(() => {
+                          {emotesEnabled && (() => {
                             const playerEmote =
                               activeEmotes[p.userId] ||
                               activeEmotes[p.username] ||
@@ -2341,6 +2413,8 @@ export default function LiveBattle() {
               onSelectEmote={handleSendEmote}
               cooldownRemaining={emoteCooldownRemaining}
               onOpenPicker={() => setIsEmotePickerOpen(true)}
+              emotesEnabled={emotesEnabled}
+              onToggleEmotes={handleToggleEmotes}
             />
 
             <div
@@ -2497,6 +2571,30 @@ export default function LiveBattle() {
                       </button>
                     )}
                   </div>
+                </div>
+              </div>
+            )}
+            {isViewer && (
+              <div
+                className="viewer-proctor-banner"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: "8px 14px",
+                  background: "rgba(168, 85, 247, 0.12)",
+                  border: "1px solid rgba(168, 85, 247, 0.3)",
+                  borderRadius: "8px",
+                  marginBottom: "8px",
+                  fontSize: "0.82rem",
+                  color: "#d8b4fe",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <FontAwesomeIcon icon={faEye} />
+                  <span>
+                    <strong>Proctor Mode Active:</strong> You are observing this battle room. Anti-cheat restrictions are disabled for your view. You can inspect submissions and moderate combatants on the scoreboard.
+                  </span>
                 </div>
               </div>
             )}
@@ -2733,10 +2831,11 @@ export default function LiveBattle() {
               <button
                 className="livebattle-action-btn submit-btn"
                 onClick={onSubmitCode}
-                disabled={running || status === "finished" || isSelfDisqualified}
+                disabled={isViewer || running || status === "finished" || isSelfDisqualified}
+                title={isViewer ? "Spectators cannot submit battle solutions" : "Submit solution"}
               >
-                <FontAwesomeIcon icon={faForward} />
-                {running && runMode === "submit" ? "Submitting..." : "Submit (All)"}
+                <FontAwesomeIcon icon={isViewer ? faEye : faForward} />
+                {isViewer ? "Spectator Mode" : (running && runMode === "submit" ? "Submitting..." : "Submit (All)")}
               </button>
               
               <button

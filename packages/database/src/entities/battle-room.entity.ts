@@ -30,6 +30,7 @@ export interface BattleRoomEntity {
     problems?: any[];
     timeLimitMinutes: number;
     isFriendly: boolean;
+    hostRole?: "PARTICIPANT" | "VIEWER";
     startedAt: Date | null;
     endedAt: Date | null;
     createdAt: Date;

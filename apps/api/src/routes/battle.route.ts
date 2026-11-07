@@ -30,7 +30,15 @@ export async function battleRoutes(app: FastifyInstance) {
             body.isPublic,
             body.battleMode,
             body.squadSize,
+            body.hostRole,
         );
+    });
+
+    // 1c. Toggle Host role between PARTICIPANT and VIEWER in lobby
+    app.post("/battle/rooms/:idOrCode/role", { preHandler: [requireAuth] }, async (req) => {
+        const { idOrCode } = req.params as { idOrCode: string };
+        const body = (req.body || {}) as { role?: "PARTICIPANT" | "VIEWER" };
+        return battleController.toggleHostRole(idOrCode, req.user!.id, body.role);
     });
 
     // 1b. Get active public rooms for arena / home display

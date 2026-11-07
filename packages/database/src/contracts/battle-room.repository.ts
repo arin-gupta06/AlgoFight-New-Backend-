@@ -14,6 +14,7 @@ export type CreateBattleRoomInput = {
     squadSize?: number;
     alphaCodeHash?: string;
     betaCodeHash?: string;
+    hostRole?: "PARTICIPANT" | "VIEWER";
 };
 
 export interface BattleRoomRepository {

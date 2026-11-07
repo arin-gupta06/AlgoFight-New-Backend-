@@ -17,6 +17,7 @@ export interface CreateRoomDto {
     problemIds?: string[];
     battleMode?: "DUEL_1V1" | "SQUAD_BATTLE" | "PRACTICE_SOLO";
     squadSize?: number;
+    hostRole?: "PARTICIPANT" | "VIEWER";
 }
 
 function shuffleArray<T>(array: T[]): T[] {
@@ -104,7 +105,10 @@ export class BattleRoomService {
             alphaCodeHash,
             betaCodeHash,
             status: "WAITING",
+            hostRole: dto.hostRole || "PARTICIPANT",
         });
+
+        (room as any).hostRole = dto.hostRole || "PARTICIPANT";
 
         if (dto.battleMode === "SQUAD_BATTLE") {
             (room as any).alphaInvitationCode = alphaCode;

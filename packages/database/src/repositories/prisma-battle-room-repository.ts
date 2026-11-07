@@ -158,15 +158,18 @@ export class PrismaBattleRoomRepository implements BattleRoomRepository {
                 });
             }
 
-            await tx.battleParticipant.create({
-                data: {
-                    roomId: created.id,
-                    userId: input.hostId,
-                    teamId: alphaTeamId,
-                    participantCode: isSquad ? "A-01" : null,
-                    isReady: true, // Host is ready by default
-                },
-            });
+            // Only register host as a competing participant if not explicitly hosting as a VIEWER
+            if (input.hostRole !== "VIEWER") {
+                await tx.battleParticipant.create({
+                    data: {
+                        roomId: created.id,
+                        userId: input.hostId,
+                        teamId: alphaTeamId,
+                        participantCode: isSquad ? "A-01" : null,
+                        isReady: true, // Host participant is ready by default
+                    },
+                });
+            }
 
             return tx.battleRoom.findUniqueOrThrow({
                 where: { id: created.id },

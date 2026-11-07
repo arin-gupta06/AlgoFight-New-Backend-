@@ -22,7 +22,9 @@ import {
     faCheckDouble,
     faUserGraduate,
     faGraduationCap,
-    faClock
+    faClock,
+    faEye,
+    faUserShield,
 } from "@fortawesome/free-solid-svg-icons";
 import { requestJson } from "../../services/api";
 import { useAuth } from "../../contexts/AuthContext";
@@ -63,6 +65,13 @@ export default function RoomLobby() {
     const currentUsername = user?.displayName || user?.email?.split("@")[0] || "Player";
     const isHost = room?.hostId === currentUserId || room?.host?.id === currentUserId;
     const isHostRef = useRef(isHost);
+
+    const isHostViewer = Boolean(
+        isHost && (
+            room?.hostRole === "VIEWER" ||
+            (!participants.some((p) => p.userId === currentUserId) && (room?.status === "WAITING" || room?.status === "READY"))
+        )
+    );
 
     useEffect(() => {
         isHostRef.current = isHost;
@@ -129,9 +138,9 @@ export default function RoomLobby() {
                 return;
             }
 
-            if (me) {
+            if (me || (amIHost && roomData.status === "RUNNING")) {
                 setWaitingForAdmission(false);
-                setIsReady(me.isReady);
+                if (me) setIsReady(me.isReady);
                 if (roomData.status === "RUNNING") {
                     const persisted = roomData.persistedTimeRemaining;
                     if (persisted !== undefined && currentUserId) {
@@ -139,6 +148,7 @@ export default function RoomLobby() {
                             localStorage.setItem(`af_persisted_time_${roomData.id || roomCode}_${currentUserId}`, String(persisted));
                         } catch (_) {}
                     }
+                    const hostIsViewer = !me && amIHost;
                     navigate("/battle/live", {
                         state: {
                             matchData: {
@@ -146,8 +156,12 @@ export default function RoomLobby() {
                                 roomCode: roomData.roomCode || roomCode,
                                 persistedTimeRemaining: persisted,
                                 timeLimitSeconds: persisted || (roomData.timeLimitMinutes ? roomData.timeLimitMinutes * 60 : undefined),
+                                hostRole: roomData.hostRole,
+                                hostId: roomData.hostId,
+                                isViewer: hostIsViewer,
                             },
-                            roomCode: roomData.roomCode || roomCode
+                            roomCode: roomData.roomCode || roomCode,
+                            isViewer: hostIsViewer,
                         }
                     });
                     return;
@@ -409,7 +423,7 @@ export default function RoomLobby() {
                         loadRoom(true);
                     }
 
-                    if (evt === "room_updated" || evt === "player_joined" || evt === "player_ready_changed") {
+                    if (evt === "room_updated" || evt === "player_joined" || evt === "player_ready_changed" || evt === "host_role_updated") {
                         if (evt === "player_joined" && payload?.username && payload.userId !== currentUserId) {
                             notify({
                                 type: "info",
@@ -480,7 +494,24 @@ export default function RoomLobby() {
                             setCountdown(count);
                             if (count <= 0) {
                                 clearInterval(timer);
-                                navigate("/battle/live", { state: { matchData: payload, roomCode } });
+                                const isHostViewing = Boolean(
+                                    isHostRef.current && (
+                                        room?.hostRole === "VIEWER" ||
+                                        !participants.some((p) => p.userId === currentUserId)
+                                    )
+                                );
+                                navigate("/battle/live", {
+                                    state: {
+                                        matchData: {
+                                            ...(payload || {}),
+                                            hostRole: room?.hostRole,
+                                            hostId: room?.hostId,
+                                            isViewer: isHostViewing,
+                                        },
+                                        roomCode,
+                                        isViewer: isHostViewing,
+                                    }
+                                });
                             }
                         }, 1000);
                     }
@@ -727,6 +758,34 @@ export default function RoomLobby() {
         }
     };
 
+    // Host switches role between Viewer/Proctor and Active Participant
+    const handleToggleHostRole = async () => {
+        try {
+            const nextRole = isHostViewer ? "PARTICIPANT" : "VIEWER";
+            await requestJson(`/api/battle/rooms/${room?.id || roomCode}/role`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ hostRole: nextRole }),
+                includeAuth: true,
+            });
+            setRoom((prev) => (prev ? { ...prev, hostRole: nextRole } : prev));
+            notify({
+                type: "success",
+                title: "Host Role Updated",
+                message: nextRole === "VIEWER"
+                    ? "Switched to Spectator / Proctor. Your player slot is now freed for other participants."
+                    : "Switched to Active Competitor. You are now entered as a combatant in the battle."
+            });
+            loadRoom(true);
+        } catch (err) {
+            notify({
+                type: "error",
+                title: "Role Switch Failed",
+                message: err.message || "Failed to switch host role."
+            });
+        }
+    };
+
     // Host Starts Battle
     const handleStartBattle = async () => {
         if (participants.length < 2) {
@@ -863,8 +922,8 @@ export default function RoomLobby() {
     // Metrics for classroom / 50-student scaling
     const maxCapacity = isSquadBattle ? squadCapacity : (room?.maxPlayers || 2);
     const readyCount = useMemo(() => {
-        return participants.filter((p) => p.isReady || p.userId === room?.hostId || p.userId === room?.host?.id).length;
-    }, [participants, room?.hostId, room?.host?.id]);
+        return participants.filter((p) => p.isReady || ((p.userId === room?.hostId || p.userId === room?.host?.id) && room?.hostRole !== "VIEWER")).length;
+    }, [participants, room?.hostId, room?.host?.id, room?.hostRole]);
 
     const readyPercentage = useMemo(() => {
         if (participants.length === 0) return 0;
@@ -885,7 +944,7 @@ export default function RoomLobby() {
             const query = searchQuery.trim().toLowerCase();
             const matchesSearch = !query || name.includes(query) || id.includes(query);
 
-            const isPlayerHost = p.userId === room?.hostId || p.userId === room?.host?.id;
+            const isPlayerHost = (p.userId === room?.hostId || p.userId === room?.host?.id) && room?.hostRole !== "VIEWER";
             const isPlayerReady = p.isReady || isPlayerHost;
 
             if (!matchesSearch) return false;
@@ -893,7 +952,7 @@ export default function RoomLobby() {
             if (filterTab === "WAITING") return !isPlayerReady;
             return true;
         });
-    }, [participants, searchQuery, filterTab, room?.hostId, room?.host?.id]);
+    }, [participants, searchQuery, filterTab, room?.hostId, room?.host?.id, room?.hostRole]);
 
     if (loading) {
         return (
@@ -1049,6 +1108,12 @@ export default function RoomLobby() {
                                 <span className="spec-label">Host</span>
                                 <span className="spec-val" style={{ color: '#ffd500', fontWeight: 600 }}>
                                     {room?.host?.username || (isHost ? currentUsername : "Host")}
+                                </span>
+                            </div>
+                            <div className="spec-item">
+                                <span className="spec-label">Host Role</span>
+                                <span className="spec-val" style={{ color: room?.hostRole === "VIEWER" ? "#c084fc" : "#38bdf8", fontWeight: 700 }}>
+                                    {room?.hostRole === "VIEWER" ? "👁️ Proctor / Viewer" : "⚔️ Competitor"}
                                 </span>
                             </div>
                             <div className="spec-item">
@@ -1583,6 +1648,70 @@ export default function RoomLobby() {
                             </div>
                         </div>
 
+                        {/* If Host is Proctor/Viewer, render Host Supervisor banner above participants */}
+                        {(room?.hostRole === "VIEWER" || isHostViewer) && (
+                            <div
+                                className="host-proctor-lobby-banner"
+                                style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "space-between",
+                                    padding: "12px 18px",
+                                    background: "linear-gradient(135deg, rgba(168, 85, 247, 0.16) 0%, rgba(56, 189, 248, 0.1) 100%)",
+                                    border: "1px solid rgba(168, 85, 247, 0.35)",
+                                    borderRadius: "10px",
+                                    marginBottom: "14px",
+                                    flexWrap: "wrap",
+                                    gap: "10px",
+                                }}
+                            >
+                                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                                    <div style={{ width: "38px", height: "38px", borderRadius: "50%", background: "rgba(168, 85, 247, 0.25)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.1rem", color: "#c084fc", border: "1px solid rgba(168, 85, 247, 0.4)" }}>
+                                        <FontAwesomeIcon icon={faEye} />
+                                    </div>
+                                    <div>
+                                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                            <span style={{ fontWeight: 800, color: "#f3e8ff", fontSize: "0.92rem" }}>
+                                                {room?.host?.username || (isHost ? currentUsername : "Room Host")}
+                                            </span>
+                                            <span style={{ background: "#a855f7", color: "#fff", fontSize: "0.68rem", fontWeight: 900, padding: "2px 8px", borderRadius: "6px" }}>
+                                                <FontAwesomeIcon icon={faCrown} /> HOST PROCTOR
+                                            </span>
+                                            {(user?.role === "FACULTY" || user?.role === "ADMIN" || user?.userType === "FACULTY") && (
+                                                <span style={{ background: "rgba(56, 189, 248, 0.2)", color: "#38bdf8", fontSize: "0.68rem", fontWeight: 800, padding: "2px 8px", borderRadius: "6px", border: "1px solid rgba(56, 189, 248, 0.4)" }}>
+                                                    🎓 FACULTY / ADMIN
+                                                </span>
+                                            )}
+                                            {isHost && <span className="me-badge">YOU</span>}
+                                        </div>
+                                        <div style={{ fontSize: "0.76rem", color: "#c084fc", marginTop: "2px" }}>
+                                            Observing &amp; proctoring without occupying a competitor slot. {participants.length}/{maxCapacity} seats available for players.
+                                        </div>
+                                    </div>
+                                </div>
+                                {isHost && (
+                                    <button
+                                        type="button"
+                                        onClick={handleToggleHostRole}
+                                        disabled={starting}
+                                        style={{
+                                            background: "rgba(56, 189, 248, 0.15)",
+                                            border: "1px solid #38bdf8",
+                                            color: "#38bdf8",
+                                            padding: "6px 14px",
+                                            borderRadius: "8px",
+                                            fontSize: "0.8rem",
+                                            fontWeight: 700,
+                                            cursor: "pointer",
+                                        }}
+                                        title="Switch to active competitor role"
+                                    >
+                                        Switch to Competitor ⚔️
+                                    </button>
+                                )}
+                            </div>
+                        )}
+
                         <div className="participants-grid">
                             {filteredParticipants.map((player, idx) => {
                                 const isPlayerHost = player.userId === room?.hostId || player.userId === room?.host?.id;
@@ -1709,13 +1838,78 @@ export default function RoomLobby() {
                         </>
                     ) : (
                         <>
-                            <button
-                                className={`btn-hud-ready ${isReady ? "is-ready" : ""}`}
-                                onClick={handleToggleReady}
-                                disabled={starting}
-                            >
-                                <FontAwesomeIcon icon={faCheckCircle} /> {isReady ? "SET AS NOT READY" : "READY UP"}
-                            </button>
+                            {isHost && isHostViewer ? (
+                                <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                                    <span
+                                        style={{
+                                            display: "inline-flex",
+                                            alignItems: "center",
+                                            gap: "6px",
+                                            padding: "10px 16px",
+                                            borderRadius: "8px",
+                                            background: "rgba(168, 85, 247, 0.18)",
+                                            border: "1px solid #a855f7",
+                                            color: "#d8b4fe",
+                                            fontWeight: 800,
+                                            fontSize: "0.85rem",
+                                            letterSpacing: "0.03em"
+                                        }}
+                                    >
+                                        <FontAwesomeIcon icon={faEye} /> HOST: PROCTOR / SPECTATOR
+                                    </span>
+                                    <button
+                                        type="button"
+                                        className="btn-hud-switch-role"
+                                        onClick={handleToggleHostRole}
+                                        disabled={starting}
+                                        style={{
+                                            padding: "10px 14px",
+                                            borderRadius: "8px",
+                                            background: "rgba(56, 189, 248, 0.12)",
+                                            border: "1px solid #38bdf8",
+                                            color: "#38bdf8",
+                                            fontWeight: 700,
+                                            fontSize: "0.82rem",
+                                            cursor: "pointer"
+                                        }}
+                                        title="Switch to active competitor role"
+                                    >
+                                        Switch to Competitor ⚔️
+                                    </button>
+                                </div>
+                            ) : (
+                                <>
+                                    <button
+                                        className={`btn-hud-ready ${isReady ? "is-ready" : ""}`}
+                                        onClick={handleToggleReady}
+                                        disabled={starting}
+                                    >
+                                        <FontAwesomeIcon icon={faCheckCircle} /> {isReady ? "SET AS NOT READY" : "READY UP"}
+                                    </button>
+                                    {isHost && (
+                                        <button
+                                            type="button"
+                                            className="btn-hud-switch-role"
+                                            onClick={handleToggleHostRole}
+                                            disabled={starting}
+                                            style={{
+                                                padding: "10px 14px",
+                                                borderRadius: "8px",
+                                                background: "rgba(168, 85, 247, 0.12)",
+                                                border: "1px solid #a855f7",
+                                                color: "#c084fc",
+                                                fontWeight: 700,
+                                                fontSize: "0.82rem",
+                                                cursor: "pointer"
+                                            }}
+                                            title="Switch to Spectator/Supervisor (free up your slot for other players)"
+                                        >
+                                            <FontAwesomeIcon icon={faEye} style={{ marginRight: "6px" }} />
+                                            Switch to Spectator
+                                        </button>
+                                    )}
+                                </>
+                            )}
 
                             {isHost && (
                                 <button

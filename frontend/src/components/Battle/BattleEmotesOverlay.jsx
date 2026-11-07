@@ -10,6 +10,8 @@ import {
   faFaceLaughSquint,
   faBolt,
   faClock,
+  faCommentDots,
+  faCommentSlash,
 } from "@fortawesome/free-solid-svg-icons";
 import EmoteImage from "./EmoteImage";
 import {
@@ -28,6 +30,8 @@ export function BattleEmotePicker({
   cooldownRemaining,
   soundEnabled,
   onToggleSound,
+  emotesEnabled = true,
+  onToggleEmotes,
 }) {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -73,6 +77,16 @@ export function BattleEmotePicker({
           </div>
 
           <div className="emote-header-actions">
+            {onToggleEmotes && (
+              <button
+                type="button"
+                className={`emote-sound-toggle-btn ${emotesEnabled ? "is-active" : "is-muted"}`}
+                onClick={onToggleEmotes}
+                title={emotesEnabled ? "Disable Battle Emotes" : "Enable Battle Emotes"}
+              >
+                <FontAwesomeIcon icon={emotesEnabled ? faCommentDots : faCommentSlash} />
+              </button>
+            )}
             <button
               type="button"
               className={`emote-sound-toggle-btn ${soundEnabled ? "is-active" : ""}`}
@@ -91,6 +105,17 @@ export function BattleEmotePicker({
             </button>
           </div>
         </div>
+
+        {!emotesEnabled && (
+          <div className="emote-disabled-notice-banner">
+            <span>Battle emotes are currently disabled. Opponent emotes & taunts are hidden.</span>
+            {onToggleEmotes && (
+              <button type="button" className="emote-re-enable-btn" onClick={onToggleEmotes}>
+                Enable Emotes
+              </button>
+            )}
+          </div>
+        )}
 
         <div className="emote-picker-toolbar">
           <div className="emote-category-tabs">
@@ -175,11 +200,29 @@ export function QuickTauntBar({
   cooldownRemaining,
   cooldownTotal = 2500,
   onOpenPicker,
+  emotesEnabled = true,
+  onToggleEmotes,
 }) {
   const isCoolingDown = cooldownRemaining > 0;
   const cooldownPct = isCoolingDown
     ? Math.max(0, Math.min(100, (cooldownRemaining / cooldownTotal) * 100))
     : 0;
+
+  if (!emotesEnabled) {
+    return (
+      <div className="quick-taunt-bar is-disabled-bar" title="Battle Emotes are disabled (click to enable)">
+        <button
+          type="button"
+          className="quick-taunt-disabled-pill"
+          onClick={onToggleEmotes}
+          title="Battle emotes disabled. Click to enable."
+        >
+          <FontAwesomeIcon icon={faCommentSlash} className="disabled-pill-icon" />
+          <span className="disabled-pill-text">Emotes: Off</span>
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="quick-taunt-bar" title="Quick Battle Emotes">
@@ -219,6 +262,18 @@ export function QuickTauntBar({
           />
         )}
       </button>
+
+      {onToggleEmotes && (
+        <button
+          type="button"
+          className="quick-taunt-toggle-btn"
+          onClick={onToggleEmotes}
+          title="Disable Battle Emotes"
+          aria-label="Disable Battle Emotes"
+        >
+          <FontAwesomeIcon icon={faCommentDots} />
+        </button>
+      )}
     </div>
   );
 }

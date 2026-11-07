@@ -322,9 +322,10 @@ if __name__ == '__main__':
 
     private static prepareCpp(rawCode: string): { code: string; lineOffset: number } {
         const hasMain = /\b(int|void)\s+main\s*\(/.test(rawCode);
-        const hasSolution = /\b(class\s+Solution|solution\s*\()/.test(rawCode);
+        const hasSolutionClass = /\bclass\s+Solution\b/.test(rawCode);
+        const hasSolutionFn = /\bsolution\s*\(/.test(rawCode);
 
-        if (hasMain || !hasSolution) {
+        if (hasMain || (!hasSolutionClass && !hasSolutionFn)) {
             return { code: rawCode, lineOffset: 0 };
         }
 
@@ -339,6 +340,15 @@ ${rawCode}
 int main() {
     std::ios_base::sync_with_stdio(false);
     std::cin.tie(NULL);
+
+    std::string input, line;
+    while (std::getline(std::cin, line)) {
+        if (!input.empty()) input += "\\n";
+        input += line;
+    }
+
+${hasSolutionClass ? `    Solution sol;
+    std::cout << sol.solution(input);` : `    std::cout << solution(input);`}
     return 0;
 }
 `;
@@ -347,19 +357,30 @@ int main() {
 
     private static prepareC(rawCode: string): { code: string; lineOffset: number } {
         const hasMain = /\b(int|void)\s+main\s*\(/.test(rawCode);
-        if (hasMain) {
+        const hasSolutionFn = /\bsolution\s*\(/.test(rawCode);
+
+        if (hasMain || !hasSolutionFn) {
             return { code: rawCode, lineOffset: 0 };
         }
 
         const code = `#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 ${rawCode}
 
 int main() {
+    static char input[1048576];
+    size_t bytesRead = fread(input, 1, sizeof(input) - 1, stdin);
+    input[bytesRead] = '\\0';
+
+    char* result = (char*)solution(input);
+    if (result != NULL) {
+        printf("%s", result);
+    }
     return 0;
 }
 `;
-        return { code, lineOffset: 3 };
+        return { code, lineOffset: 4 };
     }
 }

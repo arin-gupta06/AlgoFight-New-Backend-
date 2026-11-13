@@ -7,20 +7,16 @@
   padding: 22px 26px !important;
   position: relative;
   overflow: hidden;
-  border-radius: 20px !important;
-  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+  border-radius: 14px !important;
+  background: #0D0E10 !important;
+  border: 1px solid #20232B !important;
+  transition: border-color 0.25s ease;
   margin-bottom: 16px;
   box-sizing: border-box;
 }
 
 .intel-hero-lead-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, var(--cta-primary, #00e5ff) 0%, #8b5cf6 50%, #f43f5e 100%);
+  display: none;
 }
 
 :root[data-theme="light"] .intel-hero-lead-card::before {
@@ -171,18 +167,22 @@
 }
 
 .intel-hero-read-btn {
-  padding: 8px 18px;
-  border-radius: 10px;
-  font-weight: 700;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: 600;
   font-size: 0.82rem;
   display: inline-flex;
   align-items: center;
   text-decoration: none;
-  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  background: #E3E5ED !important;
+  color: #070809 !important;
+  border: 1px solid #E3E5ED !important;
+  transition: background 0.2s ease;
 }
 
 .intel-hero-read-btn:hover {
-  transform: translateY(-2px);
+  background: #FFFFFF !important;
+  border-color: #FFFFFF !important;
 }
 
 :root[data-theme="light"] .intel-hero-read-btn {

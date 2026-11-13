@@ -337,8 +337,8 @@ export default function BattleArena({ defaultTab }) {
                           </p>
 
                           <div className="mode-features-row">
-                            <span className="mode-chip">⚡ Sub-Second Judge</span>
-                            <span className="mode-chip">🏆 ±25 ELO Stakes</span>
+                            <span className="mode-chip">Sub-Second Judge</span>
+                            <span className="mode-chip">±25 ELO Stakes</span>
                           </div>
 
                           <button
@@ -376,8 +376,8 @@ export default function BattleArena({ defaultTab }) {
                           </p>
 
                           <div className="mode-features-row">
-                            <span className="mode-chip">🔑 Passcode Lock</span>
-                            <span className="mode-chip">⏱️ Custom Clock</span>
+                            <span className="mode-chip">Passcode Lock</span>
+                            <span className="mode-chip">Custom Clock</span>
                           </div>
 
                           <button
@@ -415,8 +415,8 @@ export default function BattleArena({ defaultTab }) {
                           </p>
 
                           <div className="mode-features-row">
-                            <span className="mode-chip">⚡ Instant Entry</span>
-                            <span className="mode-chip">👁️ Spectator Mode</span>
+                            <span className="mode-chip">Instant Entry</span>
+                            <span className="mode-chip">Spectator Mode</span>
                           </div>
 
                           <button
@@ -454,8 +454,8 @@ export default function BattleArena({ defaultTab }) {
                           </p>
 
                           <div className="mode-features-row">
-                            <span className="mode-chip">🤖 Adaptive AI</span>
-                            <span className="mode-chip">⏳ Zero Queue</span>
+                            <span className="mode-chip">Adaptive AI</span>
+                            <span className="mode-chip">Zero Queue</span>
                           </div>
 
                           <button

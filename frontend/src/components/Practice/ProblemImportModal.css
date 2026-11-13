@@ -19,12 +19,10 @@
   max-height: 90vh;
   display: flex;
   flex-direction: column;
-  background: rgba(10, 15, 30, 0.92);
-  border: 1px solid rgba(0, 229, 255, 0.25);
-  border-radius: 16px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7),
-              0 0 35px rgba(0, 229, 255, 0.12),
-              inset 0 1px 1px rgba(255, 255, 255, 0.1);
+  background: var(--bg-card, #0D0E10);
+  border: 1px solid var(--border-primary, #343640);
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
   color: #e2e8f0;
   overflow: hidden;
 }
@@ -34,8 +32,8 @@
   align-items: flex-start;
   justify-content: space-between;
   padding: 1.75rem 2rem 1.25rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
-  background: linear-gradient(180deg, rgba(0, 229, 255, 0.04) 0%, transparent 100%);
+  border-bottom: 1px solid var(--border-subtle, #20232B);
+  background: var(--bg-card, #0D0E10);
 }
 
 .import-title-group h2 {
@@ -58,11 +56,11 @@
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: #00e5ff;
-  background: rgba(0, 229, 255, 0.1);
+  color: var(--text-primary, #E3E5ED);
+  background: var(--surface-primary, #1A1D25);
   padding: 0.2rem 0.55rem;
-  border-radius: 6px;
-  border: 1px solid rgba(0, 229, 255, 0.25);
+  border-radius: 4px;
+  border: 1px solid var(--border-primary, #343640);
 }
 
 .import-close-btn {
@@ -114,7 +112,6 @@
   background: rgba(14, 165, 233, 0.22);
   border-color: #38bdf8;
   color: #ffffff;
-  box-shadow: 0 0 15px rgba(14, 165, 233, 0.25);
 }
 
 .import-supported-hint {
@@ -125,10 +122,10 @@
 /* Dropzone */
 .import-dropzone {
   margin: 0.75rem 2rem;
-  border: 2px dashed rgba(0, 229, 255, 0.25);
-  border-radius: 12px;
+  border: 1px dashed var(--border-primary, #343640);
+  border-radius: 8px;
   padding: 2rem 1.5rem;
-  background: rgba(2, 6, 23, 0.4);
+  background: var(--surface-primary, #1A1D25);
   cursor: pointer;
   transition: all 0.22s ease;
   display: flex;
@@ -139,9 +136,8 @@
 
 .import-dropzone:hover,
 .import-dropzone.drag-active {
-  border-color: #00e5ff;
-  background: rgba(0, 229, 255, 0.06);
-  box-shadow: 0 0 25px rgba(0, 229, 255, 0.12);
+  border-color: var(--border-hover, #4a4f5c);
+  background: var(--surface-elevated, #20232B);
 }
 
 .dropzone-content {
@@ -367,25 +363,24 @@
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  background: linear-gradient(135deg, #00e5ff 0%, #0284c7 100%);
-  border: none;
+  background: #E3E5ED;
+  border: 1px solid #E3E5ED;
   color: #040813;
   font-size: 0.88rem;
   font-weight: 700;
   padding: 0.55rem 1.4rem;
-  border-radius: 8px;
+  border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 0 20px rgba(0, 229, 255, 0.35);
 }
 
 .btn-import-commit:hover:not(:disabled) {
-  box-shadow: 0 0 30px rgba(0, 229, 255, 0.5);
+  background: #ffffff;
+  border-color: #ffffff;
   transform: translateY(-1px);
 }
 
 .btn-import-commit:disabled {
   opacity: 0.45;
   cursor: not-allowed;
-  box-shadow: none;
 }

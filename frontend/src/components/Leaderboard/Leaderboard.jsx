@@ -397,7 +397,7 @@ export default function Leaderboard() {
                       >
                         <div className="col-rank">
                           <span className={`rank-badge rank-${entry.rank}`}>
-                            {entry.rank === 1 ? "🥇 #1" : entry.rank === 2 ? "🥈 #2" : entry.rank === 3 ? "🥉 #3" : `#${entry.rank}`}
+                            {`#${entry.rank}`}
                           </span>
                         </div>
 

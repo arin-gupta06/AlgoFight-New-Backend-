@@ -10,9 +10,11 @@
   max-width: 440px;
   min-height: 380px;
   box-sizing: border-box;
-  padding: 24px !important;
-  border-radius: 20px !important;
-  transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+  padding: 20px !important;
+  border-radius: 12px !important;
+  background: #0D0E10 !important;
+  border: 1px solid #20232B !important;
+  transition: border-color 0.2s ease;
 }
 
 :root[data-theme="light"] .intel-event-card {
@@ -32,16 +34,16 @@
   font-size: 0.72rem !important;
   font-weight: 700 !important;
   letter-spacing: 0.08em !important;
-  padding: 3px 10px !important;
-  border-radius: 999px !important;
+  padding: 2px 8px !important;
+  border-radius: 4px !important;
   text-transform: uppercase !important;
   display: inline-flex !important;
   align-items: center !important;
   gap: 5px !important;
-  background: rgba(0, 229, 255, 0.1) !important;
-  border: 1px solid rgba(0, 229, 255, 0.35) !important;
-  color: var(--cta-primary, #00e5ff) !important;
-  box-shadow: 0 0 10px rgba(0, 229, 255, 0.15) !important;
+  background: #1A1D25 !important;
+  border: 1px solid #20232B !important;
+  color: #AEB2C0 !important;
+  box-shadow: none !important;
   line-height: 1.2 !important;
 }
 
@@ -110,11 +112,11 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: 12px 14px;
-  background: var(--surface-primary, rgba(10, 14, 23, 0.65));
-  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.06));
-  border-radius: 12px;
-  margin-bottom: 16px;
+  padding: 10px 12px;
+  background: #111317;
+  border: 1px solid #20232B;
+  border-radius: 8px;
+  margin-bottom: 14px;
 }
 
 :root[data-theme="light"] .intel-event-meta-list {
@@ -127,7 +129,7 @@
   align-items: center;
   gap: 8px;
   font-size: 0.8rem;
-  color: var(--text-secondary, #94a3b8);
+  color: #AEB2C0;
 }
 
 :root[data-theme="light"] .intel-event-meta-item {
@@ -135,7 +137,7 @@
 }
 
 .intel-event-meta-item .meta-icon {
-  color: var(--cta-primary, #00e5ff);
+  color: #AEB2C0;
   font-size: 0.85rem;
   width: 16px;
 }
@@ -156,42 +158,41 @@
   gap: 8px !important;
   text-decoration: none !important;
   font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif !important;
-  font-size: 0.86rem !important;
-  font-weight: 700 !important;
+  font-size: 0.84rem !important;
+  font-weight: 600 !important;
   letter-spacing: 0.02em !important;
-  padding: 10px 18px !important;
-  border-radius: 10px !important;
+  padding: 9px 16px !important;
+  border-radius: 8px !important;
   box-sizing: border-box !important;
   cursor: pointer !important;
-  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  transition: background 0.2s ease !important;
 }
 
 .intel-event-full-btn.btn-primary {
-  background: linear-gradient(135deg, rgba(0, 229, 255, 0.16) 0%, rgba(37, 99, 235, 0.32) 100%) !important;
-  border: 1px solid rgba(0, 229, 255, 0.45) !important;
-  color: #ffffff !important;
-  box-shadow: 0 4px 14px rgba(0, 229, 255, 0.12) !important;
+  background: #E3E5ED !important;
+  border: 1px solid #E3E5ED !important;
+  color: #070809 !important;
+  box-shadow: none !important;
 }
 
 .intel-event-full-btn.btn-primary:hover {
-  background: linear-gradient(135deg, rgba(0, 229, 255, 0.28) 0%, rgba(37, 99, 235, 0.5) 100%) !important;
-  border-color: var(--cta-primary, #00e5ff) !important;
-  color: #ffffff !important;
-  box-shadow: 0 6px 22px rgba(0, 229, 255, 0.28) !important;
-  transform: translateY(-1px);
+  background: #FFFFFF !important;
+  border-color: #FFFFFF !important;
+  transform: none;
+  box-shadow: none !important;
 }
 
 .intel-event-full-btn.btn-outline {
-  background: var(--surface-primary, rgba(15, 23, 42, 0.6)) !important;
-  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.14)) !important;
-  color: var(--text-primary, #ffffff) !important;
+  background: #1A1D25 !important;
+  border: 1px solid #20232B !important;
+  color: #AEB2C0 !important;
 }
 
 .intel-event-full-btn.btn-outline:hover {
-  background: var(--surface-highlight, rgba(0, 229, 255, 0.08)) !important;
-  border-color: var(--cta-primary, #00e5ff) !important;
-  color: var(--cta-primary, #00e5ff) !important;
-  transform: translateY(-1px);
+  background: #23242E !important;
+  border-color: #343640 !important;
+  color: #E3E5ED !important;
+  transform: none;
 }
 
 :root[data-theme="light"] .intel-event-full-btn.btn-primary {

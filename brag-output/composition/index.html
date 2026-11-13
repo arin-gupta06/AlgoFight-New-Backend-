@@ -1,0 +1,1628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AlgoFight — Master Cinematic Product Demo (1080p 60FPS)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700;800&family=Space+Grotesk:wght@500;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #070809;
+      --bg-secondary: #0D0E10;
+      --bg-deep: #050607;
+      --surface-primary: #1A1D25;
+      --surface-elevated: #23242E;
+      --surface-highlight: #2B2F3B;
+      --border-primary: #343640;
+      --border-subtle: #20232B;
+      --text-primary: #E3E5ED;
+      --text-secondary: #AEB2C0;
+      --text-muted: #7F808F;
+      --cta-primary: #E3E5ED;
+      --cta-text: #070809;
+      --purple: #a855f7;
+      --purple-light: #c084fc;
+      --cyan: #00f5ff;
+      --emerald: #34d399;
+      --amber: #f59e0b;
+      --rose: #f43f5e;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      background: #020204;
+      color: var(--text-primary);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      overflow-x: hidden;
+    }
+
+    /* 16:9 Cinema Canvas Frame */
+    .video-viewport {
+      position: relative;
+      width: 100%;
+      max-width: 1280px;
+      aspect-ratio: 16 / 9;
+      background: var(--bg-deep);
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 30px 80px -20px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(255, 255, 255, 0.08);
+    }
+
+    canvas#canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .vignette-effect {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: radial-gradient(circle at center, transparent 65%, rgba(0, 0, 0, 0.8) 100%);
+    }
+
+    .live-badge-top {
+      position: absolute;
+      top: 18px;
+      left: 22px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(13, 14, 16, 0.88);
+      border: 1px solid var(--border-subtle);
+      padding: 5px 12px;
+      border-radius: 999px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--text-secondary);
+      letter-spacing: 0.5px;
+      backdrop-filter: blur(12px);
+      z-index: 10;
+    }
+
+    .live-badge-top .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--purple-light);
+      box-shadow: 0 0 8px var(--purple);
+    }
+
+    /* Subtitles / Voiceover Teleprompter Bar */
+    .caption-overlay {
+      position: absolute;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 90%;
+      max-width: 1080px;
+      background: rgba(7, 8, 9, 0.85);
+      border: 1px solid var(--border-primary);
+      border-radius: 10px;
+      padding: 10px 20px;
+      text-align: center;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      color: #ffffff;
+      line-height: 1.4;
+      letter-spacing: 0.2px;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.8);
+      z-index: 10;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+
+    .caption-overlay span.speaker {
+      color: var(--purple-light);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-right: 8px;
+    }
+
+    /* Controls Dock */
+    .controls-dock {
+      margin-top: 14px;
+      width: 100%;
+      max-width: 1280px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 12px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.7);
+    }
+
+    .scrubber-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .time-code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      color: var(--purple-light);
+      min-width: 130px;
+    }
+
+    .track-wrapper {
+      position: relative;
+      flex: 1;
+      height: 8px;
+      background: var(--surface-primary);
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .track-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #a855f7, #c084fc);
+      border-radius: 4px;
+      position: relative;
+    }
+
+    .track-fill::after {
+      content: '';
+      position: absolute;
+      right: -5px;
+      top: -3px;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 0 8px var(--purple);
+    }
+
+    .scene-marks {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    .mark {
+      position: absolute;
+      top: -2px;
+      bottom: -2px;
+      width: 2px;
+      background: rgba(255, 255, 255, 0.25);
+    }
+
+    .button-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .group-left, .group-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    button.ui-btn {
+      background: var(--surface-primary);
+      border: 1px solid var(--border-primary);
+      color: var(--text-primary);
+      padding: 7px 14px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+
+    button.ui-btn:hover {
+      background: var(--surface-highlight);
+      border-color: var(--text-muted);
+    }
+
+    button.ui-btn-primary {
+      background: var(--cta-primary);
+      color: var(--cta-text);
+      border: 1px solid #fff;
+      font-weight: 700;
+    }
+
+    button.ui-btn-primary:hover {
+      background: #fff;
+      transform: translateY(-1px);
+    }
+
+    .recording-tag {
+      display: none;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--rose);
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+      animation: blink 1s infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    /* 8 Scene Navigation Pills */
+    .timeline-scenes {
+      margin-top: 12px;
+      width: 100%;
+      max-width: 1280px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+
+    .scene-pill {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      padding: 8px 12px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .scene-pill:hover, .scene-pill.active {
+      border-color: var(--purple-light);
+      background: rgba(168, 85, 247, 0.08);
+      transform: translateY(-1px);
+    }
+
+    .scene-pill .time {
+      color: var(--purple-light);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      font-weight: 700;
+      margin-bottom: 2px;
+    }
+
+    .scene-pill .name {
+      font-weight: 700;
+      color: var(--text-primary);
+      font-size: 12px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .scene-pill .desc {
+      color: var(--text-muted);
+      font-size: 10px;
+      line-height: 1.25;
+      margin-top: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    @media (max-width: 960px) {
+      .timeline-scenes {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 16:9 Video Canvas Viewport -->
+  <div class="video-viewport" id="viewport">
+    <canvas id="canvas" width="1920" height="1080"></canvas>
+    <div class="vignette-effect"></div>
+
+    <div class="live-badge-top">
+      <div class="dot"></div>
+      <span id="headerLiveStatus">algo.mitsgwalior.in // MASTER PRODUCT DEMO</span>
+    </div>
+
+    <div class="caption-overlay" id="captionOverlay">
+      <span class="speaker">VOICEOVER //</span>
+      <span id="captionText">Initializing cinematic engine...</span>
+    </div>
+  </div>
+
+  <!-- Player Controls -->
+  <div class="controls-dock">
+    <div class="scrubber-row">
+      <div class="time-code" id="timeCode">00:00.0 / 03:50.0</div>
+      <div class="track-wrapper" id="trackWrapper">
+        <div class="track-fill" id="trackFill"></div>
+        <div class="scene-marks">
+          <div class="mark" style="left: 8.7%;" title="Scene 2: Website Intro"></div>
+          <div class="mark" style="left: 19.5%;" title="Scene 3: Entering a Battle"></div>
+          <div class="mark" style="left: 32.6%;" title="Scene 4: Inside the Coding Arena"></div>
+          <div class="mark" style="left: 52.1%;" title="Scene 5: The Live Battle"></div>
+          <div class="mark" style="left: 67.4%;" title="Scene 6: Results & Ratings"></div>
+          <div class="mark" style="left: 80.4%;" title="Scene 7: Complete Recap"></div>
+          <div class="mark" style="left: 93.5%;" title="Scene 8: Brand Reveal"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="button-bar">
+      <div class="group-left">
+        <button class="ui-btn" id="playBtn">▶ Play</button>
+        <button class="ui-btn" id="replayBtn">↺ Replay</button>
+        <button class="ui-btn" id="soundBtn">🔊 SFX: On</button>
+        <button class="ui-btn" id="voBtn">🎙️ Voiceover: On</button>
+        <button class="ui-btn" id="speedBtn">1.0x</button>
+      </div>
+
+      <div class="group-right">
+        <div class="recording-tag" id="recTag">● EXPORTING 1080P 60FPS VIDEO...</div>
+        <button class="ui-btn" id="posterBtn">📸 Snapshot Poster</button>
+        <button class="ui-btn ui-btn-primary" id="exportBtn">🎥 Export Video (.webm)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 8 Scene Timeline Ribbon -->
+  <div class="timeline-scenes">
+    <div class="scene-pill" data-seek="0">
+      <div class="time">00:00 - 00:20</div>
+      <div class="name">1. Cinematic Opening</div>
+      <div class="desc">Code burst, dual setup & logo reveal</div>
+    </div>
+    <div class="scene-pill" data-seek="20">
+      <div class="time">00:20 - 00:45</div>
+      <div class="name">2. Website Introduction</div>
+      <div class="desc">Stealth Obsidian cockpit & features</div>
+    </div>
+    <div class="scene-pill" data-seek="45">
+      <div class="time">00:45 - 01:15</div>
+      <div class="name">3. Entering a Battle</div>
+      <div class="desc">Dual session host, join & countdown</div>
+    </div>
+    <div class="scene-pill" data-seek="75">
+      <div class="time">01:15 - 02:00</div>
+      <div class="name">4. Inside the Coding Arena</div>
+      <div class="desc">Monaco editor, Piston engine & Socket.IO</div>
+    </div>
+    <div class="scene-pill" data-seek="120">
+      <div class="time">02:00 - 02:35</div>
+      <div class="name">5. The Live Battle</div>
+      <div class="desc">Simultaneous duel, timer pressure & submit</div>
+    </div>
+    <div class="scene-pill" data-seek="155">
+      <div class="time">02:35 - 03:05</div>
+      <div class="name">6. Results & Rewards</div>
+      <div class="desc">Victory reveal, +32 Elo & Prestige Vault</div>
+    </div>
+    <div class="scene-pill" data-seek="185">
+      <div class="time">03:05 - 03:35</div>
+      <div class="name">7. Complete Recap</div>
+      <div class="desc">Rapid 9-pillar platform montage</div>
+    </div>
+    <div class="scene-pill" data-seek="215">
+      <div class="time">03:35 - 03:50</div>
+      <div class="name">8. Final Brand Reveal</div>
+      <div class="desc">Logo crest, URL & official MITS Gwalior</div>
+    </div>
+  </div>
+
+  <script>
+    const DURATION = 230.0; // 03:50 total duration
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+
+    // UI elements
+    const playBtn = document.getElementById('playBtn');
+    const replayBtn = document.getElementById('replayBtn');
+    const soundBtn = document.getElementById('soundBtn');
+    const voBtn = document.getElementById('voBtn');
+    const speedBtn = document.getElementById('speedBtn');
+    const trackWrapper = document.getElementById('trackWrapper');
+    const trackFill = document.getElementById('trackFill');
+    const timeCode = document.getElementById('timeCode');
+    const exportBtn = document.getElementById('exportBtn');
+    const posterBtn = document.getElementById('posterBtn');
+    const recTag = document.getElementById('recTag');
+    const captionText = document.getElementById('captionText');
+    const headerLiveStatus = document.getElementById('headerLiveStatus');
+    const scenePills = document.querySelectorAll('.scene-pill');
+
+    let currentTime = 0.0;
+    let isPlaying = false;
+    let playbackSpeed = 1.0;
+    let audioEnabled = true;
+    let voEnabled = true;
+    let lastTimestamp = null;
+    let mediaRecorder = null;
+    let recordedChunks = [];
+    let isRecording = false;
+
+    // Load Local Image Assets
+    const heroStageImg = new Image();
+    heroStageImg.src = 'assets/hero_studio_stage.png';
+
+    const algoLogoImg = new Image();
+    algoLogoImg.src = 'assets/algofight-logo.png';
+
+    const mitsLogoImg = new Image();
+    mitsLogoImg.src = 'assets/mits-logo.png';
+
+    const sdcLogoImg = new Image();
+    sdcLogoImg.src = 'assets/sdc-logo.png';
+
+    const devKrishImg = new Image();
+    devKrishImg.src = 'assets/krish.jpg';
+
+    const devVivekImg = new Image();
+    devVivekImg.src = 'assets/vivek.png';
+
+    const framesImg = new Image();
+    framesImg.src = 'assets/frames.jpeg';
+
+    const avatarsImg = new Image();
+    avatarsImg.src = 'assets/avatars.jpeg';
+
+    // Script & Storyboard Definition
+    const SCENES = [
+      {
+        id: 1,
+        start: 0,
+        end: 20,
+        name: "Cinematic Opening",
+        caption: "Programming has always been about solving problems. You write code, debug errors, and compete against the clock. But what if you could compete against another developer? What if solving DSA problems became an actual battle? Introducing AlgoFight."
+      },
+      {
+        id: 2,
+        start: 20,
+        end: 45,
+        name: "Website Introduction",
+        caption: "AlgoFight is a real-time one-versus-one competitive programming platform designed to make Data Structures and Algorithms more exciting. Instead of solving problems alone, developers can challenge each other in a live coding battle. It's where programming meets competition."
+      },
+      {
+        id: 3,
+        start: 45,
+        end: 75,
+        name: "Entering a Battle",
+        caption: "Getting started is simple. Two players enter a battle and prepare for the challenge. Once the match begins, both players receive their coding problem, and the countdown starts. From this moment onward, every second counts. Your opponent is solving the same challenge, racing toward the same goal."
+      },
+      {
+        id: 4,
+        start: 75,
+        end: 120,
+        name: "Inside the Coding Arena",
+        caption: "Welcome to the AlgoFight coding arena. Everything you need for the battle is available in one place. Players can understand the problem, write their solutions, and execute their code without leaving the platform. AlgoFight uses Piston for code execution, providing an integrated execution workflow. But the real magic happens behind the scenes. Socket.IO powers real-time communication, synchronizing important match events such as timing and execution status between players."
+      },
+      {
+        id: 5,
+        start: 120,
+        end: 155,
+        name: "The Live Battle",
+        caption: "This isn't traditional coding practice anymore. Both players are competing simultaneously. One might find the optimal solution first. The other might be just one line of code away. Every decision matters. Every submission matters. And the pressure makes even familiar DSA problems feel like a real competition."
+      },
+      {
+        id: 6,
+        start: 155,
+        end: 185,
+        name: "Results, Ratings and Rewards",
+        caption: "But the competition doesn't end when the battle is over. AlgoFight features an Elo-based rating system that reflects competitive performance. Players can earn points and unlock customization options, including themes, skins, and avatar frames. Every match becomes another opportunity to improve, compete, and climb higher."
+      },
+      {
+        id: 7,
+        start: 185,
+        end: 215,
+        name: "Complete Platform Recap",
+        caption: "From real-time multiplayer synchronization to integrated code execution, from competitive battles to player progression, AlgoFight brings a completely different experience to programming practice. Built to make coding more interactive. Designed to make competition more exciting. And created for developers who love a challenge."
+      },
+      {
+        id: 8,
+        start: 215,
+        end: 230,
+        name: "Final Brand Reveal",
+        caption: "We didn't just want to build another coding platform. We wanted to make coding competitive, interactive, and fun. This is AlgoFight. Code Smart. Fight Hard. Climb the Ranks."
+      }
+    ];
+
+    // =========================================================================
+    // WEB AUDIO SYNTHESIZER ENGINE
+    // =========================================================================
+    let audioCtx = null;
+    let synthDestination = null;
+
+    function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        synthDestination = audioCtx.createMediaStreamDestination();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    function playTone(freq, type = 'sine', duration = 0.15, gainVal = 0.1) {
+      if (!audioEnabled || !audioCtx) return;
+      try {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(gainVal, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        if (synthDestination) gain.connect(synthDestination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch (e) {}
+    }
+
+    function playBassDrop() {
+      if (!audioEnabled || !audioCtx) return;
+      try {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(110, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(32, audioCtx.currentTime + 1.2);
+        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 1.2);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        if (synthDestination) gain.connect(synthDestination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 1.2);
+      } catch (e) {}
+    }
+
+    function playKeyClack() {
+      if (!audioEnabled || !audioCtx) return;
+      playTone(1200 + Math.random() * 800, 'triangle', 0.035, 0.08);
+    }
+
+    function playSonarPing() {
+      if (!audioEnabled || !audioCtx) return;
+      playTone(880, 'sine', 0.18, 0.12);
+    }
+
+    function playCountdownBeep(high = false) {
+      if (!audioEnabled || !audioCtx) return;
+      playTone(high ? 1200 : 640, 'square', high ? 0.35 : 0.15, 0.15);
+    }
+
+    function playVictoryFanfare() {
+      if (!audioEnabled || !audioCtx) return;
+      const notes = [523.25, 659.25, 783.99, 1046.50, 1318.51];
+      notes.forEach((f, idx) => {
+        setTimeout(() => playTone(f, 'sine', 0.5, 0.12), idx * 75);
+      });
+    }
+
+    let lastSecAudioTrigger = -1;
+    function handleProceduralAudio(t) {
+      const sec = Math.floor(t);
+      if (sec !== lastSecAudioTrigger) {
+        lastSecAudioTrigger = sec;
+        
+        // Scene Impacts
+        if (sec === 0 || sec === 18 || sec === 20 || sec === 45 || sec === 75 || sec === 120 || sec === 155 || sec === 185 || sec === 215) {
+          playBassDrop();
+        }
+
+        // Typing bursts in Scene 1, 4, 5
+        if ((sec >= 1 && sec <= 8) || (sec >= 85 && sec <= 110) || (sec >= 125 && sec <= 145)) {
+          playKeyClack();
+        }
+
+        // Matchmaking Sonar Pings (Scene 3: 50s-70s)
+        if (sec >= 50 && sec <= 70 && sec % 2 === 0) {
+          playSonarPing();
+        }
+
+        // Countdown Beeps (Scene 3: 71, 72, 73, 74)
+        if (sec === 71 || sec === 72 || sec === 73) {
+          playCountdownBeep(false);
+        } else if (sec === 74) {
+          playCountdownBeep(true);
+        }
+
+        // Victory Chime (Scene 6: 155s)
+        if (sec === 155) {
+          playVictoryFanfare();
+        }
+      }
+    }
+
+    // =========================================================================
+    // SPEECH SYNTHESIS VOICEOVER ENGINE
+    // =========================================================================
+    let currentSpeakingSceneId = -1;
+    function handleVoiceover(t) {
+      const currentScene = SCENES.find(s => t >= s.start && t < s.end) || SCENES[SCENES.length - 1];
+      
+      // Update on-screen subtitle caption bar
+      if (captionText) {
+        captionText.textContent = currentScene.caption;
+      }
+      if (headerLiveStatus) {
+        headerLiveStatus.textContent = `algo.mitsgwalior.in // SCENE ${currentScene.id}: ${currentScene.name.toUpperCase()}`;
+      }
+
+      // Update Scene Pill Highlight
+      scenePills.forEach((pill, idx) => {
+        if (idx === currentScene.id - 1) {
+          pill.classList.add('active');
+        } else {
+          pill.classList.remove('active');
+        }
+      });
+
+      // Optional Web Speech synthesis narration
+      if (voEnabled && window.speechSynthesis && isPlaying) {
+        if (currentSpeakingSceneId !== currentScene.id) {
+          currentSpeakingSceneId = currentScene.id;
+          window.speechSynthesis.cancel();
+          const utterance = new SpeechSynthesisUtterance(currentScene.caption);
+          utterance.rate = 1.05;
+          utterance.pitch = 0.95;
+          utterance.lang = 'en-US';
+          window.speechSynthesis.speak(utterance);
+        }
+      }
+    }
+
+    // =========================================================================
+    // MATH & DRAWING HELPERS
+    // =========================================================================
+    const easeOutCubic = t => 1 - Math.pow(1 - t, 3);
+    const easeInOutCubic = t => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    const clamp = (val, min, max) => Math.max(min, Math.min(max, val));
+
+    function drawCard(x, y, w, h, radius = 12, bg = '#0D0E10', border = '#20232B') {
+      ctx.save();
+      ctx.beginPath();
+      ctx.roundRect(x, y, w, h, radius);
+      ctx.fillStyle = bg;
+      ctx.fill();
+      ctx.strokeStyle = border;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawBadge(text, x, y, bg = '#1A1D25', border = '#20232B', color = '#AEB2C0', font = '600 11px "JetBrains Mono"') {
+      ctx.save();
+      ctx.font = font;
+      const textWidth = ctx.measureText(text).width;
+      const padX = 10;
+      const h = 22;
+      const w = textWidth + padX * 2;
+      ctx.beginPath();
+      ctx.roundRect(x, y, w, h, 4);
+      ctx.fillStyle = bg;
+      ctx.fill();
+      ctx.strokeStyle = border;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.fillStyle = color;
+      ctx.textBaseline = 'middle';
+      ctx.fillText(text, x + padX, y + h / 2);
+      ctx.restore();
+      return w;
+    }
+
+    // =========================================================================
+    // BACKGROUND: TECHNICAL OBSIDIAN CYBER COCKPIT GRID
+    // =========================================================================
+    function drawObsidianGrid(t) {
+      ctx.fillStyle = '#050607';
+      ctx.fillRect(0, 0, 1920, 1080);
+
+      ctx.save();
+      ctx.strokeStyle = '#14161B';
+      ctx.lineWidth = 1;
+      const gridSize = 48;
+      const offset = (t * 12) % gridSize;
+
+      for (let x = 0; x <= 1920; x += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, 1080);
+        ctx.stroke();
+      }
+      for (let y = offset; y <= 1080; y += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(1920, y);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    // =========================================================================
+    // SCENE 1: CINEMATIC OPENING (00:00 - 00:20)
+    // =========================================================================
+    function drawScene1(t) {
+      if (t < 5.0) {
+        // Cold Black Screen + Terminal Cursor & Algorithm Stream
+        const codeLines = [
+          "template <typename T> class SegmentTree {",
+          "    vector<T> tree; int n;",
+          "public:",
+          "    SegmentTree(int size) : n(size) { tree.assign(4 * n, 0); }",
+          "    void update(int node, int start, int end, int idx, T val) {",
+          "        if (start == end) { tree[node] = val; return; }",
+          "        int mid = (start + end) / 2;",
+          "        if (idx <= mid) update(2 * node, start, mid, idx, val);",
+          "        else update(2 * node + 1, mid + 1, end, idx, val);",
+          "        tree[node] = tree[2 * node] + tree[2 * node + 1];",
+          "    }",
+          "};"
+        ];
+        ctx.fillStyle = '#1A1D25';
+        ctx.font = '16px "JetBrains Mono"';
+        const numToDraw = Math.min(codeLines.length, Math.floor(t * 3));
+        for (let i = 0; i < numToDraw; i++) {
+          ctx.fillText(codeLines[i], 120, 260 + i * 36);
+        }
+
+        // Center dramatic text
+        ctx.fillStyle = '#E3E5ED';
+        ctx.font = '800 42px "Space Grotesk"';
+        ctx.textAlign = 'center';
+        ctx.fillText("PROGRAMMING HAS ALWAYS BEEN ABOUT SOLVING PROBLEMS.", 960, 500);
+
+        ctx.font = '500 20px "JetBrains Mono"';
+        ctx.fillStyle = '#AEB2C0';
+        ctx.fillText("ONE DEVELOPER. ONE SCREEN. COMPETING AGAINST THE CLOCK.", 960, 560);
+        ctx.textAlign = 'left';
+      } else if (t < 13.0) {
+        // Dual developer battle setups (Split Screen)
+        const p1X = 140, p2X = 1020, w = 760, h = 640, y = 200;
+
+        // Player 1 Card (Krish)
+        drawCard(p1X, y, w, h, 14, '#0D0E10', '#343640');
+        drawBadge("CONTESTANT 01 // LEADER", p1X + 24, y + 24, '#1A1D25', '#20232B', '#a855f7');
+        if (devKrishImg.complete) {
+          ctx.drawImage(devKrishImg, p1X + 24, y + 68, 120, 120);
+        }
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '800 28px "Space Grotesk"';
+        ctx.fillText("Krish Garg", p1X + 168, y + 110);
+        ctx.font = '600 15px "JetBrains Mono"';
+        ctx.fillStyle = '#34d399';
+        ctx.fillText("● READY // 1,520 ELO", p1X + 168, y + 145);
+
+        // Terminal preview in P1
+        drawCard(p1X + 24, y + 210, w - 48, 390, 8, '#070809', '#20232B');
+        ctx.fillStyle = '#AEB2C0';
+        ctx.font = '13px "JetBrains Mono"';
+        ctx.fillText("// LIVE CODE STREAM: Two Pointers Optimal [C++20]", p1X + 44, y + 250);
+        ctx.fillStyle = '#c084fc';
+        ctx.fillText("while (left < right) { int sum = numbers[left] + numbers[right]; ... }", p1X + 44, y + 285);
+
+        // VS Divider in center
+        ctx.fillStyle = '#a855f7';
+        ctx.font = '900 36px "Space Grotesk"';
+        ctx.textAlign = 'center';
+        ctx.fillText("VS", 960, 520);
+        ctx.textAlign = 'left';
+
+        // Player 2 Card (Vivek)
+        drawCard(p2X, y, w, h, 14, '#0D0E10', '#343640');
+        drawBadge("CONTESTANT 02 // CHALLENGER", p2X + 24, y + 24, '#1A1D25', '#20232B', '#00f5ff');
+        if (devVivekImg.complete) {
+          ctx.drawImage(devVivekImg, p2X + 24, y + 68, 120, 120);
+        }
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '800 28px "Space Grotesk"';
+        ctx.fillText("Vivek Sharma", p2X + 168, y + 110);
+        ctx.font = '600 15px "JetBrains Mono"';
+        ctx.fillStyle = '#00f5ff';
+        ctx.fillText("● READY // 1,495 ELO", p2X + 168, y + 145);
+
+        // Terminal preview in P2
+        drawCard(p2X + 24, y + 210, w - 48, 390, 8, '#070809', '#20232B');
+        ctx.fillStyle = '#AEB2C0';
+        ctx.font = '13px "JetBrains Mono"';
+        ctx.fillText("// LIVE CODE STREAM: Hash Map Frequency [Python 3.11]", p2X + 44, y + 250);
+        ctx.fillStyle = '#00f5ff';
+        ctx.fillText("seen = {} \nfor i, val in enumerate(nums): if target - val in seen: ...", p2X + 44, y + 285);
+      } else {
+        // Logo Reveal & Tagline (Bass Drop Climax)
+        const alpha = Math.min(1.0, (t - 13.0) / 1.5);
+        ctx.save();
+        ctx.globalAlpha = alpha;
+
+        // Radial glow
+        const grad = ctx.createRadialGradient(960, 440, 50, 960, 440, 480);
+        grad.addColorStop(0, 'rgba(168, 85, 247, 0.22)');
+        grad.addColorStop(1, 'transparent');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, 1920, 1080);
+
+        if (algoLogoImg.complete) {
+          ctx.drawImage(algoLogoImg, 960 - 70, 310, 140, 140);
+        }
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '900 68px "Space Grotesk"';
+        ctx.textAlign = 'center';
+        ctx.fillText("ALGOFIGHT", 960, 520);
+
+        drawBadge("OFFICIAL PLATFORM LAUNCH", 960 - 110, 550, '#1A1D25', '#a855f7', '#c084fc', '700 13px "JetBrains Mono"');
+
+        ctx.font = '800 28px "Space Grotesk"';
+        ctx.fillStyle = '#E3E5ED';
+        ctx.fillText("TWO PLAYERS. ONE BATTLE. ONE WINNER.", 960, 630);
+
+        ctx.font = '500 18px "JetBrains Mono"';
+        ctx.fillStyle = '#AEB2C0';
+        ctx.fillText("https://algo.mitsgwalior.in/", 960, 680);
+        ctx.textAlign = 'left';
+        ctx.restore();
+      }
+    }
+
+    // =========================================================================
+    // SCENE 2: WEBSITE INTRODUCTION (00:20 - 00:45)
+    // =========================================================================
+    function drawScene2(t) {
+      const relT = t - 20.0;
+      
+      // Floating Navigation Pill
+      drawCard(180, 40, 1560, 64, 32, '#0D0E10', '#20232B');
+      drawBadge("</> ALGOFIGHT", 210, 56, '#1A1D25', '#20232B', '#E3E5ED');
+
+      const navItems = ["Battle", "Practice", "Ranking", "Rewards", "Developers", "Explore ▾"];
+      let navX = 430;
+      navItems.forEach((item, idx) => {
+        ctx.font = idx === 4 ? '700 14px "Inter"' : '500 14px "Inter"';
+        ctx.fillStyle = idx === 4 ? '#E3E5ED' : '#AEB2C0';
+        ctx.fillText(item, navX, 78);
+        navX += 130;
+      });
+
+      // Right Pill Actions
+      drawBadge("🔔 2", 1520, 56, '#1A1D25', '#20232B', '#E3E5ED');
+      drawBadge("Logout", 1590, 56, '#1A1D25', '#20232B', '#AEB2C0');
+      if (mitsLogoImg.complete) {
+        ctx.drawImage(mitsLogoImg, 1680, 52, 40, 40);
+      }
+
+      // Hero Centerpiece Headline
+      ctx.fillStyle = '#E3E5ED';
+      ctx.font = '900 48px "Space Grotesk"';
+      ctx.textAlign = 'center';
+      ctx.fillText("ALGORITHMIC BATTLES", 960, 195);
+      ctx.fillText("FOR FUTURE MASTERS", 960, 255);
+
+      ctx.font = '400 18px "Inter"';
+      ctx.fillStyle = '#AEB2C0';
+      ctx.fillText("Solve problems. Earn points. Climb the rankings.", 960, 310);
+      ctx.fillText("Show the world what you're made of.", 960, 338);
+
+      // Hero Buttons
+      drawCard(810, 368, 160, 46, 23, '#E3E5ED', '#E3E5ED');
+      ctx.fillStyle = '#070809';
+      ctx.font = '700 14px "Space Grotesk"';
+      ctx.fillText("▶ Start Competing", 890, 396);
+
+      drawCard(990, 368, 160, 46, 23, '#1A1D25', '#343640');
+      ctx.fillStyle = '#E3E5ED';
+      ctx.fillText("</> Practice Arena", 1070, 396);
+      ctx.textAlign = 'left';
+
+      // 3D Hero Studio Center Stage
+      if (heroStageImg.complete) {
+        ctx.drawImage(heroStageImg, 560, 440, 800, 440);
+      }
+
+      // Left Cockpit Cards
+      // 1. Global Rating
+      drawCard(140, 170, 360, 240, 14, '#0D0E10', '#20232B');
+      drawBadge("ELO RANKED", 400, 186, '#1A1D25', '#20232B', '#34d399');
+      ctx.fillStyle = '#E3E5ED';
+      ctx.font = '700 14px "Space Grotesk"';
+      ctx.fillText("🏆 Global Rating", 164, 202);
+      ctx.font = '800 44px "Space Grotesk"';
+      ctx.fillText("1,520", 164, 265);
+      ctx.font = '600 14px "JetBrains Mono"';
+      ctx.fillStyle = '#34d399';
+      ctx.fillText("▲ +32 pts this week", 300, 255);
+      // Curve
+      ctx.strokeStyle = '#343640';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(164, 370);
+      ctx.bezierCurveTo(240, 350, 320, 310, 460, 320);
+      ctx.stroke();
+
+      // 2. Battle Dispatch
+      drawCard(140, 435, 360, 240, 14, '#0D0E10', '#20232B');
+      drawBadge("ARENA RADAR", 380, 451, '#1A1D25', '#20232B', '#a855f7');
+      ctx.fillStyle = '#E3E5ED';
+      ctx.font = '700 14px "Space Grotesk"';
+      ctx.fillText("📢 Battle Dispatch", 164, 467);
+      ctx.font = '700 16px "Space Grotesk"';
+      ctx.fillText("ACTIVE RADAR // 8 Open Duels", 164, 520);
+      ctx.font = '400 13px "Inter"';
+      ctx.fillStyle = '#AEB2C0';
+      ctx.fillText("Instant matchmaking online. Match rating range ±50.", 164, 550);
+      drawBadge("+ Host Room", 164, 600, '#E3E5ED', '#E3E5ED', '#070809');
+      drawBadge("Find Match →", 270, 600, '#1A1D25', '#343640', '#E3E5ED');
+
+      // Right Cockpit Cards
+      // 3. Live Arena
+      drawCard(1420, 170, 360, 240, 14, '#0D0E10', '#20232B');
+      drawBadge("● LIVE", 1690, 186, '#1A1D25', '#20232B', '#34d399');
+      ctx.fillStyle = '#E3E5ED';
+      ctx.font = '700 14px "Space Grotesk"';
+      ctx.fillText("</> Live Arena", 1444, 202);
+      ctx.font = '400 13px "Inter"';
+      ctx.fillStyle = '#AEB2C0';
+      ctx.fillText("Real-time coding battles (1v1)", 1444, 230);
+      drawBadge("Join Match →", 1444, 340, '#E3E5ED', '#E3E5ED', '#070809', '700 14px "Space Grotesk"');
+
+      // 4. Rewards Vault
+      drawCard(1420, 435, 360, 240, 14, '#0D0E10', '#20232B');
+      drawBadge("DYNAMIC HALOS", 1660, 451, '#1A1D25', '#20232B', '#f59e0b');
+      ctx.fillStyle = '#E3E5ED';
+      ctx.font = '700 14px "Space Grotesk"';
+      ctx.fillText("🛡️ Rewards Vault", 1444, 467);
+      ctx.font = '700 15px "Space Grotesk"';
+      ctx.fillText("PRESTIGE FRAMES VAULT", 1444, 515);
+      ctx.font = '400 12px "Inter"';
+      ctx.fillStyle = '#AEB2C0';
+      ctx.fillText("Equip animated halos across Neon Edge & Quantum Surge.", 1444, 545);
+      drawBadge("Explore Frames →", 1444, 600, '#1A1D25', '#343640', '#E3E5ED');
+    }
+
+    // =========================================================================
+    // SCENE 3: ENTERING A BATTLE (00:45 - 01:15)
+    // =========================================================================
+    function drawScene3(t) {
+      const relT = t - 45.0;
+      
+      // Dual Split-Screen Browser Windows
+      const w = 820, h = 820, y = 140;
+      const leftX = 110, rightX = 990;
+
+      // Window 1: Host (Krish)
+      drawCard(leftX, y, w, h, 14, '#0D0E10', '#343640');
+      drawCard(leftX, y, w, 44, 14, '#111317', '#20232B');
+      drawBadge("HOST SESSION // KRISH GARG", leftX + 16, y + 10, '#1A1D25', '#20232B', '#c084fc');
+      ctx.fillStyle = '#AEB2C0';
+      ctx.font = '12px "JetBrains Mono"';
+      ctx.fillText("algo.mitsgwalior.in/battle/host", leftX + 240, y + 27);
+
+      // Host Room Setup Modal in Window 1
+      drawCard(leftX + 60, y + 90, 700, 660, 14, '#070809', '#343640');
+      ctx.fillStyle = '#E3E5ED';
+      ctx.font = '800 24px "Space Grotesk"';
+      ctx.fillText("CREATE CUSTOM 1V1 BATTLE ROOM", leftX + 90, y + 150);
+
+      ctx.font = '600 13px "JetBrains Mono"';
+      ctx.fillStyle = '#AEB2C0';
+      ctx.fillText("ROOM CODE GENERATED:", leftX + 90, y + 210);
+      drawCard(leftX + 90, y + 230, 620, 60, 8, '#111317', '#a855f7');
+      ctx.fillStyle = '#c084fc';
+      ctx.font = '800 28px "JetBrains Mono"';
+      ctx.fillText("AF-7821", leftX + 340, y + 272);
+
+      ctx.fillStyle = '#AEB2C0';
+      ctx.font = '600 13px "JetBrains Mono"';
+      ctx.fillText("MATCH CONFIGURATION:", leftX + 90, y + 340);
+      drawBadge("MODE: 1V1 DUEL", leftX + 90, y + 360, '#1A1D25', '#20232B', '#E3E5ED');
+      drawBadge("TIME LIMIT: 15 MINS", leftX + 240, y + 360, '#1A1D25', '#20232B', '#E3E5ED');
+      drawBadge("DIFFICULTY: MEDIUM", leftX + 410, y + 360, '#1A1D25', '#20232B', '#f59e0b');
+
+      ctx.fillText("PLAYER LOBBY STATUS:", leftX + 90, y + 450);
+      drawCard(leftX + 90, y + 470, 620, 70, 8, '#111317', '#20232B');
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '700 16px "Space Grotesk"';
+      ctx.fillText("Krish Garg (You)", leftX + 114, y + 512);
+      drawBadge("● READY", leftX + 570, y + 494, '#1A1D25', '#34d399', '#34d399');
+
+      drawCard(leftX + 90, y + 560, 620, 70, 8, '#111317', '#20232B');
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '700 16px "Space Grotesk"';
+      ctx.fillText("Vivek Sharma (Challenger)", leftX + 114, y + 602);
+      const challengerReady = relT > 10.0;
+      drawBadge(challengerReady ? "● READY" : "CONNECTING...", leftX + 530, y + 584, '#1A1D25', challengerReady ? '#34d399' : '#f59e0b', challengerReady ? '#34d399' : '#f59e0b');
+
+      // Window 2: Joiner (Vivek)
+      drawCard(rightX, y, w, h, 14, '#0D0E10', '#343640');
+      drawCard(rightX, y, w, 44, 14, '#111317', '#20232B');
+      drawBadge("OPPONENT SESSION // VIVEK SHARMA", rightX + 16, y + 10, '#1A1D25', '#20232B', '#00f5ff');
+      ctx.fillStyle = '#AEB2C0';
+      ctx.font = '12px "JetBrains Mono"';
+      ctx.fillText("algo.mitsgwalior.in/battle/join", rightX + 260, y + 27);
+
+      // Join Modal in Window 2
+      drawCard(rightX + 60, y + 90, 700, 660, 14, '#070809', '#343640');
+      ctx.fillStyle = '#E3E5ED';
+      ctx.font = '800 24px "Space Grotesk"';
+      ctx.fillText("JOIN BATTLE ARENA", rightX + 90, y + 150);
+
+      ctx.font = '600 13px "JetBrains Mono"';
+      ctx.fillStyle = '#AEB2C0';
+      ctx.fillText("ENTER 6-DIGIT ROOM CODE:", rightX + 90, y + 210);
+      drawCard(rightX + 90, y + 230, 620, 60, 8, '#111317', '#00f5ff');
+      ctx.fillStyle = '#00f5ff';
+      ctx.font = '800 28px "JetBrains Mono"';
+      ctx.fillText("AF-7821", rightX + 340, y + 272);
+
+      drawCard(rightX + 90, y + 330, 620, 54, 8, '#E3E5ED', '#E3E5ED');
+      ctx.fillStyle = '#070809';
+      ctx.font = '700 16px "Space Grotesk"';
+      ctx.textAlign = 'center';
+      ctx.fillText("JOIN DUEL ROOM", rightX + 400, y + 364);
+      ctx.textAlign = 'left';
+
+      // Socket handshake banner
+      drawCard(rightX + 90, y + 430, 620, 200, 8, '#111317', '#20232B');
+      ctx.fillStyle = '#AEB2C0';
+      ctx.font = '13px "JetBrains Mono"';
+      ctx.fillText("[SOCKET.IO] CONNECTED TO /arena-nsp-7821", rightX + 114, y + 470);
+      ctx.fillText("[REDIS SBMM] PAIRED: ELO 1520 vs ELO 1495", rightX + 114, y + 505);
+      ctx.fillStyle = '#34d399';
+      ctx.fillText("[MATCHMAKER] STATE: LOCKED. PREPARING ARENA...", rightX + 114, y + 540);
+
+      // Countdown overlay if relT >= 25s
+      if (relT >= 25.0) {
+        const remainingCountdown = Math.max(1, Math.ceil(30.0 - relT));
+        ctx.fillStyle = 'rgba(5, 6, 7, 0.85)';
+        ctx.fillRect(0, 0, 1920, 1080);
+
+        ctx.fillStyle = '#a855f7';
+        ctx.font = '900 160px "Space Grotesk"';
+        ctx.textAlign = 'center';
+        ctx.fillText(remainingCountdown === 1 ? "BATTLE!" : remainingCountdown.toString(), 960, 560);
+        ctx.font = '700 24px "JetBrains Mono"';
+        ctx.fillStyle = '#E3E5ED';
+        ctx.fillText("STARTING REAL-TIME DSA CLASH...", 960, 640);
+        ctx.textAlign = 'left';
+      }
+    }
+
+    // =========================================================================
+    // SCENE 4: INSIDE THE CODING ARENA (01:15 - 02:00)
+    // =========================================================================
+    function drawScene4(t) {
+      const relT = t - 75.0;
+
+      // Arena Header Bar
+      drawCard(100, 40, 1720, 64, 12, '#0D0E10', '#343640');
+      drawBadge("ARENA: #AF-7821", 124, 56, '#1A1D25', '#20232B', '#c084fc');
+      ctx.fillStyle = '#E3E5ED';
+      ctx.font = '700 16px "Space Grotesk"';
+      ctx.fillText("Two Sum II - Input Array Is Sorted", 300, 78);
+      drawBadge("TIME REMAINING: 14:12", 1360, 56, '#1A1D25', '#f59e0b', '#f59e0b');
+      drawBadge("SUBMIT MATCH", 1600, 56, '#E3E5ED', '#E3E5ED', '#070809', '700 12px "Space Grotesk"');
+
+      // Left Drawer: Problem Specification
+      const drawerW = 680, h = 860, y = 120;
+      drawCard(100, y, drawerW, h, 14, '#0D0E10', '#20232B');
+      drawBadge("DIFFICULTY: MEDIUM", 124, y + 24, '#1A1D25', '#f59e0b', '#f59e0b');
+      drawBadge("TAGS: ARRAYS • TWO POINTERS", 300, y + 24, '#1A1D25', '#20232B', '#AEB2C0');
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '800 22px "Space Grotesk"';
+      ctx.fillText("Problem Statement", 124, y + 90);
+
+      ctx.font = '400 14px "Inter"';
+      ctx.fillStyle = '#AEB2C0';
+      const descLines = [
+        "Given a 1-indexed array of integers numbers that is already sorted in",
+        "non-decreasing order, find two numbers such that they add up to a specific",
+        "target number. Let these two numbers be numbers[index1] and numbers[index2].",
+        "",
+        "Return the indices of the two numbers, index1 and index2, added by one as",
+        "an integer array [index1, index2] of length 2.",
+        "",
+        "Constraints:",
+        "• 2 <= numbers.length <= 3 * 10^4",
+        "• -1000 <= numbers[i] <= 1000",
+        "• numbers is sorted in non-decreasing order.",
+        "• Exactly one valid solution exists. No extra memory: O(1) space."
+      ];
+      descLines.forEach((l, i) => {
+        ctx.fillText(l, 124, y + 130 + i * 26);
+      });
+
+      // Right: Monaco Editor
+      const editorX = 810, editorW = 1010;
+      drawCard(editorX, y, editorW, h, 14, '#070809', '#343640');
+      drawCard(editorX, y, editorW, 44, 14, '#111317', '#20232B');
+      drawBadge("C++20 (GCC 13)", editorX + 16, y + 10, '#1A1D25', '#20232B', '#c084fc');
+      drawBadge("SANDBOX: PISTON", editorX + 160, y + 10, '#1A1D25', '#20232B', '#34d399');
+
+      // Live Code Typing in Editor
+      const codeLines = [
+        "#include <vector>",
+        "using namespace std;",
+        "",
+        "class Solution {",
+        "public:",
+        "    vector<int> twoSum(vector<int>& numbers, int target) {",
+        "        int left = 0;",
+        "        int right = numbers.size() - 1;",
+        "        ",
+        "        while (left < right) {",
+        "            int currentSum = numbers[left] + numbers[right];",
+        "            if (currentSum == target) {",
+        "                return {left + 1, right + 1}; // 1-indexed",
+        "            } else if (currentSum < target) {",
+        "                left++;",
+        "            } else {",
+        "                right--;",
+        "            }",
+        "        }",
+        "        return {};",
+        "    }",
+        "};"
+      ];
+
+      ctx.font = '14px "JetBrains Mono"';
+      const linesVisible = Math.min(codeLines.length, Math.floor(relT * 0.9));
+      for (let i = 0; i < linesVisible; i++) {
+        // Line number
+        ctx.fillStyle = '#5D606C';
+        ctx.fillText((i + 1).toString().padStart(2, ' '), editorX + 24, y + 80 + i * 26);
+        // Syntax highlighting
+        ctx.fillStyle = codeLines[i].includes('class') || codeLines[i].includes('int') || codeLines[i].includes('return') ? '#c084fc' : (codeLines[i].includes('//') ? '#7F808F' : '#E3E5ED');
+        ctx.fillText(codeLines[i], editorX + 64, y + 80 + i * 26);
+      }
+
+      // Test Output Console at bottom
+      drawCard(editorX + 16, y + 680, editorW - 32, 160, 8, '#0D0E10', '#20232B');
+      drawBadge("TEST EXECUTION // PISTON ENGINE", editorX + 32, y + 696, '#1A1D25', '#34d399', '#34d399');
+      ctx.fillStyle = '#AEB2C0';
+      ctx.font = '12px "JetBrains Mono"';
+      ctx.fillText("Output: [1, 2] | Expected: [1, 2] | Runtime: 12ms | Memory: 8.2MB", editorX + 32, y + 745);
+      ctx.fillStyle = '#34d399';
+      ctx.fillText("✔ 3/3 Built-in Test Cases Passed. Ready for final contest submission.", editorX + 32, y + 775);
+
+      // Animated Technical Callouts
+      if (relT > 20.0) {
+        drawBadge("⚡ REAL-TIME COMMUNICATION (SOCKET.IO)", 850, 480, '#0D0E10', '#a855f7', '#c084fc', '700 14px "Space Grotesk"');
+        drawBadge("⚙️ CODE EXECUTION (PISTON SANDBOX)", 850, 540, '#0D0E10', '#00f5ff', '#00f5ff', '700 14px "Space Grotesk"');
+        drawBadge("🔄 LIVE MATCH SYNCHRONIZATION", 850, 600, '#0D0E10', '#34d399', '#34d399', '700 14px "Space Grotesk"');
+      }
+    }
+
+    // =========================================================================
+    // SCENE 5: THE LIVE BATTLE (02:00 - 02:35)
+    // =========================================================================
+    function drawScene5(t) {
+      const relT = t - 120.0;
+      
+      // Live duel split screen (Player 1 Krish vs Player 2 Vivek)
+      const w = 840, h = 840, y = 140;
+      const leftX = 90, rightX = 990;
+
+      // Central Countdown Timer
+      const remainingSeconds = Math.max(0, Math.floor(180 - relT * 3));
+      const mins = Math.floor(remainingSeconds / 60).toString().padStart(2, '0');
+      const secs = (remainingSeconds % 60).toString().padStart(2, '0');
+
+      drawCard(860, 40, 200, 60, 30, '#0D0E10', '#f59e0b');
+      ctx.fillStyle = '#f59e0b';
+      ctx.font = '800 24px "JetBrains Mono"';
+      ctx.textAlign = 'center';
+      ctx.fillText(`⏱ ${mins}:${secs}`, 960, 78);
+      ctx.textAlign = 'left';
+
+      // Player 1 Card (Krish)
+      drawCard(leftX, y, w, h, 14, '#0D0E10', '#343640');
+      drawBadge("YOU // KRISH GARG", leftX + 24, y + 24, '#1A1D25', '#20232B', '#c084fc');
+      drawBadge("CODE STATUS: 100% COMPLETE", leftX + 570, y + 24, '#1A1D25', '#34d399', '#34d399');
+
+      drawCard(leftX + 24, y + 70, w - 48, 560, 8, '#070809', '#20232B');
+      ctx.fillStyle = '#c084fc';
+      ctx.font = '13px "JetBrains Mono"';
+      ctx.fillText("// Two Pointers Optimal Execution [Passing All Suites]", leftX + 44, y + 110);
+      ctx.fillStyle = '#E3E5ED';
+      ctx.fillText("while (left < right) {", leftX + 44, y + 145);
+      ctx.fillText("    int sum = numbers[left] + numbers[right];", leftX + 74, y + 180);
+      ctx.fillText("    if (sum == target) return {left + 1, right + 1};", leftX + 74, y + 215);
+      ctx.fillText("    else if (sum < target) left++;", leftX + 74, y + 250);
+      ctx.fillText("    else right--;", leftX + 74, y + 285);
+      ctx.fillText("}", leftX + 44, y + 320);
+
+      // Submission button in P1
+      drawCard(leftX + 24, y + 660, w - 48, 64, 8, '#E3E5ED', '#E3E5ED');
+      ctx.fillStyle = '#070809';
+      ctx.font = '800 18px "Space Grotesk"';
+      ctx.textAlign = 'center';
+      ctx.fillText(relT > 25.0 ? "SUBMITTED! EVALUATING 45/45 TESTS..." : "SUBMIT FINAL SOLUTION", leftX + w / 2 - 24, y + 700);
+      ctx.textAlign = 'left';
+
+      // Player 2 Card (Vivek)
+      drawCard(rightX, y, w, h, 14, '#0D0E10', '#343640');
+      drawBadge("OPPONENT // VIVEK SHARMA", rightX + 24, y + 24, '#1A1D25', '#20232B', '#00f5ff');
+      drawBadge("PROGRESS: 67%", rightX + 680, y + 24, '#1A1D25', '#f59e0b', '#f59e0b');
+
+      drawCard(rightX + 24, y + 70, w - 48, 560, 8, '#070809', '#20232B');
+      ctx.fillStyle = '#00f5ff';
+      ctx.font = '13px "JetBrains Mono"';
+      ctx.fillText("// Hash Map Approach [Debugging Edge Cases]", rightX + 44, y + 110);
+      ctx.fillStyle = '#AEB2C0';
+      ctx.fillText("seen = {}", rightX + 44, y + 145);
+      ctx.fillText("for i, val in enumerate(numbers):", rightX + 44, y + 180);
+      ctx.fillText("    diff = target - val", rightX + 74, y + 215);
+      ctx.fillText("    if diff in seen:", rightX + 74, y + 250);
+      ctx.fillText("        return [seen[diff] + 1, i + 1]", rightX + 104, y + 285);
+      ctx.fillText("    seen[val] = i", rightX + 74, y + 320);
+
+      // Telemetry in P2
+      drawCard(rightX + 24, y + 660, w - 48, 64, 8, '#111317', '#20232B');
+      ctx.fillStyle = '#f59e0b';
+      ctx.font = '600 14px "JetBrains Mono"';
+      ctx.fillText("● OPPONENT RUNNING RE-COMPILE // 2 TEST SUITES REMAINING...", rightX + 44, y + 700);
+    }
+
+    // =========================================================================
+    // SCENE 6: RESULTS, RATINGS AND REWARDS (02:35 - 03:05)
+    // =========================================================================
+    function drawScene6(t) {
+      const relT = t - 155.0;
+
+      // Golden Victory Banner
+      drawCard(460, 100, 1000, 220, 16, '#0D0E10', '#f59e0b');
+      ctx.fillStyle = '#f59e0b';
+      ctx.font = '900 56px "Space Grotesk"';
+      ctx.textAlign = 'center';
+      ctx.fillText("🏆 VICTORY!", 960, 175);
+
+      ctx.fillStyle = '#E3E5ED';
+      ctx.font = '700 22px "Space Grotesk"';
+      ctx.fillText("MATCH WON BY KRISH GARG IN 2M 52S", 960, 225);
+
+      ctx.font = '600 14px "JetBrains Mono"';
+      ctx.fillStyle = '#34d399';
+      ctx.fillText("45/45 TEST CASES PASSED • 8MS RUNTIME • 8.1MB MEMORY", 960, 265);
+      ctx.textAlign = 'left';
+
+      // 1. Rating Progression Card
+      drawCard(220, 360, 700, 580, 14, '#0D0E10', '#343640');
+      drawBadge("COMPETITIVE ELO PROGRESSION", 244, 384, '#1A1D25', '#20232B', '#c084fc');
+
+      ctx.fillStyle = '#E3E5ED';
+      ctx.font = '800 32px "Space Grotesk"';
+      ctx.fillText("RATING ADJUSTMENT", 244, 450);
+
+      ctx.font = '900 64px "Space Grotesk"';
+      ctx.fillStyle = '#34d399';
+      ctx.fillText("+32 ELO", 244, 530);
+
+      ctx.font = '600 18px "JetBrains Mono"';
+      ctx.fillStyle = '#E3E5ED';
+      ctx.fillText("PREVIOUS: 1,480 ELO  ➔  NEW: 1,512 ELO", 244, 580);
+      drawBadge("TIER UPGRADE: DIAMOND ARENA I", 244, 615, '#1A1D25', '#34d399', '#34d399');
+
+      // 2. Rewards Vault Showcase
+      drawCard(1000, 360, 700, 580, 14, '#0D0E10', '#343640');
+      drawBadge("REWARDS VAULT // UNLOCKED", 1024, 384, '#1A1D25', '#20232B', '#f59e0b');
+
+      ctx.fillStyle = '#E3E5ED';
+      ctx.font = '800 32px "Space Grotesk"';
+      ctx.fillText("+150 ARENA POINTS EARNED", 1024, 450);
+
+      if (framesImg.complete) {
+        ctx.drawImage(framesImg, 1024, 480, 650, 240);
+      }
+      ctx.font = '600 14px "JetBrains Mono"';
+      ctx.fillStyle = '#AEB2C0';
+      ctx.fillText("NEW PRESTIGE FRAME UNLOCKED: QUANTUM SURGE (1,000 PTS)", 1024, 760);
+      drawBadge("EQUIP AVATAR HALO →", 1024, 800, '#E3E5ED', '#E3E5ED', '#070809', '700 13px "Space Grotesk"');
+    }
+
+    // =========================================================================
+    // SCENE 7: COMPLETE PLATFORM RECAP (03:05 - 03:35)
+    // =========================================================================
+    function drawScene7(t) {
+      const relT = t - 185.0;
+
+      ctx.fillStyle = '#E3E5ED';
+      ctx.font = '900 42px "Space Grotesk"';
+      ctx.textAlign = 'center';
+      ctx.fillText("COMPLETE PLATFORM ARCHITECTURE & FEATURES", 960, 120);
+      ctx.font = '500 16px "JetBrains Mono"';
+      ctx.fillStyle = '#AEB2C0';
+      ctx.fillText("ENGINEERED FOR REAL-TIME COMPETITIVE PROGRAMMING", 960, 160);
+      ctx.textAlign = 'left';
+
+      // 9 Pillar Grid
+      const pillars = [
+        { title: "1. COCKPIT HOMEPAGE", desc: "Live global ratings & open duel telemetry" },
+        { title: "2. DISTRIBUTED MATCHMAKING", desc: "Sub-20ms Redis sorted set queue pairing" },
+        { title: "3. DUAL ROOM HANDSHAKE", desc: "Custom private rooms with PIN verification" },
+        { title: "4. INTEGRATED MONACO IDE", desc: "15+ languages with syntax completion" },
+        { title: "5. PISTON SANDBOX ENGINE", desc: "Sub-second code execution & memory tests" },
+        { title: "6. ANTI-CHEAT TELEMETRY", desc: "Window blur & paste detection auto-forfeit" },
+        { title: "7. INSTANT ELO SETTLEMENT", desc: "Transparent ratings mathematically tuned" },
+        { title: "8. REWARDS & HALOS", desc: "Dynamic prestige frames & skin catalog" },
+        { title: "9. MITS GWALIOR MENTORSHIP", desc: "Built with faculty guidance & open source" }
+      ];
+
+      const startX = 140, startY = 220, cardW = 510, cardH = 210;
+      pillars.forEach((p, idx) => {
+        const row = Math.floor(idx / 3);
+        const col = idx % 3;
+        const x = startX + col * (cardW + 45);
+        const y = startY + row * (cardH + 35);
+
+        drawCard(x, y, cardW, cardH, 12, '#0D0E10', '#20232B');
+        drawBadge("PILLAR 0" + (idx + 1), x + 20, y + 20, '#1A1D25', '#20232B', '#c084fc');
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '800 18px "Space Grotesk"';
+        ctx.fillText(p.title, x + 20, y + 80);
+        ctx.fillStyle = '#AEB2C0';
+        ctx.font = '400 14px "Inter"';
+        ctx.fillText(p.desc, x + 20, y + 115);
+      });
+    }
+
+    // =========================================================================
+    // SCENE 8: FINAL BRAND REVEAL (03:35 - 03:50)
+    // =========================================================================
+    function drawScene8(t) {
+      const relT = t - 215.0;
+
+      // Volumetric aura
+      const grad = ctx.createRadialGradient(960, 480, 50, 960, 480, 600);
+      grad.addColorStop(0, 'rgba(168, 85, 247, 0.25)');
+      grad.addColorStop(1, 'transparent');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 1920, 1080);
+
+      // Centered Logo & 3D Stage
+      if (algoLogoImg.complete) {
+        ctx.drawImage(algoLogoImg, 960 - 75, 180, 150, 150);
+      }
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '900 72px "Space Grotesk"';
+      ctx.textAlign = 'center';
+      ctx.fillText("ALGOFIGHT", 960, 400);
+
+      ctx.font = '800 28px "Space Grotesk"';
+      ctx.fillStyle = '#E3E5ED';
+      ctx.fillText("TWO PLAYERS. ONE BATTLE. ONE WINNER.", 960, 465);
+
+      drawBadge("OFFICIAL ARENA URL", 960 - 85, 505, '#1A1D25', '#a855f7', '#c084fc', '700 14px "JetBrains Mono"');
+
+      ctx.font = '700 26px "JetBrains Mono"';
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText("https://algo.mitsgwalior.in/", 960, 575);
+
+      ctx.font = '500 20px "Space Grotesk"';
+      ctx.fillStyle = '#AEB2C0';
+      ctx.fillText("Code Smart. Fight Hard. Climb the Ranks.", 960, 630);
+
+      // Institution Endorsement Footer
+      if (mitsLogoImg.complete) {
+        ctx.drawImage(mitsLogoImg, 860, 720, 60, 60);
+      }
+      if (sdcLogoImg.complete) {
+        ctx.drawImage(sdcLogoImg, 1000, 720, 60, 60);
+      }
+      ctx.font = '600 14px "Inter"';
+      ctx.fillStyle = '#7F808F';
+      ctx.fillText("MADHAV INSTITUTE OF TECHNOLOGY & SCIENCE, GWALIOR", 960, 820);
+      ctx.textAlign = 'left';
+    }
+
+    // =========================================================================
+    // MAIN MASTER RENDER FUNCTION
+    // =========================================================================
+    function render(t) {
+      ctx.clearRect(0, 0, 1920, 1080);
+
+      // 1. Background Grid
+      drawObsidianGrid(t);
+
+      // 2. Scene Selector
+      if (t < 20.0) {
+        drawScene1(t);
+      } else if (t < 45.0) {
+        drawScene2(t);
+      } else if (t < 75.0) {
+        drawScene3(t);
+      } else if (t < 120.0) {
+        drawScene4(t);
+      } else if (t < 155.0) {
+        drawScene5(t);
+      } else if (t < 185.0) {
+        drawScene6(t);
+      } else if (t < 215.0) {
+        drawScene7(t);
+      } else {
+        drawScene8(t);
+      }
+
+      // 3. Audio & Voiceover Handlers
+      handleProceduralAudio(t);
+      handleVoiceover(t);
+    }
+
+    // =========================================================================
+    // PLAYBACK & INTERACTION LOOP
+    // =========================================================================
+    function formatTime(s) {
+      const mins = Math.floor(s / 60).toString().padStart(2, '0');
+      const secs = (s % 60).toFixed(1).padStart(4, '0');
+      return `${mins}:${secs}`;
+    }
+
+    function tick(timestamp) {
+      if (!lastTimestamp) lastTimestamp = timestamp;
+      const delta = (timestamp - lastTimestamp) / 1000;
+      lastTimestamp = timestamp;
+
+      if (isPlaying) {
+        currentTime += delta * playbackSpeed;
+        if (currentTime >= DURATION) {
+          currentTime = DURATION;
+          isPlaying = false;
+          playBtn.textContent = '▶ Play';
+          if (isRecording) stopRecording();
+        }
+      }
+
+      timeCode.textContent = `${formatTime(currentTime)} / ${formatTime(DURATION)}`;
+      trackFill.style.width = `${(currentTime / DURATION) * 100}%`;
+
+      render(currentTime);
+
+      requestAnimationFrame(tick);
+    }
+
+    requestAnimationFrame(tick);
+
+    // Event Listeners
+    playBtn.addEventListener('click', () => {
+      initAudio();
+      isPlaying = !isPlaying;
+      playBtn.textContent = isPlaying ? '⏸ Pause' : '▶ Play';
+      if (!isPlaying && window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+    });
+
+    replayBtn.addEventListener('click', () => {
+      initAudio();
+      currentTime = 0.0;
+      isPlaying = true;
+      currentSpeakingSceneId = -1;
+      playBtn.textContent = '⏸ Pause';
+    });
+
+    soundBtn.addEventListener('click', () => {
+      audioEnabled = !audioEnabled;
+      soundBtn.textContent = audioEnabled ? '🔊 SFX: On' : '🔇 SFX: Off';
+    });
+
+    voBtn.addEventListener('click', () => {
+      voEnabled = !voEnabled;
+      voBtn.textContent = voEnabled ? '🎙️ Voiceover: On' : '🔇 Voiceover: Off';
+      if (!voEnabled && window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+    });
+
+    speedBtn.addEventListener('click', () => {
+      if (playbackSpeed === 1.0) playbackSpeed = 2.0;
+      else if (playbackSpeed === 2.0) playbackSpeed = 4.0;
+      else playbackSpeed = 1.0;
+      speedBtn.textContent = `${playbackSpeed.toFixed(1)}x`;
+    });
+
+    trackWrapper.addEventListener('click', (e) => {
+      const rect = trackWrapper.getBoundingClientRect();
+      const pos = (e.clientX - rect.left) / rect.width;
+      currentTime = clamp(pos * DURATION, 0, DURATION);
+      currentSpeakingSceneId = -1;
+      if (window.speechSynthesis) window.speechSynthesis.cancel();
+    });
+
+    scenePills.forEach(pill => {
+      pill.addEventListener('click', () => {
+        const seekTime = parseFloat(pill.dataset.seek);
+        currentTime = seekTime;
+        currentSpeakingSceneId = -1;
+        if (window.speechSynthesis) window.speechSynthesis.cancel();
+      });
+    });
+
+    posterBtn.addEventListener('click', () => {
+      const a = document.createElement('a');
+      a.download = `algofight-poster-${Math.floor(currentTime)}s.jpg`;
+      a.href = canvas.toDataURL('image/jpeg', 0.95);
+      a.click();
+    });
+
+    // 60FPS Video Export Engine
+    exportBtn.addEventListener('click', () => {
+      if (isRecording) {
+        stopRecording();
+      } else {
+        startRecording();
+      }
+    });
+
+    function startRecording() {
+      initAudio();
+      currentTime = 0.0;
+      isPlaying = true;
+      isRecording = true;
+      currentSpeakingSceneId = -1;
+      recordedChunks = [];
+      playBtn.textContent = '⏸ Pause';
+      exportBtn.textContent = '⏹ Stop Export';
+      recTag.style.display = 'inline-flex';
+
+      const canvasStream = canvas.captureStream(60);
+      if (synthDestination && synthDestination.stream.getAudioTracks().length > 0) {
+        canvasStream.addTrack(synthDestination.stream.getAudioTracks()[0]);
+      }
+
+      const options = { mimeType: 'video/webm;codecs=vp9' };
+      try {
+        mediaRecorder = new MediaRecorder(canvasStream, options);
+      } catch (e) {
+        mediaRecorder = new MediaRecorder(canvasStream);
+      }
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) recordedChunks.push(e.data);
+      };
+
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(recordedChunks, { type: 'video/webm' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'algofight-master-demo.webm';
+        a.click();
+        URL.revokeObjectURL(url);
+        recTag.style.display = 'none';
+        exportBtn.textContent = '🎥 Export Video (.webm)';
+        isRecording = false;
+      };
+
+      mediaRecorder.start();
+    }
+
+    function stopRecording() {
+      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        mediaRecorder.stop();
+      }
+    }
+  </script>
+</body>
+</html>

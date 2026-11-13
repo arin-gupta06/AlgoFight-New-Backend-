@@ -110,61 +110,64 @@
   --text-dim: #7DD3FC;
 }
 
-/* ===== REGULAR (ICONIC MULTI-ACCENT ARENA) THEME (DEFAULT) ===== */
+/* ===== STEALTH OBSIDIAN THEME (DEFAULT / UNSLOP) ===== */
 :root,
+:root[data-theme="custom"],
 :root[data-theme="regular"] {
   /* BACKGROUND */
-  --bg-primary: #050811;
-  --bg-secondary: #0a0f1d;
-  --bg-deep: #020408;
+  --bg-primary: #070809;
+  --bg-secondary: #0D0E10;
+  --bg-deep: #050607;
 
   /* SURFACES */
-  --surface-primary: #111827;
-  --surface-elevated: #1e293b;
-  --surface-highlight: #334155;
+  --surface-primary: #1A1D25;
+  --surface-elevated: #23242E;
+  --surface-highlight: #2B2F3B;
 
   /* SECONDARY */
-  --secondary: #64748b;
-  --secondary-muted: #94a3b8;
+  --secondary: #434453;
+  --secondary-muted: #7F808F;
 
   /* BORDERS */
-  --border-primary: rgba(0, 229, 255, 0.35);
-  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-primary: #343640;
+  --border-subtle: #20232B;
 
   /* TEXT */
-  --text-primary: #f8fafc;
-  --text-secondary: #cbd5e1;
-  --text-muted: #94a3b8;
-  --text-disabled: #64748b;
+  --text-primary: #E3E5ED;
+  --text-secondary: #AEB2C0;
+  --text-muted: #7F808F;
+  --text-disabled: #5D606C;
 
   /* CTA */
-  --cta-primary: #00e5ff;
-  --cta-text: #020617;
-  --cta-hover: #38bdf8;
+  --cta-primary: #E3E5ED;
+  --cta-text: #0A0B0D;
+  --cta-hover: #F2F3F7;
+  --cta-gradient: linear-gradient(90deg, #E3E5ED 0%, #AEB2C0 100%);
+  --cta-shadow: rgba(0, 0, 0, 0.4);
 
   /* STATUS */
-  --success: #22c55e;
-  --warning: #fbbf24;
-  --danger: #ef4444;
-  --info: #00e5ff;
+  --success: #69D391;
+  --warning: #F0C674;
+  --danger: #EF7777;
+  --info: #8FA9D9;
 
   /* === COMPATIBILITY TOKENS === */
-  --hud-cyan: #00e5ff;
-  --hud-cyan-dim: #00b4d8;
-  --hud-blue: #3b82f6;
-  --hud-purple: #8b5cf6;
-  --hud-white: #ffffff;
-  --bg-void: #020408;
-  --bg-space: #050811;
-  --bg-panel: rgba(10, 15, 29, 0.85);
-  --bg-panel-solid: #0a0f1d;
-  --bg-card: rgba(10, 14, 23, 0.78);
-  --bg-card-hover: rgba(17, 24, 39, 0.9);
-  --border-dim: rgba(255, 255, 255, 0.08);
-  --border-default: rgba(0, 229, 255, 0.28);
-  --border-bright: #00e5ff;
-  --border-active: #00e5ff;
-  --text-dim: #94a3b8;
+  --hud-cyan: var(--text-primary);
+  --hud-cyan-dim: var(--text-secondary);
+  --hud-blue: var(--info);
+  --hud-purple: var(--surface-highlight);
+  --hud-white: var(--text-primary);
+  --bg-void: var(--bg-deep);
+  --bg-space: var(--bg-primary);
+  --bg-panel: var(--bg-secondary);
+  --bg-panel-solid: var(--bg-secondary);
+  --bg-card: var(--bg-secondary);
+  --bg-card-hover: var(--surface-primary);
+  --border-dim: var(--border-subtle);
+  --border-default: var(--border-primary);
+  --border-bright: var(--text-muted);
+  --border-active: var(--text-primary);
+  --text-dim: var(--text-secondary);
 }
 
 /* ===== MATRIX EMERALD THEME ===== */
@@ -4460,17 +4463,17 @@ p {
 
 /* 1. Theme-Adaptive Typography & Kicker Highlights */
 .word-glow-cyan {
-  color: var(--cta-primary) !important;
-  text-shadow: 0 0 16px var(--cta-shadow) !important;
+  color: var(--text-primary) !important;
+  text-shadow: none !important;
 }
 
 .kicker-slash,
 .kicker-cross {
-  color: var(--cta-primary) !important;
+  color: var(--text-muted) !important;
 }
 
 .text-cyan {
-  color: var(--cta-primary) !important;
+  color: var(--text-primary) !important;
 }
 
 .text-cyan-dim {
@@ -4478,20 +4481,22 @@ p {
 }
 
 .text-cyan-stat {
-  color: var(--cta-primary) !important;
-  text-shadow: 0 0 16px var(--cta-shadow) !important;
+  color: var(--text-primary) !important;
+  text-shadow: none !important;
 }
 
 .text-cyan-gradient {
-  background: var(--cta-gradient) !important;
-  -webkit-background-clip: text !important;
-  background-clip: text !important;
-  -webkit-text-fill-color: transparent !important;
+  background: none !important;
+  -webkit-background-clip: initial !important;
+  background-clip: initial !important;
+  -webkit-text-fill-color: initial !important;
+  color: var(--text-primary) !important;
+  text-shadow: none !important;
 }
 
 .kicker-word.word-glow-cyan {
-  color: var(--cta-primary) !important;
-  text-shadow: 0 0 12px var(--cta-shadow) !important;
+  color: var(--text-primary) !important;
+  text-shadow: none !important;
 }
 
 /* 2. Theme-Adaptive Buttons */
@@ -4504,37 +4509,37 @@ p {
   justify-content: center;
   gap: 8px;
   cursor: pointer;
-  background: var(--cta-gradient, var(--cta-primary)) !important;
-  color: var(--cta-text, #ffffff) !important;
-  border-color: var(--cta-primary) !important;
-  box-shadow: 0 4px 18px var(--cta-shadow) !important;
-  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  background: var(--cta-primary) !important;
+  color: var(--cta-text, #0A0B0D) !important;
+  border: 1px solid var(--border-primary, #343640) !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4) !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
 .btn-primary:hover,
 .btn-hud-primary:hover,
 .btn-hero-compete:hover,
 .btn-action-cyan:hover {
-  background: var(--cta-hover, var(--cta-primary)) !important;
-  border-color: var(--cta-hover, var(--cta-primary)) !important;
-  color: var(--cta-text, #ffffff) !important;
-  box-shadow: 0 6px 24px var(--cta-shadow) !important;
+  background: var(--cta-hover, #F2F3F7) !important;
+  border-color: var(--text-primary, #E3E5ED) !important;
+  color: var(--cta-text, #0A0B0D) !important;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.5) !important;
 }
 
 .btn-nav-outline,
 .btn-ghost,
 .btn-outline {
-  border-color: var(--border-default) !important;
+  border-color: var(--border-primary) !important;
   color: var(--text-secondary) !important;
 }
 
 .btn-nav-outline:hover,
 .btn-ghost:hover,
 .btn-outline:hover {
-  border-color: var(--cta-primary) !important;
+  border-color: var(--text-muted) !important;
   color: var(--text-primary) !important;
-  background: var(--border-subtle) !important;
-  box-shadow: 0 0 12px var(--cta-shadow) !important;
+  background: var(--surface-primary) !important;
+  box-shadow: none !important;
 }
 
 /* 3. Theme-Adaptive Dialog Boxes & Modals */
@@ -4556,9 +4561,9 @@ p {
 .faculty-modal-content,
 .import-modal-content {
   background: var(--surface-primary) !important;
-  border: 1px solid var(--border-default) !important;
+  border: 1px solid var(--border-primary) !important;
   color: var(--text-primary) !important;
-  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.8), 0 0 30px var(--cta-shadow) !important;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
 }
 
 .modal-card h2,
@@ -4584,7 +4589,7 @@ p {
 .feedback-modal-container input,
 .feedback-modal-container textarea {
   background: var(--bg-secondary) !important;
-  border: 1px solid var(--border-default) !important;
+  border: 1px solid var(--border-subtle) !important;
   color: var(--text-primary) !important;
 }
 
@@ -4595,14 +4600,14 @@ p {
 .create-room-modal-hud select:focus,
 .feedback-modal-container input:focus,
 .feedback-modal-container textarea:focus {
-  border-color: var(--cta-primary) !important;
-  box-shadow: 0 0 14px var(--cta-shadow) !important;
+  border-color: var(--border-primary) !important;
+  box-shadow: 0 0 0 2px rgba(227, 229, 237, 0.12) !important;
 }
 
 /* 4. Theme-Adaptive Footer */
 .page-footer {
-  border-top-color: var(--border-subtle) !important;
-  background: radial-gradient(circle at 50% 0%, var(--cta-shadow) 0%, transparent 70%), var(--bg-deep) !important;
+  border-top: 1px solid var(--border-subtle) !important;
+  background: var(--bg-deep) !important;
 }
 
 /* ===== LIGHT THEME SPECIFIC POLISH ===== */

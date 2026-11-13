@@ -24,13 +24,13 @@
 }
 
 .btn-hud-back {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 50px;
-    color: #fff;
-    padding: 10px 20px;
+    background: #1A1D25;
+    border: 1px solid #20232B;
+    border-radius: 8px;
+    color: #AEB2C0;
+    padding: 8px 16px;
     font-family: 'Inter', sans-serif;
-    font-size: 0.85rem;
+    font-size: 0.84rem;
     font-weight: 600;
     cursor: pointer;
     display: flex;
@@ -40,16 +40,16 @@
 }
 
 .btn-hud-back:hover {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: #00e5ff;
-    color: #00e5ff;
+    background: #23242E;
+    border-color: #343640;
+    color: #E3E5ED;
 }
 
 .lobby-badge {
     font-family: 'Inter', sans-serif;
     font-weight: 600;
     font-size: 0.8rem;
-    color: rgba(0, 229, 255, 0.8);
+    color: #AEB2C0;
     display: flex;
     align-items: center;
     gap: 8px;
@@ -57,13 +57,13 @@
 
 /* Room Meta Strip */
 .lobby-card-main {
-    background: rgba(18, 20, 28, 0.55);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 20px;
-    padding: 24px 32px;
+    background: #0D0E10;
+    border: 1px solid #20232B;
+    border-radius: 14px;
+    padding: 22px 28px;
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7);
 }
 
 .room-meta-strip {
@@ -79,16 +79,15 @@
     flex-direction: column;
     gap: 4px;
     cursor: pointer;
-    background: rgba(255, 255, 255, 0.05);
-    padding: 12px 20px;
-    border: 1px dashed rgba(255, 255, 255, 0.2);
-    border-radius: 12px;
-    transition: all 0.2s ease;
+    background: #111317;
+    padding: 10px 18px;
+    border: 1px dashed #343640;
+    border-radius: 8px;
+    transition: border-color 0.2s ease;
 }
 
 .room-code-display:hover {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: #00e5ff;
+    border-color: #AEB2C0;
 }
 
 .code-label {
@@ -743,14 +742,14 @@
 }
 
 .btn-hud-ready {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(0, 230, 118, 0.5);
-    color: #00e676;
-    padding: 14px 28px;
+    background: #1A1D25;
+    border: 1px solid #20232B;
+    color: #69D391;
+    padding: 10px 22px;
     font-family: 'Inter', sans-serif;
-    font-size: 0.95rem;
+    font-size: 0.9rem;
     font-weight: 600;
-    border-radius: 50px;
+    border-radius: 8px;
     cursor: pointer;
     transition: all 0.2s ease;
     display: flex;
@@ -759,35 +758,38 @@
 }
 
 .btn-hud-ready:hover {
-    background: rgba(0, 230, 118, 0.15);
+    background: #23242E;
+    border-color: #343640;
 }
 
 .btn-hud-ready.is-ready {
-    background: rgba(0, 230, 118, 0.2);
-    border-color: #00e676;
-    color: #fff;
+    background: rgba(105, 211, 145, 0.15);
+    border-color: #69D391;
+    color: #69D391;
 }
 
 .btn-hud-launch {
-    background: linear-gradient(90deg, #ff2a7a 0%, #ff5c8a 100%);
-    border: none;
-    color: #fff;
-    padding: 14px 36px;
+    background: #E3E5ED;
+    border: 1px solid #E3E5ED;
+    color: #070809;
+    padding: 10px 26px;
     font-family: 'Inter', sans-serif;
-    font-size: 1rem;
+    font-size: 0.95rem;
     font-weight: 600;
-    border-radius: 50px;
+    border-radius: 8px;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: background 0.2s ease;
     display: flex;
     align-items: center;
     gap: 10px;
-    box-shadow: 0 4px 15px rgba(255, 42, 122, 0.2);
+    box-shadow: none;
 }
 
 .btn-hud-launch:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(255, 42, 122, 0.5);
+    background: #FFFFFF;
+    border-color: #FFFFFF;
+    transform: none;
+    box-shadow: none;
 }
 
 .btn-hud-launch:disabled {
@@ -801,7 +803,7 @@
 .countdown-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.9);
+    background: rgba(5, 6, 7, 0.9);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -810,10 +812,11 @@
 
 .countdown-number {
     font-family: 'Space Grotesk', sans-serif;
-    font-size: 8rem;
-    font-weight: 900;
-    color: #00e5ff;
-    text-shadow: 0 0 50px rgba(0, 229, 255, 0.8), 0 0 100px rgba(0, 229, 255, 0.4);
+    font-size: 7rem;
+    font-weight: 800;
+    color: #E3E5ED;
+    text-shadow: none;
+    font-variant-numeric: tabular-nums;
 }
 
 .lobby-loader {

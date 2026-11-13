@@ -1,3 +1,4 @@
+/* ResultPopup.css - Stealth Obsidian Cockpit Theme */
 
 .result-overlay {
   position: fixed;
@@ -13,14 +14,14 @@
 .result-card {
   pointer-events: all;
   width: min(420px, calc(100vw - 30px));
-  border-radius: 14px;
-  border: 1px solid rgba(0, 229, 255, 0.22);
-  background: linear-gradient(155deg, rgba(0, 0, 0, 0.78), rgba(4, 18, 34, 0.86));
-  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.42);
+  border-radius: 10px;
+  border: 1px solid #20232B;
+  background: #0D0E10;
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.7);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   position: relative;
-  padding: 12px 12px 12px 16px;
+  padding: 12px 14px 12px 16px;
   overflow: hidden;
 }
 
@@ -28,25 +29,25 @@
   position: absolute;
   left: 0;
   top: 0;
-  width: 4px;
+  width: 3px;
   height: 100%;
-  background: linear-gradient(180deg, rgba(0, 229, 255, 0.95), rgba(0, 140, 255, 0.9));
+  background: #AEB2C0;
 }
 
 .result-card-win {
-  border-color: rgba(61, 233, 159, 0.36);
+  border-color: rgba(105, 211, 145, 0.35);
 }
 
 .result-card-win .result-accent {
-  background: linear-gradient(180deg, rgba(61, 233, 159, 0.95), rgba(22, 194, 143, 0.92));
+  background: #69D391;
 }
 
 .result-card-loss {
-  border-color: rgba(255, 82, 136, 0.44);
+  border-color: rgba(239, 119, 119, 0.35);
 }
 
 .result-card-loss .result-accent {
-  background: linear-gradient(180deg, rgba(255, 82, 136, 0.95), rgba(255, 42, 122, 0.92));
+  background: #EF7777;
 }
 
 .result-head {
@@ -59,32 +60,32 @@
 .result-winner {
   margin: 0;
   font-family: 'Space Grotesk', sans-serif;
-  font-size: 0.94rem;
+  font-size: 0.92rem;
   line-height: 1.2;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: #e7f8ff;
+  color: #E3E5ED;
   text-shadow: none;
 }
 
 .close-x {
-  width: 26px;
-  height: 26px;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.03);
-  color: #b5c3d8;
-  font-size: 0.82rem;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  border: 1px solid #20232B;
+  background: #1A1D25;
+  color: #AEB2C0;
+  font-size: 0.8rem;
   font-weight: 700;
   line-height: 1;
   cursor: pointer;
-  transition: 0.2s ease;
+  transition: all 0.2s ease;
 }
 
 .close-x:hover {
-  border-color: rgba(0, 229, 255, 0.5);
-  color: #7cecff;
-  background: rgba(0, 229, 255, 0.1);
+  border-color: #343640;
+  color: #E3E5ED;
+  background: #23242E;
 }
 
 .result-body {
@@ -94,8 +95,8 @@
 .result-msg {
   margin: 0;
   font-family: 'Inter', sans-serif;
-  color: #9cb0cc;
-  font-size: 0.88rem;
+  color: #AEB2C0;
+  font-size: 0.86rem;
   line-height: 1.5;
 }
 
@@ -104,14 +105,14 @@
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-  color: #a9bbd6;
+  color: #7F808F;
   font-size: 0.78rem;
   font-family: 'Inter', sans-serif;
 }
 
 .result-stats strong {
-  color: #e9f5ff;
-  font-weight: 700;
+  color: #E3E5ED;
+  font-weight: 600;
 }
 
 .result-actions {
@@ -121,22 +122,23 @@
 }
 
 .result-actions .btn.primary {
-  border-radius: 9px;
-  border: 1px solid rgba(0, 229, 255, 0.45);
-  background: rgba(0, 229, 255, 0.08);
-  color: #7cecff;
-  padding: 8px 14px;
+  border-radius: 6px;
+  border: 1px solid #E3E5ED;
+  background: #E3E5ED;
+  color: #070809;
+  padding: 6px 14px;
   font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
+  font-weight: 600;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
   cursor: pointer;
-  transition: 0.2s ease;
+  transition: background 0.2s ease;
 }
 
 .result-actions .btn.primary:hover {
-  background: rgba(0, 229, 255, 0.18);
-  box-shadow: 0 0 16px rgba(0, 229, 255, 0.18);
+  background: #FFFFFF;
+  border-color: #FFFFFF;
+  box-shadow: none;
 }
 
 @media (max-width: 720px) {

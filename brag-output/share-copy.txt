@@ -1,0 +1,86 @@
+# ==============================================================================
+# ALGOFIGHT LAUNCH CAMPAIGN — SOCIAL MEDIA & VIRAL POST COPY
+# Website: https://algo.mitsgwalior.in/
+# Tagline: TWO PLAYERS. ONE BATTLE. ONE WINNER.
+# ==============================================================================
+
+---
+### 🐦 X / TWITTER THREAD
+---
+
+DSA practice was never meant to be lonely.
+
+Today we're launching AlgoFight — a real-time 1v1 competitive programming platform where solving algorithms becomes a live arena battle.
+
+Two players. One problem. One winner.
+
+Watch the full launch demo 👇 [VIDEO]
+
+1/ Why we built AlgoFight:
+Grinding LeetCode alone gets repetitive. We wanted the adrenaline of an esports tournament combined with the technical depth of computer science interviews.
+
+Live timers. Synchronized code execution. Real stakes.
+
+2/ How it works:
+⚡ Real-time 1v1 matchmaking powered by Redis & Socket.IO
+💻 Integrated Monaco code editor with 15+ language runtimes
+🚀 Sandboxed multi-language execution via Piston
+🛡️ Smart anti-cheat & tab-switch forfeiture detection
+
+3/ Climb the Elo Ranks:
+Every duel shifts your rating. Progress from Rookie to Diamond Grandmaster. Unlock dynamic prestige avatar halos, custom skins, and rewards in the Prestige Vault.
+
+4/ Built with pride by the student engineering team at MITS Gwalior.
+100% live. 100% open source.
+
+Challenge your first opponent right now:
+👉 https://algo.mitsgwalior.in/
+
+#CompetitiveProgramming #SoftwareEngineering #WebDev #JavaScript #React #LeetCode #Codeforces #BuildInPublic
+
+---
+### 💼 LINKEDIN LAUNCH POST
+---
+
+Excited to announce the official launch of AlgoFight — a real-time 1v1 competitive programming battle platform.
+
+Traditional Data Structures and Algorithms practice is essential for every software engineer, but practicing in isolation often lacks urgency and feedback. 
+
+With AlgoFight, we transformed DSA problem-solving into a synchronized competitive duel:
+• Match with developers in real time through distributed matchmaking
+• Code side-by-side in a synchronized Monaco environment
+• Execute and test code in milliseconds with sandboxed Piston execution
+• Track your competitive progression with a transparent Elo rating system
+• Unlock prestige avatar halos and rewards in our dynamic rewards vault
+
+Check out the full 3-minute product demo video below to see the battle flow in action!
+
+🌐 Try it live: https://algo.mitsgwalior.in/
+⭐️ GitHub: https://github.com/KrishGarg/AlgoFight
+
+Special thanks to the faculty and engineering team at Madhav Institute of Technology & Science (MITS), Gwalior for their mentorship throughout this journey.
+
+#EdTech #CompetitiveProgramming #FullStack #ReactJS #NodeJS #WebSockets #Engineering #StudentDevelopers
+
+---
+### 💬 REDDIT (r/cscareerquestions, r/learnprogramming, r/webdev)
+---
+
+Title: I built a real-time 1v1 competitive coding platform so my friends and I could duel on DSA problems (Piston + WebSockets)
+
+Hey everyone!
+
+Like many CS students, my friends and I spent hundreds of hours grinding LeetCode alone preparing for technical interviews. But we realized we learned 10x faster when we raced against each other in real-time.
+
+So over the last few months, we built AlgoFight (https://algo.mitsgwalior.in/) — an open-source real-time 1v1 coding battle arena.
+
+Key technical stack:
+- Frontend: React 19 + Monaco Editor + Tailwind + Stealth Obsidian aesthetic
+- Backend: Node.js + Express + Socket.IO for sub-20ms bi-directional synchronization
+- Sandboxed Execution: Piston engine running multi-container isolated environments
+- Matchmaking & Caching: Redis sorted sets for Elo-based pairing
+- Anti-Cheat: Focus detection and window-blur telemetry to ensure fair play
+
+We just put together a full cinematic walkthrough of the platform. Would love your feedback and thoughts!
+
+Demo & Arena: https://algo.mitsgwalior.in/

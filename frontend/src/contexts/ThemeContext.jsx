@@ -3,7 +3,7 @@ import ThemeSwitchLoader from '../components/Common/ThemeSwitchLoader';
 import { THEMES, THEME_ORDER, THEME_LIST, DEFAULT_THEME_ID, getThemeConfig } from '../config/themes';
 import { updateUserThemePreference } from '../services/api';
 
-export const DEFAULT_UNLOCKED_THEMES = ['regular', 'light'];
+export const DEFAULT_UNLOCKED_THEMES = ['custom', 'regular', 'light'];
 
 const ThemeContext = createContext({
   theme: DEFAULT_THEME_ID,

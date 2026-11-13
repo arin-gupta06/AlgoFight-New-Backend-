@@ -28,9 +28,9 @@
     letter-spacing: 0.8px;
     padding: 3px 8px;
     border-radius: 4px;
-    background: var(--surface-elevated, rgba(0, 229, 255, 0.12));
-    border: 1px solid var(--border-primary, rgba(0, 229, 255, 0.35));
-    color: var(--cta-primary, #00e5ff);
+    background: #1A1D25;
+    border: 1px solid #20232B;
+    color: #AEB2C0;
     transition: all 0.3s ease;
 }
 
@@ -90,8 +90,8 @@
 
 .feedback-textarea {
     width: 100%;
-    background: var(--surface-primary, rgba(15, 23, 42, 0.75));
-    border: 1px solid var(--border-subtle, rgba(148, 163, 184, 0.25));
+    background: #111317;
+    border: 1px solid #20232B;
     border-radius: 8px;
     padding: 10px 12px;
     font-family: inherit;
@@ -100,7 +100,7 @@
     resize: vertical;
     min-height: 72px;
     max-height: 200px;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.3s ease;
+    transition: border-color 0.2s ease;
     box-sizing: border-box;
 }
 
@@ -113,8 +113,8 @@
 
 .feedback-textarea:focus {
     outline: none;
-    border-color: var(--cta-primary, #00e5ff);
-    box-shadow: 0 0 0 2px var(--cta-shadow, rgba(0, 229, 255, 0.2));
+    border-color: #343640;
+    box-shadow: none;
 }
 
 .char-count {
@@ -130,34 +130,34 @@
     align-items: flex-start;
     gap: 10px;
     padding: 10px 14px;
-    background: var(--surface-primary, rgba(0, 229, 255, 0.04));
-    border: 1px solid var(--border-subtle, rgba(0, 229, 255, 0.18));
-    border-radius: 10px;
+    background: #111317;
+    border: 1px solid #20232B;
+    border-radius: 8px;
     cursor: pointer;
     transition: all 0.22s ease;
     user-select: none;
 }
 
 .feedback-showcase-box:hover {
-    background: var(--surface-elevated, rgba(0, 229, 255, 0.08));
-    border-color: var(--border-primary, rgba(0, 229, 255, 0.45));
+    background: #161920;
+    border-color: #343640;
 }
 
 .feedback-showcase-box.is-checked {
-    background: var(--surface-highlight, rgba(0, 229, 255, 0.09));
-    border-color: var(--cta-primary, #00e5ff);
-    box-shadow: 0 0 16px var(--cta-shadow, rgba(0, 229, 255, 0.22));
+    background: #161920;
+    border-color: #343640;
+    box-shadow: none;
 }
 
 .feedback-showcase-box:focus-visible {
-    outline: 2px solid var(--cta-primary, #00e5ff);
+    outline: 2px solid #343640;
     outline-offset: 2px;
 }
 
 .feedback-checkbox {
     margin-top: 2px;
     cursor: pointer;
-    accent-color: var(--cta-primary, #00e5ff);
+    accent-color: #E3E5ED;
     width: 17px;
     height: 17px;
     flex-shrink: 0;
@@ -174,7 +174,7 @@
 .showcase-title {
     font-size: 0.85rem;
     font-weight: 700;
-    color: var(--cta-primary, #00e5ff);
+    color: #E3E5ED;
     display: flex;
     align-items: center;
     gap: 7px;
@@ -202,9 +202,9 @@
 }
 
 .feedback-btn-cancel {
-    background: var(--surface-elevated, transparent);
-    border: 1px solid var(--border-subtle, rgba(148, 163, 184, 0.3));
-    color: var(--text-muted, #94a3b8);
+    background: #1A1D25;
+    border: 1px solid #20232B;
+    color: #AEB2C0;
     padding: 8px 16px;
     border-radius: 8px;
     font-size: 0.82rem;
@@ -214,8 +214,9 @@
 }
 
 .feedback-btn-cancel:hover {
-    color: var(--text-primary, #f1f5f9);
-    border-color: var(--text-muted, #94a3b8);
+    color: #E3E5ED;
+    background: #20232B;
+    border-color: #343640;
 }
 
 .feedback-btn-submit {
@@ -223,23 +224,25 @@
     align-items: center;
     justify-content: center;
     gap: 8px;
-    background: var(--cta-gradient, var(--cta-primary, #00e5ff));
-    border: 1px solid var(--cta-primary, #00e5ff);
-    color: var(--cta-text, #050b14);
+    background: #E3E5ED;
+    border: 1px solid #E3E5ED;
+    color: #070809;
     padding: 10px 22px;
     border-radius: 8px;
     font-size: 0.86rem;
-    font-weight: 800;
+    font-weight: 600;
     letter-spacing: 0.03em;
     cursor: pointer;
-    box-shadow: 0 2px 14px var(--cta-shadow, rgba(0, 229, 255, 0.35));
-    transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
+    box-shadow: none;
+    transition: all 0.18s ease;
 }
 
 .feedback-btn-submit:hover:not(:disabled) {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 22px var(--cta-shadow, rgba(0, 229, 255, 0.55));
-    filter: brightness(1.1);
+    transform: none;
+    background: #ffffff;
+    border-color: #ffffff;
+    box-shadow: none;
+    filter: none;
 }
 
 .feedback-btn-submit:disabled {

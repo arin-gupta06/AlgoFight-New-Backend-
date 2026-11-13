@@ -1,25 +1,18 @@
 /* ================= PREMIUM COMPACT CYBER FOOTER ================= */
 .page-footer {
-  border-top: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+  border-top: 1px solid #20232B;
   padding-top: 32px;
   padding-bottom: 24px;
   margin-top: 40px;
   width: 100%;
   box-sizing: border-box;
-  background: radial-gradient(circle at 50% 0%, var(--cta-shadow, rgba(0, 229, 255, 0.04)) 0%, transparent 70%), var(--bg-deep, #050607);
+  background: #070809;
   position: relative;
   transition: background 0.3s ease, border-color 0.3s ease;
 }
 
 .page-footer::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 10%;
-  right: 10%;
-  height: 1px;
-  background: linear-gradient(90deg, transparent 0%, var(--cta-primary, #00e5ff) 40%, var(--secondary, #38bdf8) 70%, transparent 100%);
-  opacity: 0.6;
+  display: none;
 }
 
 .footer-container {
@@ -41,7 +34,7 @@
   flex-wrap: wrap;
   gap: 20px;
   padding-bottom: 20px;
-  border-bottom: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.06));
+  border-bottom: 1px solid #20232B;
 }
 
 .footer-brand-group {
@@ -67,7 +60,7 @@
   height: 32px;
   width: auto;
   object-fit: contain;
-  filter: drop-shadow(0 0 8px var(--cta-shadow, rgba(0, 229, 255, 0.35)));
+  filter: none;
 }
 
 .footer-brand-name {
@@ -75,11 +68,11 @@
   font-size: 1.2rem;
   font-weight: 800;
   letter-spacing: -0.01em;
-  color: var(--text-primary, #ffffff);
-  background: linear-gradient(135deg, var(--text-primary, #ffffff) 30%, var(--cta-primary, #00e5ff) 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: #E3E5ED;
+  background: none;
+  -webkit-background-clip: initial;
+  background-clip: initial;
+  -webkit-text-fill-color: initial;
 }
 
 .footer-mission-text {

@@ -132,18 +132,85 @@ const start = async () => {
             const adminSecret = config.adminSecretKey || process.env.ADMIN_SECRET_KEY;
             const isAdmin = Boolean(adminSecret && request.headers["x-admin-key"] === adminSecret);
             const user = (request as any).user || (request as any).trustContext;
-            const actor = user?.username || user?.displayName || (isAdmin ? "SuperAdmin" : (user?.id ? `user_${user.id.slice(0, 8)}` : "Visitor"));
+            const body = (request.body as any) || {};
+            const query = (request.query as any) || {};
+
+            const actor =
+                user?.username ||
+                user?.displayName ||
+                body.username ||
+                body.name ||
+                (typeof body.email === "string" ? body.email.split("@")[0] : null) ||
+                query.username ||
+                (isAdmin ? "SuperAdmin" : (user?.id ? `user_${user.id.slice(0, 8)}` : (clientIp === "127.0.0.1" ? "LocalHost" : `Guest (${clientIp})`)));
 
             let category: AuditCategory = "HTTP_TRAFFIC";
-            if (statusCode === 401 || statusCode === 403 || statusCode === 429) category = "SECURITY";
-            else if (url.includes("/auth")) category = "AUTH";
-            else if (url.includes("/users") || url.includes("/players")) category = "AUTH";
-            else if (url.includes("/battle") || url.includes("/matchmaking") || url.includes("/rooms")) category = "BATTLE";
-            else if (url.includes("/submission") || url.includes("/execute")) category = "SUBMISSION";
-            else if (url.includes("/admin") || url.includes("/broadcast")) category = "ADMIN";
-            else if (url.includes("/ws")) category = "WEBSOCKET";
-            else if (url.includes("/analytics")) category = "PAGE_VIEW";
-            else if (url.includes("/feedback") || url.includes("/notifications")) category = "SYSTEM";
+            let action = `HTTP_${request.method}_${statusCode}`;
+            let details = `${request.method} ${url} -> ${statusCode} (${durationMs}ms)`;
+
+            if (statusCode === 401 || statusCode === 403 || statusCode === 429) {
+                category = "SECURITY";
+                action = statusCode === 429 ? "RATE_LIMIT_BLOCKED" : statusCode === 403 ? "ACCESS_FORBIDDEN" : "AUTH_UNAUTHORIZED";
+                details = `${statusCode === 429 ? "Rate limit throttled" : "Unauthorized request"} on ${request.method} ${url} [${statusCode}] (${durationMs}ms)`;
+            } else if (url.includes("/auth/login")) {
+                category = "AUTH";
+                action = statusCode < 400 ? "USER_LOGIN_SUCCESS" : "USER_LOGIN_FAILED";
+                details = statusCode < 400 ? `Combatant ${actor} authenticated successfully` : `Login attempt failed for ${actor} [${statusCode}]`;
+            } else if (url.includes("/auth/register") || url.includes("/auth/signup")) {
+                category = "AUTH";
+                action = statusCode < 400 ? "USER_REGISTERED" : "USER_REGISTRATION_FAILED";
+                details = statusCode < 400 ? `New combatant account created for ${actor}` : `Registration failed for ${actor} [${statusCode}]`;
+            } else if (url.includes("/auth/logout")) {
+                category = "AUTH";
+                action = "USER_LOGGED_OUT";
+                details = `User ${actor} logged out`;
+            } else if (url.includes("/submissions/execute-direct")) {
+                category = "SUBMISSION";
+                action = "CODE_EXECUTE_DIRECT";
+                details = `Direct code run in ${(body.language || "code").toUpperCase()} by ${actor} (${durationMs}ms)`;
+            } else if (url.includes("/submissions/submit") || url.includes("/submissions/evaluate-practice")) {
+                category = "SUBMISSION";
+                action = url.includes("practice") ? "PRACTICE_EVALUATION" : "BATTLE_SUBMISSION";
+                details = `Code evaluated on Problem #${body.problemId || query.problemId || "N/A"} in ${(body.language || "code").toUpperCase()} by ${actor} (${durationMs}ms)`;
+            } else if (url.includes("/battle/create-room")) {
+                category = "BATTLE";
+                action = "BATTLE_ROOM_CREATED";
+                details = `New battle room created by ${actor}`;
+            } else if (url.includes("/battle/room")) {
+                category = "BATTLE";
+                action = "BATTLE_ROOM_QUERY";
+                details = `${request.method} room query on ${url} by ${actor}`;
+            } else if (url.includes("/feedback")) {
+                category = "SYSTEM";
+                action = "FEEDBACK_SUBMITTED";
+                details = `Platform review submitted by ${actor} (${body.rating ? `${body.rating} stars` : "feedback"})`;
+            } else if (url.includes("/admin/broadcast")) {
+                category = "ADMIN";
+                action = "BROADCAST_MODIFIED";
+                details = `Broadcast action performed by ${actor} on ${url}`;
+            } else if (url.includes("/admin/fleet") || url.includes("/admin/scale")) {
+                category = "FLEET";
+                action = "FLEET_ORCHESTRATION";
+                details = `Fleet scaling/orchestration trigger by ${actor}`;
+            } else if (url.includes("/admin")) {
+                category = "ADMIN";
+                action = `ADMIN_${request.method}`;
+                details = `Admin management action on ${url} by ${actor}`;
+            } else if (url.includes("/ws")) {
+                category = "WEBSOCKET";
+                action = "WS_REQUEST";
+            } else if (url.includes("/analytics")) {
+                category = "PAGE_VIEW";
+                action = "ANALYTICS_EVENT";
+                details = `Analytics ingestion on ${url} by ${actor}`;
+            } else if (url.includes("/problems")) {
+                category = "SYSTEM";
+                action = request.method === "GET" ? "PROBLEM_QUERY" : "PROBLEM_UPDATE";
+                details = `${request.method} Problem repository on ${url}`;
+            } else if (url.includes("/notifications")) {
+                category = "SYSTEM";
+                action = "NOTIFICATIONS_QUERY";
+            }
 
             let severity: AuditSeverity = "INFO";
             if (statusCode >= 500) severity = "ERROR";
@@ -152,16 +219,23 @@ const start = async () => {
             auditService.recordEvent({
                 category,
                 severity,
-                action: `HTTP_${request.method}_${statusCode}`,
+                action,
                 actor,
                 ip: clientIp,
                 method: request.method,
-                details: `${request.method} ${url} -> ${statusCode} (${durationMs}ms)`,
+                details,
                 metadata: {
                     statusCode,
                     durationMs,
+                    path: url,
+                    ip: clientIp,
+                    actor,
                     userAgent: request.headers["user-agent"],
                     requestId: (request as any).requestId,
+                    problemId: body.problemId || query.problemId,
+                    language: body.language,
+                    rating: body.rating,
+                    roomId: body.roomId || query.roomId,
                 },
             });
         });

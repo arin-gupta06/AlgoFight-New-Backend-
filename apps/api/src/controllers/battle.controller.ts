@@ -3,6 +3,7 @@ import {
     PrismaBattleRoomRepository,
     PrismaProblemRepository,
     PrismaUserRepository,
+    prisma,
 } from "@algofight/database";
 import { createRedisClient } from "@algofight/queue";
 

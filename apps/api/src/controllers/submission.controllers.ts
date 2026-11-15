@@ -5,6 +5,7 @@ import { SubmissionRepository, ProblemRepository } from "@algofight/database";
 import { SubmissionStatus } from "@algofight/types";
 import { EvaluationService, SandboxExecutor, WorkloadClassifier, RuntimePoolManager, PistonAdapter } from "@algofight/application";
 import { logger } from "@algofight/logger";
+import { auditService } from "../services/audit.service";
 
 export class SubmissionController {
     private readonly sandboxExecutor = new SandboxExecutor();
@@ -196,6 +197,32 @@ export class SubmissionController {
                 }
             }
 
+            try {
+                const isInternalErr = (evalResult.verdict as any) === "INTERNAL_ERROR" || (evalResult.verdict as any) === "SYSTEM_ERROR";
+                auditService.recordEvent({
+                    category: "SUBMISSION",
+                    severity: passed ? "INFO" : isInternalErr ? "ERROR" : "WARN",
+                    action: body.mode === "submit" ? "PRACTICE_SUBMISSION_EVALUATED" : "PRACTICE_RUN_EVALUATED",
+                    actor: userId || "Combatant",
+                    method: "POST",
+                    details: `[${evalResult.verdict}] ${problem.title || body.problemId} | ${body.language.toUpperCase()} | ${passedCount}/${totalCount} tests passed (${evalResult.resourceUsage?.totalTime || 0}ms)`,
+                    metadata: {
+                        problemId: body.problemId,
+                        problemTitle: problem.title,
+                        difficulty: problem.difficulty,
+                        language: body.language,
+                        verdict: evalResult.verdict,
+                        passed,
+                        passedTestCases: passedCount,
+                        totalTestCases: totalCount,
+                        executionTimeMs: evalResult.resourceUsage?.totalTime,
+                        memoryUsageBytes: evalResult.resourceUsage?.maxMemory,
+                        error: activeError?.message || activeError?.type || null,
+                        mode: body.mode,
+                    },
+                });
+            } catch {}
+
             return {
                 passed,
                 output: passed 
@@ -343,6 +370,26 @@ export class SubmissionController {
                 targetRuntimeUrl
             );
             const totalTime = Date.now() - startTime;
+
+            try {
+                const exitCode = result.run?.code ?? (result.compile?.success ? 0 : 1);
+                const isErr = !result.run?.success || !result.compile?.success || Boolean(result.run?.stderr || result.compile?.error);
+                auditService.recordEvent({
+                    category: "SUBMISSION",
+                    severity: !isErr ? "INFO" : "WARN",
+                    action: "CODE_EXECUTE_DIRECT",
+                    actor: "Combatant",
+                    method: "POST",
+                    details: `Direct execution: ${body.language.toUpperCase()} | Exit: ${exitCode} | Time: ${totalTime}ms | Piston: ${targetRuntimeUrl}`,
+                    metadata: {
+                        language: body.language,
+                        exitCode,
+                        executionTimeMs: totalTime,
+                        runtimeUrl: targetRuntimeUrl,
+                        isTimeout: result.run?.isTimeout || result.run?.signal === "SIGKILL" || false,
+                    },
+                });
+            } catch {}
 
             const runtimeInstance = poolManager.getRuntime(targetRuntimeUrl);
             const port = runtimeInstance?.port || (targetRuntimeUrl.includes(":") ? parseInt(targetRuntimeUrl.split(":").pop()!, 10) : undefined);

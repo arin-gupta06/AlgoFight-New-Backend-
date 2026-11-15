@@ -435,6 +435,18 @@ export default function ControlHub() {
     });
   };
 
+  const handleFilterByActor = (filterActor, e) => {
+    if (e) e.stopPropagation();
+    setAuditSearch(filterActor);
+    setActiveTab("audit_trail");
+    fetchAuditLogs(auditCategory, auditSeverity, auditMethod, filterActor);
+    notify({
+      type: "info",
+      title: "FILTERING LOGS",
+      message: `Inspecting events for actor ${filterActor}`,
+    });
+  };
+
   // 🚀 Fleet Diagnostics Probe
   const handleRunFleetProbe = async () => {
     setIsProbingFleet(true);
@@ -1119,6 +1131,7 @@ export default function ControlHub() {
                   fetchAnalytics={fetchAnalytics}
                   handleCopyIp={handleCopyIp}
                   handleFilterByIp={handleFilterByIp}
+                  handleFilterByActor={handleFilterByActor}
                   copiedIp={copiedIp}
                 />
               )}
@@ -1141,6 +1154,7 @@ export default function ControlHub() {
                   setExpandedAuditId={setExpandedAuditId}
                   handleCopyIp={handleCopyIp}
                   handleFilterByIp={handleFilterByIp}
+                  handleFilterByActor={handleFilterByActor}
                   copiedIp={copiedIp}
                 />
               )}

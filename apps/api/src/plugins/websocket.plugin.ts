@@ -131,6 +131,24 @@ export default fp(async function (app: FastifyInstance) {
                     if (payload.event === "PLAYER_SOLVED") {
                         connectionManager.broadcastToRoom(payload.roomId, "player_solved", payload);
                         connectionManager.broadcastToRoom(payload.roomId, "battle_state_sync", payload.newState);
+
+                        try {
+                            auditService.recordEvent({
+                                category: "BATTLE",
+                                severity: "INFO",
+                                action: "BATTLE_PROBLEM_SOLVED",
+                                actor: payload.username || payload.userId || "Combatant",
+                                method: "WS",
+                                details: `Room ${payload.roomId}: ${payload.username || payload.userId} solved problem (${payload.pointsEarned || 100} pts)`,
+                                metadata: {
+                                    roomId: payload.roomId,
+                                    userId: payload.userId,
+                                    username: payload.username,
+                                    pointsEarned: payload.pointsEarned,
+                                    solvedCount: payload.solvedCount,
+                                },
+                            });
+                        } catch {}
                     }
 
                     if (payload.event === "BATTLE_FINISHED") {
@@ -151,6 +169,30 @@ export default fp(async function (app: FastifyInstance) {
                             reason: payload.reason,
                             finalState: payload.finalState,
                         });
+
+                        try {
+                            auditService.recordEvent({
+                                category: "BATTLE",
+                                severity: "INFO",
+                                action: "BATTLE_FINISHED",
+                                actor: winnerUsername || "System",
+                                method: "WS",
+                                details: `Room ${payload.roomId} concluded. Winner: ${winnerUsername} [Reason: ${payload.reason || "NORMAL"}]`,
+                                metadata: {
+                                    roomId: payload.roomId,
+                                    winnerId: payload.winnerId,
+                                    winnerUsername,
+                                    reason: payload.reason,
+                                    forfeitedPlayer,
+                                    participants: payload.finalState?.players?.map((p: any) => ({
+                                        userId: p.userId,
+                                        username: p.username,
+                                        score: p.points,
+                                    })),
+                                    eloResults: payload.eloResults,
+                                },
+                            });
+                        } catch {}
 
                         if (payload.eloResults) {
                             connectionManager.broadcastToRoom(payload.roomId, "rating_updates", payload.eloResults);

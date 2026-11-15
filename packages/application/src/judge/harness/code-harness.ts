@@ -335,6 +335,8 @@ if __name__ == '__main__':
 #include <sstream>
 #include <algorithm>
 
+using namespace std;
+
 ${rawCode}
 
 int main() {

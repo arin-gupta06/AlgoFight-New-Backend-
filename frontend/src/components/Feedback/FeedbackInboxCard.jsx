@@ -4,9 +4,9 @@ import { faCommentDots, faStar, faChevronDown, faChevronUp } from '@fortawesome/
 import FeedbackForm from './FeedbackForm';
 import './FeedbackInboxCard.css';
 
-export default function FeedbackInboxCard({ item, onCompleted }) {
+export default function FeedbackInboxCard({ item, onCompleted, defaultExpanded = false }) {
     const isAlreadySubmitted = localStorage.getItem('af_feedback_submitted') === 'true';
-    const [isExpanded, setIsExpanded] = useState(!isAlreadySubmitted);
+    const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
     return (
         <article className={`inbox-feedback-card ${!item.read ? 'is-unread' : ''}`}>

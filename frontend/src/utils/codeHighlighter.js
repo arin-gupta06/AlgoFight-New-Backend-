@@ -89,7 +89,7 @@ export function highlightCode(code, language = "javascript") {
   const langKey = language?.toLowerCase?.() || "javascript";
   const normalizedLang = langKey.includes("py")
     ? "python"
-    : langKey.includes("c++") || langKey.includes("cpp")
+    : langKey.includes("c++") || langKey.includes("cpp") || langKey === "c" || langKey === "clang"
     ? "cpp"
     : langKey.includes("java") && !langKey.includes("script")
     ? "java"

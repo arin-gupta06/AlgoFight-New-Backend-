@@ -515,8 +515,22 @@ if __name__ == '__main__':
         if res is not None:
             print(json.dumps(res) if isinstance(res, (list, dict)) else res)
 `;
+            case "c": {
+                const hasMain = /\b(int|void)\s+main\s*\(/.test(rawCode);
+                const hasSolutionFn = /\bsolution\s*\(/.test(rawCode);
+                if (hasMain || !hasSolutionFn) return rawCode;
+                return `#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n\n${rawCode}\n\nint main() {\n    static char input[1048576];\n    size_t bytesRead = fread(input, 1, sizeof(input) - 1, stdin);\n    input[bytesRead] = '\\0';\n    char* result = (char*)solution(input);\n    if (result != NULL) {\n        printf("%s", result);\n    }\n    return 0;\n}\n`;
+            }
+            case "cpp":
+            case "c++": {
+                const hasMain = /\b(int|void)\s+main\s*\(/.test(rawCode);
+                const hasSolutionClass = /\bclass\s+Solution\b/.test(rawCode);
+                const hasSolutionFn = /\bsolution\s*\(/.test(rawCode);
+                if (hasMain || (!hasSolutionClass && !hasSolutionFn)) return rawCode;
+                return `#include <iostream>\n#include <vector>\n#include <string>\n#include <sstream>\n#include <algorithm>\n\nusing namespace std;\n\n${rawCode}\n\nint main() {\n    std::ios_base::sync_with_stdio(false);\n    std::cin.tie(NULL);\n    std::string input, line;\n    while (std::getline(std::cin, line)) {\n        if (!input.empty()) input += "\\n";\n        input += line;\n    }\n${hasSolutionClass ? "    Solution sol;\n    std::cout << sol.solution(input);" : "    std::cout << solution(input);"}\n    return 0;\n}\n`;
+            }
             default:
-                // For C++, Java, or user code that already has main(), execute as-is
+                // For Java, or user code that already has main(), execute as-is
                 return rawCode;
         }
     }

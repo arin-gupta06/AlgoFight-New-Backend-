@@ -13,11 +13,23 @@ import {
     faTrophy,
     faBullhorn,
     faComments,
+    faChevronDown,
+    faChevronUp,
+    faExpand,
+    faCompress,
+    faTriangleExclamation,
+    faWrench,
+    faCalendarCheck,
+    faArrowRight,
+    faArrowUpRightFromSquare,
+    faClock,
+    faCheckCircle,
+    faShieldHalved,
 } from '@fortawesome/free-solid-svg-icons';
 import { getSocket } from '../../services/socket';
 import { useNotificationInbox } from '../../contexts/NotificationInboxContext';
-import SystemBroadcastCard from '../Common/broadcasts/SystemBroadcastCard.jsx';
-import FeedbackInboxCard from '../Feedback/FeedbackInboxCard.jsx';
+import FeedbackForm from '../Feedback/FeedbackForm.jsx';
+import WhatsAppDocumentPreview from '../Common/broadcasts/WhatsAppDocumentPreview.jsx';
 import './InboxDropdown.css';
 
 function formatTimeAgo(timestamp) {
@@ -35,56 +47,148 @@ function formatTimeAgo(timestamp) {
     return new Date(timeMs).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-function getNotificationIcon(type) {
-    switch (type) {
-        case 'SYSTEM':
-            return faBullhorn;
-        case 'CHALLENGE':
-        case 'PUBLIC_CHALLENGE':
-            return faCrosshairs;
-        case 'CHALLENGE_ACCEPTED':
-            return faBolt;
-        case 'CHALLENGE_DECLINED':
-            return faTimes;
-        case 'BATTLE_START':
-        case 'BATTLE_RESULT':
-            return faTrophy;
-        case 'FEEDBACK':
-            return faComments;
-        default:
-            return faInfoCircle;
+function formatExpiryDate(exp) {
+    if (!exp) return null;
+    try {
+        const d = new Date(exp);
+        return d.toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+        });
+    } catch {
+        return String(exp);
     }
 }
 
-function getNotificationTone(type) {
-    switch (type) {
-        case 'SYSTEM':
-            return 'tone-cyan';
-        case 'CHALLENGE':
-            return 'tone-cyan';
-        case 'PUBLIC_CHALLENGE':
-            return 'tone-gold';
-        case 'CHALLENGE_ACCEPTED':
-            return 'tone-green';
-        case 'CHALLENGE_DECLINED':
-            return 'tone-pink';
-        case 'BATTLE_START':
-        case 'BATTLE_RESULT':
-            return 'tone-gold';
-        case 'FEEDBACK':
-            return 'tone-purple';
-        default:
-            return 'tone-cyan';
+function getEmbedVideoUrl(url) {
+    if (!url || typeof url !== 'string') return null;
+    const trimmed = url.trim();
+
+    // YouTube match
+    const ytMatch = trimmed.match(/(?:youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|v\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/i);
+    if (ytMatch && ytMatch[1]) {
+        return `https://www.youtube-nocookie.com/embed/${ytMatch[1]}`;
     }
+
+    // Vimeo match
+    const vimeoMatch = trimmed.match(/vimeo\.com\/(?:video\/)?([0-9]+)/i);
+    if (vimeoMatch && vimeoMatch[1]) {
+        return `https://player.vimeo.com/video/${vimeoMatch[1]}`;
+    }
+
+    // Loom match
+    const loomMatch = trimmed.match(/loom\.com\/(?:share|embed)\/([a-zA-Z0-9]+)/i);
+    if (loomMatch && loomMatch[1]) {
+        return `https://www.loom.com/embed/${loomMatch[1]}`;
+    }
+
+    return null;
+}
+
+function getNotificationDetails(item) {
+    const type = item.type || 'INFO';
+    const bType = item.metadata?.broadcastType || type;
+
+    switch (type) {
+        case 'CHALLENGE':
+            return {
+                badge: '1V1 CHALLENGE',
+                icon: faCrosshairs,
+                tone: 'tone-cyan',
+            };
+        case 'PUBLIC_CHALLENGE':
+            return {
+                badge: 'OPEN DUEL',
+                icon: faCrosshairs,
+                tone: 'tone-gold',
+            };
+        case 'BATTLE_START':
+            return {
+                badge: 'BATTLE START',
+                icon: faBolt,
+                tone: 'tone-green',
+            };
+        case 'BATTLE_RESULT':
+            return {
+                badge: 'BATTLE RESULT',
+                icon: faTrophy,
+                tone: 'tone-gold',
+            };
+        case 'CHALLENGE_ACCEPTED':
+            return {
+                badge: 'CHALLENGE ACCEPTED',
+                icon: faBolt,
+                tone: 'tone-green',
+            };
+        case 'CHALLENGE_DECLINED':
+            return {
+                badge: 'CHALLENGE DECLINED',
+                icon: faTimes,
+                tone: 'tone-pink',
+            };
+        case 'FEEDBACK':
+            return {
+                badge: 'FEEDBACK & REVIEW',
+                icon: faComments,
+                tone: 'tone-purple',
+            };
+        case 'SYSTEM': {
+            switch (bType) {
+                case 'WARNING':
+                    return { badge: 'CRITICAL NOTICE', icon: faTriangleExclamation, tone: 'tone-pink' };
+                case 'MAINTENANCE':
+                    return { badge: 'MAINTENANCE', icon: faWrench, tone: 'tone-gold' };
+                case 'EVENT':
+                    return { badge: 'SPECIAL EVENT', icon: faCalendarCheck, tone: 'tone-purple' };
+                case 'UPDATE':
+                    return { badge: 'SYSTEM UPDATE', icon: faBullhorn, tone: 'tone-green' };
+                case 'FEEDBACK':
+                    return { badge: 'FEEDBACK & ALPHA', icon: faComments, tone: 'tone-purple' };
+                default:
+                    return { badge: 'SYSTEM BROADCAST', icon: faBullhorn, tone: 'tone-cyan' };
+            }
+        }
+        default:
+            return {
+                badge: 'ANNOUNCEMENT',
+                icon: faInfoCircle,
+                tone: 'tone-cyan',
+            };
+    }
+}
+
+function getNotificationPreview(item) {
+    if (item.type === 'CHALLENGE' && item.metadata?.config) {
+        const { timeLimitMinutes = 15, difficulty = 'MEDIUM', problemCount = 1 } = item.metadata.config;
+        return `⏱️ ${timeLimitMinutes}m · 🎯 ${difficulty} · 📝 ${problemCount} Question${problemCount > 1 ? 's' : ''} — 1v1 Arena Invitation`;
+    }
+    if (item.type === 'PUBLIC_CHALLENGE' && item.metadata) {
+        const { timeLimitMinutes = 15, difficulty = 'MIX', hostRating = 1200 } = item.metadata;
+        return `⏱️ ${timeLimitMinutes}m · 🎯 ${difficulty} · 🏆 ${hostRating} ELO — Open duel challenge in arena`;
+    }
+    if (item.type === 'FEEDBACK') {
+        const isSubmitted = typeof window !== 'undefined' && localStorage.getItem('af_feedback_submitted') === 'true';
+        return isSubmitted
+            ? '✓ Feedback submitted — Thank you for your review!'
+            : 'Rate your platform experience and share feature ideas for AlgoFight';
+    }
+    if (item.message) {
+        return item.message;
+    }
+    return 'Click to view details and actions';
 }
 
 export default function InboxDropdown({ isOpen, onClose }) {
     const navigate = useNavigate();
     const { notifications, unreadCount, markAsRead, markAllAsRead, clearInbox } = useNotificationInbox();
     const [filter, setFilter] = useState('ALL');
+    const [expandedIds, setExpandedIds] = useState(() => new Set());
     const listRef = useRef(null);
+    const initialAutoExpandedRef = useRef(false);
 
-    // Forward mouse wheel events anywhere on panel to the notification scroll area
+    // Forward mouse wheel events anywhere on panel to notification scroll area
     const handlePanelWheel = (e) => {
         if (listRef.current && !listRef.current.contains(e.target)) {
             listRef.current.scrollTop += e.deltaY;
@@ -102,6 +206,35 @@ export default function InboxDropdown({ isOpen, onClose }) {
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [isOpen, onClose]);
+
+    // Smart default: when dropdown opens, keep everything neat.
+    // If only 1 notification exists, expand it.
+    // If multiple exist, expand the first unread challenge (if any) and leave others collapsed.
+    useEffect(() => {
+        if (!isOpen) {
+            initialAutoExpandedRef.current = false;
+            return;
+        }
+
+        if (!initialAutoExpandedRef.current && notifications.length > 0) {
+            initialAutoExpandedRef.current = true;
+            setExpandedIds((prev) => {
+                if (prev.size > 0) return prev;
+                const next = new Set();
+                if (notifications.length === 1) {
+                    next.add(notifications[0].id);
+                } else {
+                    const firstActive = notifications.find(
+                        (n) => (n.type === 'CHALLENGE' || n.type === 'PUBLIC_CHALLENGE') && !n.read
+                    );
+                    if (firstActive) {
+                        next.add(firstActive.id);
+                    }
+                }
+                return next;
+            });
+        }
+    }, [isOpen, notifications]);
 
     const handleAcceptChallenge = (e, challengeId, notificationId) => {
         e.stopPropagation();
@@ -129,6 +262,34 @@ export default function InboxDropdown({ isOpen, onClose }) {
         return true;
     });
 
+    const isExpanded = (id) => expandedIds.has(id);
+
+    const toggleExpand = (id, e) => {
+        if (e) e.stopPropagation();
+        setExpandedIds((prev) => {
+            const next = new Set(prev);
+            if (next.has(id)) {
+                next.delete(id);
+            } else {
+                next.add(id);
+            }
+            return next;
+        });
+        markAsRead(id);
+    };
+
+    const allExpanded =
+        filteredNotifications.length > 0 &&
+        filteredNotifications.every((n) => expandedIds.has(n.id));
+
+    const toggleExpandAll = () => {
+        if (allExpanded) {
+            setExpandedIds(new Set());
+        } else {
+            setExpandedIds(new Set(filteredNotifications.map((n) => n.id)));
+        }
+    };
+
     return (
         <AnimatePresence>
             <motion.div
@@ -148,7 +309,7 @@ export default function InboxDropdown({ isOpen, onClose }) {
                     onClick={(e) => e.stopPropagation()}
                     onWheel={handlePanelWheel}
                 >
-                    {/* Header */}
+                    {/* Panel Header */}
                     <div className="inbox-panel-header">
                         <div className="inbox-header-title">
                             <div className="inbox-bell-wrap">
@@ -161,6 +322,17 @@ export default function InboxDropdown({ isOpen, onClose }) {
                         </div>
 
                         <div className="inbox-header-actions">
+                            {filteredNotifications.length > 1 && (
+                                <button
+                                    type="button"
+                                    className="inbox-header-action-btn tone-expand"
+                                    onClick={toggleExpandAll}
+                                    title={allExpanded ? "Collapse all messages" : "Expand all messages"}
+                                >
+                                    <FontAwesomeIcon icon={allExpanded ? faCompress : faExpand} />
+                                    <span>{allExpanded ? "Collapse" : "Expand"}</span>
+                                </button>
+                            )}
                             {unreadCount > 0 && (
                                 <button
                                     type="button"
@@ -194,7 +366,7 @@ export default function InboxDropdown({ isOpen, onClose }) {
                         </div>
                     </div>
 
-                    {/* Filter Tabs (Clean 2-tab segmented control) */}
+                    {/* Filter Segmented Control */}
                     <div className="inbox-filter-bar">
                         <button
                             type="button"
@@ -212,7 +384,7 @@ export default function InboxDropdown({ isOpen, onClose }) {
                         </button>
                     </div>
 
-                    {/* Notification List */}
+                    {/* Notification Scrollable List */}
                     <div className="inbox-notification-list" ref={listRef}>
                         {filteredNotifications.length === 0 ? (
                             <div className="inbox-empty-state">
@@ -228,122 +400,252 @@ export default function InboxDropdown({ isOpen, onClose }) {
                             </div>
                         ) : (
                             filteredNotifications.map((item) => {
-                                if (item.type === 'FEEDBACK' || item.metadata?.isFeedback) {
-                                    return (
-                                        <FeedbackInboxCard
-                                            key={item.id}
-                                            item={item}
-                                            onCompleted={() => {
-                                                markAsRead(item.id);
-                                            }}
-                                        />
-                                    );
-                                }
-
+                                const details = getNotificationDetails(item);
+                                const expanded = isExpanded(item.id);
                                 const isBroadcast = item.type === 'SYSTEM' || item.metadata?.isBroadcast;
-
-                                if (isBroadcast) {
-                                    return (
-                                        <div
-                                            key={item.id}
-                                            className={`inbox-broadcast-wrapper ${!item.read ? 'is-unread' : ''}`}
-                                            onClick={() => markAsRead(item.id)}
-                                        >
-                                            <SystemBroadcastCard
-                                                broadcast={{
-                                                    id: item.id,
-                                                    title: item.title,
-                                                    message: item.message,
-                                                    type: item.metadata?.broadcastType || 'INFO',
-                                                    createdAt: item.createdAt,
-                                                    expiresAt: item.metadata?.expiresAt,
-                                                    content: item.metadata?.content,
-                                                    action: item.metadata?.action,
-                                                }}
-                                                isUnread={!item.read}
-                                                onActionClick={() => {
-                                                    markAsRead(item.id);
-                                                    onClose();
-                                                }}
-                                            />
-                                        </div>
-                                    );
-                                }
+                                const isFeedback = item.type === 'FEEDBACK' || item.metadata?.isFeedback;
+                                const isSubmitted =
+                                    typeof window !== 'undefined' &&
+                                    localStorage.getItem('af_feedback_submitted') === 'true';
 
                                 return (
                                     <div
                                         key={item.id}
-                                        className={`inbox-item-card ${!item.read ? 'is-unread' : ''}`}
-                                        onClick={() => markAsRead(item.id)}
+                                        className={`inbox-item-card ${!item.read ? 'is-unread' : ''} ${expanded ? 'is-expanded' : ''}`}
+                                        onClick={() => toggleExpand(item.id)}
                                     >
-                                        <div className={`inbox-item-icon ${getNotificationTone(item.type)}`}>
-                                            <FontAwesomeIcon icon={getNotificationIcon(item.type)} />
-                                        </div>
-
-                                        <div className="inbox-item-body">
-                                            <div className="inbox-item-top">
-                                                <h4 className="inbox-item-title">{item.title}</h4>
-                                                <span className="inbox-item-time">{formatTimeAgo(item.createdAt)}</span>
+                                        {/* Card Header: Clickable to toggle expand/collapse */}
+                                        <div className="inbox-item-header">
+                                            <div className={`inbox-item-icon ${details.tone}`}>
+                                                <FontAwesomeIcon icon={details.icon} />
                                             </div>
 
-                                            <p className="inbox-item-message">{item.message}</p>
-
-                                            {/* Direct 1v1 Challenge Details */}
-                                            {item.type === 'CHALLENGE' && !item.read && item.metadata?.challengeId && (
-                                                <div className="inbox-challenge-box">
-                                                    {item.metadata?.config && (
-                                                        <div className="inbox-challenge-specs">
-                                                            <span>⏱️ {item.metadata.config.timeLimitMinutes || 15}m</span>
-                                                            <span>🎯 {item.metadata.config.difficulty || "MEDIUM"}</span>
-                                                            <span>📝 {item.metadata.config.problemCount || 1} Q</span>
-                                                        </div>
+                                            <div className="inbox-item-header-content">
+                                                <div className="inbox-item-meta-row">
+                                                    <span className={`inbox-item-badge ${details.tone}`}>
+                                                        {details.badge}
+                                                    </span>
+                                                    {isBroadcast && (
+                                                        <span className="inbox-verified-badge">
+                                                            <FontAwesomeIcon icon={faShieldHalved} /> OFFICIAL
+                                                        </span>
                                                     )}
-                                                    <div className="inbox-challenge-buttons">
-                                                        <button
-                                                            type="button"
-                                                            className="inbox-btn-accept"
-                                                            onClick={(e) => handleAcceptChallenge(e, item.metadata.challengeId, item.id)}
-                                                        >
-                                                            <FontAwesomeIcon icon={faBolt} /> Accept
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            className="inbox-btn-decline"
-                                                            onClick={(e) => handleDeclineChallenge(e, item.metadata.challengeId, item.id)}
-                                                        >
-                                                            Decline
-                                                        </button>
-                                                    </div>
+                                                    {isFeedback && (
+                                                        <span className={`inbox-feedback-status-pill ${isSubmitted ? 'is-submitted' : ''}`}>
+                                                            {isSubmitted ? '✓ Submitted' : 'Pending'}
+                                                        </span>
+                                                    )}
+                                                    <span className="inbox-item-time">
+                                                        {formatTimeAgo(item.createdAt)}
+                                                    </span>
                                                 </div>
-                                            )}
 
-                                            {/* Open Public Duel Challenge */}
-                                            {item.type === 'PUBLIC_CHALLENGE' && item.metadata?.roomCode && (
-                                                <div className="inbox-challenge-box">
-                                                    <div className="inbox-challenge-specs">
-                                                        <span>⏱️ {item.metadata.timeLimitMinutes || 15}m</span>
-                                                        <span>🎯 {item.metadata.difficulty || "MIX"}</span>
-                                                        <span>🏆 {item.metadata.hostRating || 1200} ELO</span>
-                                                    </div>
-                                                    <div className="inbox-challenge-buttons">
-                                                        <button
-                                                            type="button"
-                                                            className="inbox-btn-accept"
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                markAsRead(item.id);
-                                                                onClose();
-                                                                navigate(`/battle/room/${item.metadata.roomCode}`);
-                                                            }}
-                                                        >
-                                                            <FontAwesomeIcon icon={faBolt} /> Join Duel
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            )}
+                                                <h4 className="inbox-item-title">{item.title}</h4>
+
+                                                {!expanded && (
+                                                    <p className="inbox-item-preview">
+                                                        {getNotificationPreview(item)}
+                                                    </p>
+                                                )}
+                                            </div>
+
+                                            <div className="inbox-item-header-actions">
+                                                {!item.read && (
+                                                    <span className="inbox-unread-dot" title="Unread" />
+                                                )}
+                                                <button
+                                                    type="button"
+                                                    className={`inbox-expand-toggle-btn ${expanded ? 'is-open' : ''}`}
+                                                    onClick={(e) => toggleExpand(item.id, e)}
+                                                    title={expanded ? "Collapse notification" : "Expand notification"}
+                                                    aria-label={expanded ? "Collapse" : "Expand"}
+                                                >
+                                                    <FontAwesomeIcon icon={expanded ? faChevronUp : faChevronDown} />
+                                                </button>
+                                            </div>
                                         </div>
 
-                                        {!item.read && <span className="inbox-unread-dot" />}
+                                        {/* Expandable Body */}
+                                        <AnimatePresence initial={false}>
+                                            {expanded && (
+                                                <motion.div
+                                                    key="expandable-body"
+                                                    initial={{ opacity: 0, height: 0 }}
+                                                    animate={{ opacity: 1, height: 'auto' }}
+                                                    exit={{ opacity: 0, height: 0 }}
+                                                    transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                                                    className="inbox-item-expandable-body"
+                                                    onClick={(e) => e.stopPropagation()}
+                                                >
+                                                    {/* Full Message Text */}
+                                                    {item.message && (
+                                                        <p className="inbox-item-full-message">{item.message}</p>
+                                                    )}
+
+                                                    {/* Direct 1v1 Challenge Details */}
+                                                    {item.type === 'CHALLENGE' && item.metadata?.challengeId && (
+                                                        <div className="inbox-challenge-box">
+                                                            {item.metadata?.config && (
+                                                                <div className="inbox-challenge-specs">
+                                                                    <span>⏱️ {item.metadata.config.timeLimitMinutes || 15}m</span>
+                                                                    <span>🎯 {item.metadata.config.difficulty || "MEDIUM"}</span>
+                                                                    <span>📝 {item.metadata.config.problemCount || 1} Question{item.metadata.config.problemCount > 1 ? "s" : ""}</span>
+                                                                </div>
+                                                            )}
+                                                            {!item.read && (
+                                                                <div className="inbox-challenge-buttons">
+                                                                    <button
+                                                                        type="button"
+                                                                        className="inbox-btn-accept"
+                                                                        onClick={(e) => handleAcceptChallenge(e, item.metadata.challengeId, item.id)}
+                                                                    >
+                                                                        <FontAwesomeIcon icon={faBolt} /> Accept Challenge
+                                                                    </button>
+                                                                    <button
+                                                                        type="button"
+                                                                        className="inbox-btn-decline"
+                                                                        onClick={(e) => handleDeclineChallenge(e, item.metadata.challengeId, item.id)}
+                                                                    >
+                                                                        Decline
+                                                                    </button>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
+
+                                                    {/* Open Public Duel Challenge */}
+                                                    {item.type === 'PUBLIC_CHALLENGE' && item.metadata?.roomCode && (
+                                                        <div className="inbox-challenge-box">
+                                                            <div className="inbox-challenge-specs">
+                                                                <span>⏱️ {item.metadata.timeLimitMinutes || 15}m</span>
+                                                                <span>🎯 {item.metadata.difficulty || "MIX"}</span>
+                                                                <span>🏆 {item.metadata.hostRating || 1200} ELO</span>
+                                                            </div>
+                                                            <div className="inbox-challenge-buttons">
+                                                                <button
+                                                                    type="button"
+                                                                    className="inbox-btn-accept"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        markAsRead(item.id);
+                                                                        onClose();
+                                                                        navigate(`/battle/room/${item.metadata.roomCode}`);
+                                                                    }}
+                                                                >
+                                                                    <FontAwesomeIcon icon={faBolt} /> Join Duel Arena
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Broadcast Media Attachments & Actions */}
+                                                    {isBroadcast && (
+                                                        <div className="inbox-broadcast-extras">
+                                                            {item.metadata?.content?.url && (
+                                                                <div className="inbox-broadcast-media">
+                                                                    {item.metadata.content.type === 'IMAGE' && (
+                                                                        <div className="inbox-broadcast-image-wrap">
+                                                                            <img
+                                                                                src={item.metadata.content.url}
+                                                                                alt={item.metadata.content.name || 'Broadcast Attachment'}
+                                                                                className="inbox-broadcast-img"
+                                                                                loading="lazy"
+                                                                                onError={(e) => {
+                                                                                    e.target.style.display = 'none';
+                                                                                }}
+                                                                            />
+                                                                        </div>
+                                                                    )}
+
+                                                                    {item.metadata.content.type === 'VIDEO' && (
+                                                                        <div className="inbox-broadcast-video-wrap">
+                                                                            {(() => {
+                                                                                const embed = getEmbedVideoUrl(item.metadata.content.url);
+                                                                                if (embed) {
+                                                                                    return (
+                                                                                        <iframe
+                                                                                            src={embed}
+                                                                                            title={item.metadata.content.name || 'Broadcast Video Stream'}
+                                                                                            className="inbox-broadcast-iframe"
+                                                                                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                                                            allowFullScreen
+                                                                                        />
+                                                                                    );
+                                                                                }
+                                                                                return (
+                                                                                    <video
+                                                                                        src={item.metadata.content.url}
+                                                                                        controls
+                                                                                        preload="metadata"
+                                                                                        className="inbox-broadcast-video-element"
+                                                                                    >
+                                                                                        Your browser does not support HTML5 video streaming.
+                                                                                    </video>
+                                                                                );
+                                                                            })()}
+                                                                        </div>
+                                                                    )}
+
+                                                                    {item.metadata.content.type === 'DOCUMENT' && (
+                                                                        <WhatsAppDocumentPreview content={item.metadata.content} />
+                                                                    )}
+                                                                </div>
+                                                            )}
+
+                                                            {item.metadata?.action?.target && (
+                                                                <div className="inbox-broadcast-action-row">
+                                                                    <button
+                                                                        type="button"
+                                                                        className="inbox-btn-action"
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            markAsRead(item.id);
+                                                                            onClose();
+                                                                            if (item.metadata.action.type === 'EXTERNAL_LINK') {
+                                                                                window.open(item.metadata.action.target, '_blank', 'noopener,noreferrer');
+                                                                            } else {
+                                                                                navigate(item.metadata.action.target);
+                                                                            }
+                                                                        }}
+                                                                    >
+                                                                        <span>{item.metadata.action.label || 'Take Action'}</span>
+                                                                        <FontAwesomeIcon
+                                                                            icon={item.metadata.action.type === 'EXTERNAL_LINK' ? faArrowUpRightFromSquare : faArrowRight}
+                                                                        />
+                                                                    </button>
+                                                                </div>
+                                                            )}
+
+                                                            {item.metadata?.expiresAt && (
+                                                                <div className="inbox-broadcast-expiry">
+                                                                    <FontAwesomeIcon icon={faClock} />
+                                                                    <span>Active until {formatExpiryDate(item.metadata.expiresAt)}</span>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
+
+                                                    {/* Feedback Form Integration */}
+                                                    {isFeedback && (
+                                                        <div className="inbox-feedback-section">
+                                                            {isSubmitted ? (
+                                                                <div className="inbox-feedback-submitted-pill">
+                                                                    <FontAwesomeIcon icon={faCheckCircle} />
+                                                                    <span>Feedback submitted. Thank you for making AlgoFight better!</span>
+                                                                </div>
+                                                            ) : (
+                                                                <FeedbackForm
+                                                                    isCompact
+                                                                    onSubmitted={() => {
+                                                                        markAsRead(item.id);
+                                                                    }}
+                                                                />
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
                                     </div>
                                 );
                             })

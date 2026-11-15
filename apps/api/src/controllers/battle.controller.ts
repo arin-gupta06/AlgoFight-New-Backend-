@@ -153,6 +153,11 @@ export class BattleController {
                             continue;
                         }
 
+                        // Filter out friendly (private with friends) and bot rooms
+                        if (parsed.isFriendly || parsed.isBot || parsed.hostUsername?.toLowerCase()?.includes("bot")) {
+                            continue;
+                        }
+
                         parsed.status = parsed.status || "WAITING";
                         activeRooms.push(parsed);
                         seenCodes.add(code);
@@ -165,7 +170,7 @@ export class BattleController {
             // Redis error fallback
         }
 
-        // 2. Query fresh database WAITING rooms (not expired, not cancelled, not finished)
+        // 2. Query fresh database WAITING rooms (open public rooms that users can join)
         try {
             const dbRooms = await this.battleRoomService.getOpenWaitingRooms(10);
             for (const r of dbRooms) {
@@ -173,6 +178,10 @@ export class BattleController {
                 if (!r.participants || r.participants.length === 0) continue;
                 if (r.participants.length >= r.maxPlayers) continue;
                 if (r.status !== "WAITING" && r.status !== "READY") continue;
+                if (r.isFriendly) continue; // Exclude private friendly duels between friends
+
+                const hostName = r.host?.username || "Arena Host";
+                if (hostName.toLowerCase().includes("bot")) continue; // Exclude bot rooms
 
                 const createdAtMs = new Date(r.createdAt).getTime();
                 if (now - createdAtMs > maxWaitingAgeMs) continue; // Exclude expired
@@ -181,45 +190,15 @@ export class BattleController {
                     roomId: r.id,
                     roomCode: r.roomCode,
                     hostId: r.hostId,
-                    hostUsername: r.host?.username || "Arena Host",
+                    hostUsername: hostName,
                     hostRating: r.host?.rating ?? 1200,
                     difficulty: r.difficulty,
                     questionCount: r.questionCount,
                     timeLimitMinutes: r.timeLimitMinutes,
                     maxPlayers: r.maxPlayers,
                     currentPlayers: r.participants.length,
-                    isFriendly: r.isFriendly,
+                    isFriendly: false,
                     status: "WAITING",
-                    createdAt: r.createdAt ? new Date(r.createdAt).toISOString() : new Date().toISOString(),
-                    isPublic: true,
-                });
-                seenCodes.add(r.roomCode);
-            }
-        } catch {}
-
-        // 3. Query active RUNNING battles (live matches currently in progress within time limit)
-        try {
-            const runningRooms = await this.battleRoomService.getActiveRunningRooms(5);
-            for (const r of runningRooms) {
-                if (seenCodes.has(r.roomCode)) continue;
-                if (r.status !== "RUNNING" || !r.startedAt) continue;
-
-                const players = (r.participants || []).map((p: any) => p.user?.username || p.username || "Coder");
-                activeRooms.push({
-                    roomId: r.id,
-                    roomCode: r.roomCode,
-                    hostId: r.hostId,
-                    hostUsername: r.host?.username || players[0] || "Arena Host",
-                    player1: players[0] || r.host?.username || "Player 1",
-                    player2: players[1] || "Opponent",
-                    difficulty: r.difficulty,
-                    questionCount: r.questionCount,
-                    timeLimitMinutes: r.timeLimitMinutes,
-                    maxPlayers: r.maxPlayers,
-                    currentPlayers: r.participants.length,
-                    isFriendly: r.isFriendly,
-                    status: "RUNNING",
-                    startedAt: new Date(r.startedAt).toISOString(),
                     createdAt: r.createdAt ? new Date(r.createdAt).toISOString() : new Date().toISOString(),
                     isPublic: true,
                 });

@@ -15,10 +15,10 @@ export interface GetProblemQuery {
 
 export class PrismaProblemRepository implements ProblemRepository {
     async createProblem(input: CreateProblemInput): Promise<ProblemEntity> {
-        const testCasesData = (input.testCases || []).map((tc) => ({
+        const testCasesData = (input.testCases || []).map((tc, index) => ({
             input: tc.input,
             expectedOutput: tc.expectedOutput,
-            isHidden: tc.isHidden !== undefined ? tc.isHidden : true,
+            isHidden: tc.isHidden !== undefined ? tc.isHidden : (index >= 2),
         }));
 
         const problem = await prisma.problem.create({
@@ -39,9 +39,6 @@ export class PrismaProblemRepository implements ProblemRepository {
                         },
                     }
                     : {}),
-            },
-            include: {
-                testCases: true,
             },
         });
         return problem as any;
@@ -83,18 +80,17 @@ export class PrismaProblemRepository implements ProblemRepository {
                 where,
                 skip,
                 take: limit,
-                include: {
-                    testCases: {
-                        where: { isHidden: false },
-                    },
-                },
+                // 🔐 Test cases are strictly omitted from directory queries to prevent answer exposure
                 orderBy: { createdAt: "asc" },
             }),
             prisma.problem.count({ where }),
         ]);
 
         return {
-            problems,
+            problems: problems.map((p) => ({
+                ...p,
+                testCases: [], // 🔐 Test cases strictly stripped from problem listings to prevent leak
+            })) as any,
             pagination: {
                 page,
                 limit,
@@ -104,16 +100,18 @@ export class PrismaProblemRepository implements ProblemRepository {
         };
     }
 
-    // Public view: Filters out isHidden = true so hidden tests are NEVER leaked
+    // Public view: Filters out isHidden = true and caps at 2 sample cases for statement display
     async getProblemById(problemId: string): Promise<ProblemEntity | null> {
-        return prisma.problem.findUnique({
+        const problem = await prisma.problem.findUnique({
             where: { id: problemId },
             include: {
                 testCases: {
                     where: { isHidden: false },
+                    take: 2, // 🔐 Limit to max 2 public sample cases for problem rendering
                 },
             },
         });
+        return problem as any;
     }
 
     // Internal worker query: Includes all test cases for sandbox evaluation

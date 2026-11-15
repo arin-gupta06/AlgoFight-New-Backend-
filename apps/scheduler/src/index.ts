@@ -1,3 +1,4 @@
+import "@algofight/config";
 import { runStaleSubmissionJob } from "./jobs/stale-submission.job";
 import { runBattleExpirationJob } from "./jobs/battle-expiration.job";
 import { SCHEDULER_INTERVALS } from "./constants/scheduler.constants";

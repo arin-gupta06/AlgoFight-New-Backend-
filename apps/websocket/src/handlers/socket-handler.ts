@@ -841,6 +841,36 @@ export class SocketHandler {
                     break;
                 }
 
+                case "send_lobby_chat": {
+                    const { roomCode, roomId, message: text, userType, avatarFrame, rating, id: customId } = data || {};
+                    const targetRoom = roomCode || roomId;
+                    if (!targetRoom || !text || typeof text !== "string") break;
+                    const cleanMsg = text.trim().slice(0, 300);
+                    if (!cleanMsg) break;
+
+                    const session = this.socketUsers.get(socket);
+                    const senderUserId = data.userId || session?.userId || currentUserId.value || "guest";
+                    const senderUsername = data.username || session?.username || (socket as any)._username || "Anonymous";
+
+                    const chatPayload = {
+                        id: customId || `msg_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+                        roomCode: targetRoom,
+                        userId: senderUserId,
+                        username: senderUsername,
+                        message: cleanMsg,
+                        userType: userType || "STUDENT",
+                        avatarFrame: avatarFrame || null,
+                        rating: rating ?? 1200,
+                        timestamp: Date.now(),
+                    };
+
+                    this.connectionManager.broadcastToRoom(targetRoom, "lobby_chat_message", chatPayload);
+                    if (roomId && roomCode && roomId !== roomCode) {
+                        this.connectionManager.broadcastToRoom(roomId, "lobby_chat_message", chatPayload);
+                    }
+                    break;
+                }
+
                 case "squad_join_channel": {
                     const { roomCode, userId, username } = data;
                     if (roomCode) {

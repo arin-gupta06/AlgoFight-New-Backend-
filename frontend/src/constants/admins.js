@@ -1,13 +1,14 @@
 // frontend/src/constants/admins.js
 
-export const ADMIN_EMAILS = [
-  'vivekchaurasiya943@gmail.com',
-  'aringupta2244@gmail.com',
-  'dargarkrish@gmail.com',
-  'atul@mitsgwalior.in'
-];
-
+/**
+ * Validates whether the authenticated user has administrative clearance.
+ * Clearance is cryptographically verified and signed by the backend gateway.
+ */
 export function isAdminUser(user) {
-  if (!user || !user.email) return false;
-  return ADMIN_EMAILS.includes(String(user.email).toLowerCase().trim());
+  if (!user) return false;
+  return Boolean(
+    user.role === 'ADMIN' ||
+    user.isAdmin === true ||
+    user.userType === 'ADMIN'
+  );
 }

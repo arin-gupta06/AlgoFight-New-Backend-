@@ -63,16 +63,24 @@ export async function userRoutes(app: FastifyInstance) {
         });
     });
 
-    // 2. Get User Profile by ID or Email
-    app.get("/users/:id", async (req) => {
+    // 2. Get User Profile by ID or Email (Authenticated with Strict Projection)
+    app.get("/users/:id", { preHandler: [requireAuth] }, async (req, reply) => {
         const { id } = req.params as { id: string };
-        return userController.getUserById(id, (req as any).user);
+        const profile = await userController.getUserById(id, req.user);
+        if (!profile) {
+            return reply.status(404).send({
+                error: "NOT_FOUND",
+                message: "User profile not found.",
+            });
+        }
+        return profile;
     });
 
-    // 3. Available Players
-    app.get("/players/available", async (req) => {
+    // 3. Available Players (Authenticated only - protects student roster & prevents scraping)
+    app.get("/players/available", { preHandler: [requireAuth] }, async (req) => {
         const query = AvailablePlayersQuerySchema.parse(req.query);
-        return userController.getAvailablePlayers(query.excludeUserId, query.limit, query.search);
+        const excludeUserId = query.excludeUserId || req.user?.id;
+        return userController.getAvailablePlayers(excludeUserId, query.limit, query.search);
     });
 
     // 4. Global Leaderboard

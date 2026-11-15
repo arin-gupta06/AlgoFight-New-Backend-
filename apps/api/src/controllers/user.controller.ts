@@ -1,6 +1,7 @@
 // apps/api/src/controllers/user.controller.ts
 import { PrismaUserRepository, prisma } from "@algofight/database";
 import { defaultStudentIdentityService, parseInstitutionalName } from "@algofight/institutional-identity";
+import { isAdminEmail } from "../constants/admins";
 
 export interface SyncUserPayload {
     id?: string;
@@ -374,6 +375,18 @@ export class UserController {
         }
         if (!user) return null;
 
+        const isSelf = Boolean(
+            authUser &&
+            (authUser.id === user.id ||
+             (authUser.email && user.email && authUser.email.toLowerCase() === user.email.toLowerCase()))
+        );
+        const isAdmin = Boolean(
+            authUser &&
+            (authUser.role === "ADMIN" ||
+             isAdminEmail(authUser.email) ||
+             authUser.isAdmin)
+        );
+
         // Dynamically compute current academic status if institutional identity exists
         let academicProfile = null;
         if (user.admissionYear) {
@@ -409,26 +422,58 @@ export class UserController {
 
         const metrics = await this.enrichUserMetrics(user);
         const userMeta = (user.studentIdentityMetadata as any) || {};
-        return {
-            ...user,
-            enrollmentNumber: user.enrollmentNumber ? user.enrollmentNumber.toUpperCase() : null,
-            school: user.school || userMeta.school || null,
-            designation: user.designation || userMeta.designation || (user.userType === "FACULTY" ? "Faculty Educator" : null),
+
+        // 🔐 Public combatant profile (Safe for all authenticated users to view)
+        const baseProfile = {
+            id: user.id,
+            username: user.username,
+            displayName: (user as any).displayName || user.username,
             photoURL: (user as any).photoURL || userMeta.photoURL || null,
             avatarFrame: (user as any).avatarFrame || userMeta.avatarFrame || null,
-            originalPhotoURL: userMeta.originalPhotoURL || (userMeta.photoURL && userMeta.photoURL.startsWith('http') && !userMeta.photoURL.includes('/avatars/') ? userMeta.photoURL : null) || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(user.username || user.email)}`,
-            unlockedAvatars: Array.isArray(userMeta.unlockedAvatars) ? userMeta.unlockedAvatars : [],
-            unlockedFrames: Array.isArray(userMeta.unlockedFrames) ? userMeta.unlockedFrames : [],
-            unlockedThemes: Array.isArray(userMeta.unlockedThemes) ? userMeta.unlockedThemes : [],
-            claimedRewards: Array.isArray(userMeta.claimedRewards) ? userMeta.claimedRewards : [],
-            arenaPoints: (user as any).arenaPoints ?? 0,
-            themePreference: userMeta.themePreference || null,
-            academicProfile,
+            originalPhotoURL: userMeta.originalPhotoURL || (userMeta.photoURL && userMeta.photoURL.startsWith('http') && !userMeta.photoURL.includes('/avatars/') ? userMeta.photoURL : null) || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(user.username || user.id)}`,
+            userType: user.userType,
+            institutionName: user.institutionName,
+            institutionDomain: user.institutionDomain,
+            department: user.department,
+            school: user.school || userMeta.school || null,
+            designation: user.designation || userMeta.designation || (user.userType === "FACULTY" ? "Faculty Educator" : null),
+            branch: user.branch,
+            batchYear: user.batchYear,
+            rating: user.rating,
+            highestRating: user.highestRating,
+            highestRank: user.highestRank,
+            wins: user.wins,
+            losses: user.losses,
             matchesWon: user.wins,
             matchesPlayed: user.wins + user.losses,
             lossCount: user.losses,
+            academicProfile,
+            githubUrl: user.githubUrl || null,
+            linkedinUrl: user.linkedinUrl || null,
+            unlockedAvatars: Array.isArray(userMeta.unlockedAvatars) ? userMeta.unlockedAvatars : [],
+            unlockedFrames: Array.isArray(userMeta.unlockedFrames) ? userMeta.unlockedFrames : [],
+            unlockedThemes: Array.isArray(userMeta.unlockedThemes) ? userMeta.unlockedThemes : [],
+            themePreference: userMeta.themePreference || null,
+            createdAt: user.createdAt,
             ...metrics,
         };
+
+        // 🔐 STRICT SECURITY PROJECTION:
+        // NEVER expose passwordHash, googleSub under ANY circumstances.
+        // Private fields (email, arenaPoints, enrollmentNumber, platformCode, claimedRewards) ONLY returned to the owner or SuperAdmin.
+        if (isSelf || isAdmin) {
+            return {
+                ...baseProfile,
+                email: user.email,
+                arenaPoints: (user as any).arenaPoints ?? 0,
+                platformCode: user.platformCode || null,
+                enrollmentNumber: user.enrollmentNumber ? user.enrollmentNumber.toUpperCase() : null,
+                claimedRewards: Array.isArray(userMeta.claimedRewards) ? userMeta.claimedRewards : [],
+            };
+        }
+
+        // Return only safe public gamertag profile
+        return baseProfile;
     }
 
     async updateThemePreference(userId: string, themeId: string) {
@@ -453,15 +498,13 @@ export class UserController {
             const matchesPlayed = u.wins + u.losses;
             const winRate = matchesPlayed > 0 ? Math.round((u.wins / matchesPlayed) * 100) : 0;
             const userMeta = (u.studentIdentityMetadata as any) || {};
+            // 🔐 Zero PII returned: Emails, PlatformCodes, and Enrollment Numbers are stripped
             return {
                 id: u.id,
                 username: u.username,
-                email: u.email,
-                platformCode: u.platformCode,
                 userType: u.userType,
                 institutionName: u.institutionName,
                 department: u.department,
-                enrollmentNumber: u.enrollmentNumber ? u.enrollmentNumber.toUpperCase() : null,
                 rating: u.rating,
                 wins: u.wins,
                 losses: u.losses,

@@ -39,6 +39,7 @@ export const SmartCodeEditor = forwardRef(({
 
   const toastTimeoutRef = useRef(null);
   const historyRef = useRef(new EditorHistory());
+  const lastJumpedErrorRef = useRef(null);
 
   // Generate array of lines for gutter numbering
   const lines = useMemo(() => {
@@ -84,10 +85,10 @@ export const SmartCodeEditor = forwardRef(({
     setCanRedo(false);
   }, [problemId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Jump cursor & scroll to line and column
+  // Jump cursor & scroll to line and column (Only executed once on initial error discovery)
   const jumpToLine = useCallback((targetLine, targetCol = 1) => {
     if (!targetLine || !textareaRef.current) return;
-    const currentVal = textareaRef.current.value || value || "";
+    const currentVal = textareaRef.current.value || "";
     const lineList = currentVal.split("\n");
     if (targetLine < 1 || targetLine > lineList.length) return;
 
@@ -102,24 +103,37 @@ export const SmartCodeEditor = forwardRef(({
 
     const textarea = textareaRef.current;
     textarea.focus();
-    // Select from start of the line or caret at the exact column
-    if (col > 0) {
-      textarea.setSelectionRange(charOffset, finalPos);
-    } else {
-      textarea.setSelectionRange(charOffset, charOffset + lineLen);
-    }
+    // Position caret cleanly without locking user out of other lines
+    textarea.setSelectionRange(finalPos, finalPos);
 
     const lineHeight = 22; // exact monospace line height
     const newScrollTop = Math.max(0, (targetLine - 3) * lineHeight);
     textarea.scrollTop = newScrollTop;
     if (highlightRef.current) highlightRef.current.scrollTop = newScrollTop;
     if (gutterRef.current) gutterRef.current.scrollTop = newScrollTop;
-  }, [value, textareaRef]);
+  }, [textareaRef]);
 
-  // Jump cursor & scroll to error line when errorLocation changes
+  // Jump cursor & scroll to error line ONLY ONCE when a new error appears (never hijack typing keystrokes)
   useEffect(() => {
-    if (!errorLocation || !errorLocation.line) return;
-    jumpToLine(errorLocation.line, errorLocation.column || 1);
+    if (!errorLocation || !errorLocation.line) {
+      lastJumpedErrorRef.current = null;
+      return;
+    }
+
+    const isSameError =
+      lastJumpedErrorRef.current &&
+      lastJumpedErrorRef.current.line === errorLocation.line &&
+      lastJumpedErrorRef.current.column === errorLocation.column &&
+      lastJumpedErrorRef.current.message === errorLocation.message;
+
+    if (!isSameError) {
+      lastJumpedErrorRef.current = {
+        line: errorLocation.line,
+        column: errorLocation.column,
+        message: errorLocation.message,
+      };
+      jumpToLine(errorLocation.line, errorLocation.column || 1);
+    }
   }, [errorLocation, jumpToLine]);
 
   const showToastFeedback = useCallback((message, type = "info") => {
@@ -522,10 +536,10 @@ export const SmartCodeEditor = forwardRef(({
               toast.type === "success"
                 ? faWandMagicSparkles
                 : toast.type === "warning"
-                ? faShieldHalved
-                : toast.type === "error"
-                ? faTriangleExclamation
-                : faInfoCircle
+                  ? faShieldHalved
+                  : toast.type === "error"
+                    ? faTriangleExclamation
+                    : faInfoCircle
             }
             className="prettier-toast-icon"
           />

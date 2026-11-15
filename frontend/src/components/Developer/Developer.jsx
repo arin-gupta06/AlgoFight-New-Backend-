@@ -94,7 +94,7 @@ const mentor = {
   icon: faCodeBranch,
   headerIcon: faGraduationCap,
   tone: "tone-amber",
-  email: "atul@mitsgwalior.in",
+  email: "contact@algofight.com",
   imgStyle: { objectPosition: "center 15%" },
 };
 
@@ -155,7 +155,7 @@ function Developer() {
   }, []);
 
   const handleCopyMentorEmail = () => {
-    navigator.clipboard.writeText("atul@mitsgwalior.in");
+    navigator.clipboard.writeText(mentor.email);
     setCopiedEmail(true);
     setTimeout(() => setCopiedEmail(false), 2400);
   };

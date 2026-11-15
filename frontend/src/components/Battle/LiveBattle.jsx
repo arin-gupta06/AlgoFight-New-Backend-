@@ -43,6 +43,11 @@ import {
   faCopy,
   faRobot,
   faEye,
+  faUsers,
+  faSearch,
+  faUserSlash,
+  faUserCheck,
+  faCrown,
 } from "@fortawesome/free-solid-svg-icons";
 import {
   SUPPORTED_LANGUAGES,
@@ -308,6 +313,21 @@ export default function LiveBattle() {
   useEffect(() => {
     codeByProblemRef.current = codeByProblem;
   }, [codeByProblem]);
+
+  // Per-problem error and execution results tracking to isolate question errors
+  const [resultsByProblem, setResultsByProblem] = useState({});
+  const resultsByProblemRef = useRef({});
+  useEffect(() => {
+    resultsByProblemRef.current = resultsByProblem;
+  }, [resultsByProblem]);
+
+  // Watchdog timer ref to prevent execution/language freezes
+  const watchdogTimer = useRef(null);
+
+  // Google Meet-style side activities / participants drawer
+  const [showParticipantsDrawer, setShowParticipantsDrawer] = useState(false);
+  const [participantsSearch, setParticipantsSearch] = useState("");
+  const [inspectingPlayerCode, setInspectingPlayerCode] = useState(null);
 
   const [opponentName, setOpponentName] = useState("");
   const [code, setCode] = useState("");
@@ -915,6 +935,18 @@ export default function LiveBattle() {
       ? destinationSaved.code
       : (nextProb ? getStarterCodeForLanguage(nextProb, nextLang) : "");
 
+    // 🛡️ Scope error & execution output to destination question (never leak previous question's errors)
+    const nextResult = nextProbId ? (resultsByProblemRef.current[nextProbId] || null) : null;
+    setLastResult(nextResult);
+    setOutput(nextResult?.output || "");
+    if (nextResult && (!nextResult.passed || nextResult.verdict === "COMPILATION_ERROR" || nextResult.error)) {
+      setConsoleTab("problems");
+    } else {
+      setConsoleTab("terminal");
+    }
+    setRunning(false);
+    setRunMode("idle");
+
     setLanguage(nextLang);
     setCode(nextCode);
     setWatchingTeammate(null);
@@ -1013,6 +1045,24 @@ export default function LiveBattle() {
 
     setLanguage(newLang);
     setCode(newCode);
+
+    // 🛡️ Reset previous language execution errors so they never linger or freeze the editor
+    setLastResult(null);
+    setOutput("");
+    setConsoleTab("terminal");
+    setRunning(false);
+    setRunMode("idle");
+    if (watchdogTimer.current) {
+      clearTimeout(watchdogTimer.current);
+      watchdogTimer.current = null;
+    }
+    if (currentProbId) {
+      setResultsByProblem((prev) => {
+        const next = { ...prev };
+        delete next[currentProbId];
+        return next;
+      });
+    }
 
     const nextRev = (existing?.revision || existing?.localRevision || 0) + 1;
     const updatedEntry = {
@@ -1313,6 +1363,8 @@ export default function LiveBattle() {
         setCode(initialCode);
         setOutput("");
         setLastResult(null);
+        setResultsByProblem({});
+        resultsByProblemRef.current = {};
         setExecutionTimeline([]);
         setExecutionTests([]);
         setSubmissionMeta(null);
@@ -1341,6 +1393,8 @@ export default function LiveBattle() {
         setCode("// write your solution here");
         setOutput("");
         setLastResult(null);
+        setResultsByProblem({});
+        resultsByProblemRef.current = {};
         setExecutionTimeline([]);
         setExecutionTests([]);
         setStatus("matched");
@@ -1409,6 +1463,11 @@ export default function LiveBattle() {
         setRunning(false);
         setRunMode("idle");
         
+        if (watchdogTimer.current) {
+          clearTimeout(watchdogTimer.current);
+          watchdogTimer.current = null;
+        }
+
         if (slowNotificationTimer.current) {
             clearTimeout(slowNotificationTimer.current);
             slowNotificationTimer.current = null;
@@ -1448,6 +1507,15 @@ export default function LiveBattle() {
         setLastResult(uiResult);
         setOutput(uiResult.output);
 
+        // 🛡️ Scope this question's execution result so it never pollutes other problems
+        const currProbId = problem?.id || problems[activeProblemIndexRef.current]?.id;
+        if (currProbId) {
+          setResultsByProblem((prev) => ({
+            ...prev,
+            [currProbId]: uiResult,
+          }));
+        }
+
         if (!uiResult.passed || uiResult.verdict === "COMPILATION_ERROR" || Boolean(uiResult.error)) {
           setConsoleTab("problems");
         } else {
@@ -1464,6 +1532,11 @@ export default function LiveBattle() {
       socket.on("error", (errorMsg) => {
         setRunning(false);
         setRunMode("idle");
+
+        if (watchdogTimer.current) {
+          clearTimeout(watchdogTimer.current);
+          watchdogTimer.current = null;
+        }
         
         if (slowNotificationTimer.current) {
             clearTimeout(slowNotificationTimer.current);
@@ -1862,6 +1935,13 @@ export default function LiveBattle() {
     setOutput("Testing against sample cases...");
     socketRef.current.emit("test_code", { code, language, roomId, problemId: problem.id });
     
+    // 🛡️ Watchdog: Guarantee that running status and language lock reset even if socket drops
+    if (watchdogTimer.current) clearTimeout(watchdogTimer.current);
+    watchdogTimer.current = setTimeout(() => {
+      setRunning(false);
+      setRunMode("idle");
+    }, 16000);
+
     if (slowNotificationTimer.current) clearTimeout(slowNotificationTimer.current);
     slowNotificationTimer.current = setTimeout(() => {
         notify({
@@ -1890,6 +1970,13 @@ export default function LiveBattle() {
     setOutput("Testing against hidden and edge cases...");
     socketRef.current.emit("submit_code", { code, language, roomId, problemId: problem.id });
     
+    // 🛡️ Watchdog: Guarantee that running status and language lock reset even if socket drops
+    if (watchdogTimer.current) clearTimeout(watchdogTimer.current);
+    watchdogTimer.current = setTimeout(() => {
+      setRunning(false);
+      setRunMode("idle");
+    }, 16000);
+
     if (slowNotificationTimer.current) clearTimeout(slowNotificationTimer.current);
     slowNotificationTimer.current = setTimeout(() => {
         notify({
@@ -2285,6 +2372,55 @@ export default function LiveBattle() {
                   </span>
                 </div>
               </div>
+            ) : battlePlayers.length > 2 || isViewer ? (
+              /* Google Meet style compact participants summary when >2 players or proctor view */
+              <div 
+                className="livebattle-compact-combatants-hub"
+                onClick={() => setShowParticipantsDrawer(true)}
+                title="Open Participants Panel (Google Meet style)"
+              >
+                <div className="compact-avatars-cluster">
+                  {battlePlayers.slice(0, 3).map((p, idx) => (
+                    <div 
+                      key={p.userId || idx} 
+                      className="compact-avatar-disc" 
+                      style={{ zIndex: 3 - idx, marginLeft: idx > 0 ? "-8px" : "0" }}
+                      title={p.username}
+                    >
+                      {(p.username || "P")[0].toUpperCase()}
+                    </div>
+                  ))}
+                  {battlePlayers.length > 3 && (
+                    <div className="compact-avatar-disc more-disc" style={{ marginLeft: "-8px" }}>
+                      +{battlePlayers.length - 3}
+                    </div>
+                  )}
+                </div>
+                <div className="compact-hub-text">
+                  <div className="compact-hub-title">
+                    <FontAwesomeIcon icon={faUsers} style={{ marginRight: "6px", color: "#38bdf8" }} />
+                    <span>{battlePlayers.length} Combatants</span>
+                  </div>
+                  <div className="compact-hub-sub">
+                    {(() => {
+                      const leader = [...battlePlayers].sort((a, b) => (b.points || b.score || 0) - (a.points || a.score || 0))[0];
+                      return leader ? `Leader: ${leader.username} (${leader.points || 0} pts)` : "Battle Active";
+                    })()}
+                  </div>
+                </div>
+                <button 
+                  type="button" 
+                  className="btn-compact-open-drawer"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowParticipantsDrawer((prev) => !prev);
+                  }}
+                  title="Toggle Participants Panel"
+                >
+                  <FontAwesomeIcon icon={faUsers} />
+                  <span>Roster</span>
+                </button>
+              </div>
             ) : (
               <div className="livebattle-players-matchup">
                 {battlePlayers.map((p, idx) => {
@@ -2417,6 +2553,17 @@ export default function LiveBattle() {
               onToggleEmotes={handleToggleEmotes}
             />
 
+            {/* Google Meet style Participants Drawer Toggle */}
+            <button
+              type="button"
+              className={`livebattle-tool-btn livebattle-participants-btn ${showParticipantsDrawer ? "active" : ""}`}
+              onClick={() => setShowParticipantsDrawer((prev) => !prev)}
+              title="Participants & Activities (Google Meet style)"
+            >
+              <FontAwesomeIcon icon={faUsers} />
+              <span className="participants-badge-count">{battlePlayers.length}</span>
+            </button>
+
             <div
               className={`livebattle-timer calm-timer ${timeLeft <= 60 && timeLeft > 0 ? "timer-warning" : ""}`}
               aria-label={`Time remaining: ${formatTime(timeLeft)}`}
@@ -2479,6 +2626,200 @@ export default function LiveBattle() {
           <div className="resize-handle-bar" />
         </div>
 
+        {isViewer ? (
+          /* ================= PROCTOR & SUPERVISOR COMMAND CENTER ================= */
+          <section 
+            className="livebattle-panel livebattle-proctor-panel"
+            style={{ flex: "1 1 0%", minWidth: "300px" }}
+          >
+            <div className="proctor-panel-header">
+              <div className="proctor-badge-group">
+                <span className="proctor-tag-pill">
+                  <FontAwesomeIcon icon={faEye} /> PROCTOR COMMAND CENTER
+                </span>
+                <span className="proctor-sub-pill">
+                  Live Match Surveillance • Anti-Cheat Active
+                </span>
+              </div>
+              <div className="proctor-quick-stats">
+                <span className="pstat-item">
+                  <strong>{battlePlayers.length}</strong> Combatants
+                </span>
+                <span className="pstat-item">
+                  <strong>{problems.length}</strong> Problems
+                </span>
+                <span className="pstat-item">
+                  Time: <strong>{formatTime(timeLeft)}</strong>
+                </span>
+              </div>
+            </div>
+
+            <div className="proctor-dashboard-body">
+              <div className="proctor-roster-section">
+                <div className="proctor-section-title">
+                  <FontAwesomeIcon icon={faUsers} />
+                  <span>Participant Live Progress &amp; Accuracy Matrix</span>
+                </div>
+
+                <div className="proctor-surveillance-table-wrap">
+                  <table className="proctor-surveillance-table">
+                    <thead>
+                      <tr>
+                        <th>Participant</th>
+                        <th>Rating</th>
+                        <th>Solved Ratio</th>
+                        <th>Score</th>
+                        {problems.map((_, i) => (
+                          <th key={i} style={{ textAlign: "center" }}>Q{i + 1}</th>
+                        ))}
+                        <th>Anti-Cheat</th>
+                        <th style={{ textAlign: "right" }}>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {battlePlayers.map((p, idx) => {
+                        const isBot = Boolean(p.isBot || p.userId === "bot" || p.username?.toLowerCase().includes("bot"));
+                        const pRating = p.rating || 1200;
+                        const solvedCount = p.solvedCount || (p.solvedProblems ? p.solvedProblems.length : 0);
+                        const points = p.points || p.score || 0;
+                        const switches = p.tabSwitches || 0;
+                        const isDQ = Boolean(p.disqualified);
+                        const hasLeft = p.status === "LEFT" || p.forfeited;
+
+                        return (
+                          <tr key={p.userId || idx} className={`proctor-player-row ${isDQ ? "is-dq" : ""} ${hasLeft ? "is-left" : ""}`}>
+                            <td className="proctor-col-player">
+                              <div className="proctor-user-cell">
+                                <div className="proctor-avatar-mini">
+                                  {(p.username || "P")[0].toUpperCase()}
+                                </div>
+                                <div>
+                                  <div className="proctor-username">
+                                    {p.username}
+                                    {isBot && <span className="bot-tag-mini">BOT</span>}
+                                  </div>
+                                  <div className="proctor-user-status">
+                                    {isDQ ? (
+                                      <span className="status-dq-text">Disqualified</span>
+                                    ) : hasLeft ? (
+                                      <span className="status-left-text">Left Arena</span>
+                                    ) : (
+                                      <span className="status-active-text">Active</span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
+                            <td>
+                              <div className="proctor-rating-cell">
+                                <RankEmblem rating={pRating} size={15} glow={false} />
+                                <span>{pRating}</span>
+                              </div>
+                            </td>
+                            <td>
+                              <div className="proctor-progress-cell">
+                                <span>{solvedCount}/{problems.length} solved</span>
+                                <div className="proctor-mini-bar">
+                                  <div 
+                                    className="proctor-mini-fill" 
+                                    style={{ width: `${Math.min(100, (solvedCount / Math.max(problems.length, 1)) * 100)}%` }} 
+                                  />
+                                </div>
+                              </div>
+                            </td>
+                            <td>
+                              <span className="proctor-pts-cell">{points} pts</span>
+                            </td>
+                            {problems.map((prob) => {
+                              const solvedData = p.solvedProblems?.find((sp) => sp.problemId === prob.id);
+                              return (
+                                <td key={prob.id} style={{ textAlign: "center" }}>
+                                  {solvedData ? (
+                                    <span className="matrix-badge solved" title={`Solved in ${solvedData.timeString || "match"}`}>
+                                      ✓
+                                    </span>
+                                  ) : (
+                                    <span className="matrix-badge pending">
+                                      --
+                                    </span>
+                                  )}
+                                </td>
+                              );
+                            })}
+                            <td>
+                              <div className="proctor-anticheat-cell">
+                                {isDQ ? (
+                                  <span className="anticheat-chip dq">DQ ({switches} tab switches)</span>
+                                ) : switches > 0 ? (
+                                  <span className="anticheat-chip warning">{switches}/3 Switches</span>
+                                ) : (
+                                  <span className="anticheat-chip clean">0/3 Switches</span>
+                                )}
+                              </div>
+                            </td>
+                            <td style={{ textAlign: "right" }}>
+                              <div className="proctor-actions-cell">
+                                <button
+                                  type="button"
+                                  className="btn-proctor-inspect"
+                                  onClick={() => setInspectingPlayerCode({
+                                    userId: p.userId,
+                                    username: p.username,
+                                    score: points,
+                                    solvedCount,
+                                    rating: pRating,
+                                  })}
+                                  title={`Inspect ${p.username}'s solution activity`}
+                                >
+                                  <FontAwesomeIcon icon={faEye} /> Inspect
+                                </button>
+                                {isDQ ? (
+                                  <button
+                                    type="button"
+                                    className="btn-proctor-pardon"
+                                    onClick={() => {
+                                      const targetId = roomId || initialMatch?.roomId || initialMatch?.roomCode || initialRoomCode || paramRoomCode;
+                                      if (socketRef.current && targetId) {
+                                        socketRef.current.emit("approve_anticheat_reentry", {
+                                          roomId: targetId,
+                                          targetUserId: p.userId,
+                                        });
+                                        notify({ type: "success", title: "Pardon Granted", message: `Re-admitted ${p.username} into battle.` });
+                                      }
+                                    }}
+                                    title="Pardon anti-cheat disqualification"
+                                  >
+                                    Pardon
+                                  </button>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    className="btn-proctor-kick"
+                                    onClick={() => {
+                                      const targetId = roomId || initialMatch?.roomId || initialMatch?.roomCode || initialRoomCode || paramRoomCode;
+                                      if (socketRef.current && targetId) {
+                                        socketRef.current.emit("kick_player", { roomId: targetId, targetUserId: p.userId, reason: "Host proctor action" });
+                                        notify({ type: "warning", title: "Participant Removed", message: `Removed ${p.username} from match.` });
+                                      }
+                                    }}
+                                    title="Kick participant from match"
+                                  >
+                                    Kick
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </section>
+        ) : (
+        /* ================= COMPETITOR CODING SPACE ================= */
         <section 
           className="livebattle-panel livebattle-editor-panel"
           style={{ flex: "1 1 0%", minWidth: "240px" }}
@@ -2694,8 +3035,9 @@ export default function LiveBattle() {
               </div>
           )}
         </section>
+        )}
 
-        {isSubmitPanelOpen && (
+        {!isViewer && isSubmitPanelOpen && (
         <>
           <div 
             className={`livebattle-resize-handle ${isDraggingRight ? "active" : ""}`}
@@ -3018,6 +3360,247 @@ export default function LiveBattle() {
         </>
         )}
       </div>
+
+      {/* ================= GOOGLE MEET-STYLE PARTICIPANTS DRAWER ================= */}
+      <AnimatePresence>
+        {showParticipantsDrawer && (
+          <motion.div
+            className="livebattle-participants-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowParticipantsDrawer(false)}
+          >
+            <motion.aside
+              className="livebattle-participants-drawer"
+              initial={{ x: 380, opacity: 0.8 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: 380, opacity: 0.8 }}
+              transition={{ type: "spring", damping: 25, stiffness: 280 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="drawer-header">
+                <div className="drawer-title-wrap">
+                  <FontAwesomeIcon icon={faUsers} style={{ color: "#38bdf8" }} />
+                  <span className="drawer-title">Combatants &amp; Side Activities</span>
+                  <span className="drawer-count-chip">{battlePlayers.length}</span>
+                </div>
+                <button
+                  type="button"
+                  className="drawer-close-btn"
+                  onClick={() => setShowParticipantsDrawer(false)}
+                  title="Close Drawer"
+                >
+                  <FontAwesomeIcon icon={faTimes} />
+                </button>
+              </div>
+
+              <div className="drawer-search-wrapper">
+                <FontAwesomeIcon icon={faSearch} className="drawer-search-icon" />
+                <input
+                  type="text"
+                  placeholder="Search combatants by name..."
+                  value={participantsSearch}
+                  onChange={(e) => setParticipantsSearch(e.target.value)}
+                />
+                {participantsSearch && (
+                  <button type="button" className="drawer-clear-search-btn" onClick={() => setParticipantsSearch("")}>
+                    <FontAwesomeIcon icon={faTimes} />
+                  </button>
+                )}
+              </div>
+
+              <div className="drawer-players-list">
+                {battlePlayers
+                  .filter((p) => !participantsSearch || p.username?.toLowerCase().includes(participantsSearch.toLowerCase()))
+                  .map((p, idx) => {
+                    const isMe = p.username === username || p.userId === user?.uid;
+                    const isBot = Boolean(p.isBot || p.userId === "bot" || p.username?.toLowerCase().includes("bot"));
+                    const pRating = p.rating || (isMe ? (user?.rating || 1200) : 1200);
+                    const isDQ = Boolean(p.disqualified);
+                    const hasLeft = p.status === "LEFT" || p.forfeited;
+                    const solvedCount = p.solvedCount || (p.solvedProblems ? p.solvedProblems.length : 0);
+                    const points = p.points || p.score || 0;
+
+                    return (
+                      <div key={p.userId || idx} className={`drawer-player-row ${isMe ? "is-me" : ""} ${isDQ ? "is-dq" : ""}`}>
+                        <div className="drawer-player-main">
+                          <div className="drawer-player-avatar">
+                            {(p.username || "P")[0].toUpperCase()}
+                          </div>
+                          <div className="drawer-player-info">
+                            <div className="drawer-player-name-line">
+                              <span className="drawer-username" title={p.username}>{p.username}</span>
+                              {isMe && <span className="drawer-tag you">YOU</span>}
+                              {isBot && <span className="drawer-tag bot">BOT</span>}
+                              {isDQ && <span className="drawer-tag dq">DQ</span>}
+                              {hasLeft && <span className="drawer-tag left">LEFT</span>}
+                            </div>
+                            <div className="drawer-player-stats-line">
+                              <RankEmblem rating={pRating} size={13} glow={false} />
+                              <span>{pRating}</span>
+                              <span className="drawer-stat-dot">•</span>
+                              <span>{points} pts</span>
+                              <span className="drawer-stat-dot">•</span>
+                              <span style={{ color: "#34d399", fontWeight: 700 }}>
+                                {solvedCount}/{problems.length} solved
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="drawer-player-actions">
+                          {/* Host / Proctor Moderation buttons */}
+                          {((liveState?.hostId && liveState.hostId === user?.uid) || (initialMatch?.hostId && initialMatch.hostId === user?.uid) || isViewer) && !isMe && (
+                            isDQ ? (
+                              <button
+                                type="button"
+                                className="btn-drawer-pardon"
+                                onClick={() => {
+                                  const targetId = roomId || initialMatch?.roomId || initialMatch?.roomCode || initialRoomCode || paramRoomCode;
+                                  if (socketRef.current && targetId) {
+                                    socketRef.current.emit("approve_anticheat_reentry", { roomId: targetId, targetUserId: p.userId });
+                                    notify({ type: "success", title: "Pardoned", message: `Re-admitted ${p.username}.` });
+                                  }
+                                }}
+                                title="Pardon and re-admit player"
+                              >
+                                Pardon
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                className="btn-drawer-kick"
+                                onClick={() => {
+                                  const targetId = roomId || initialMatch?.roomId || initialMatch?.roomCode || initialRoomCode || paramRoomCode;
+                                  if (socketRef.current && targetId) {
+                                    socketRef.current.emit("kick_player", { roomId: targetId, targetUserId: p.userId, reason: "Host moderation" });
+                                    notify({ type: "warning", title: "Removed", message: `Removed ${p.username} from battle.` });
+                                  }
+                                }}
+                                title="Kick participant"
+                              >
+                                Kick
+                              </button>
+                            )
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+
+              <div className="drawer-activities-card">
+                <div className="drawer-activities-title">
+                  <FontAwesomeIcon icon={faShieldHalved} style={{ color: "#a855f7" }} />
+                  <span>Match Telemetry</span>
+                </div>
+                <div className="drawer-telemetry-grid">
+                  <div className="drawer-tel-item">
+                    <span className="tel-label">Room Code</span>
+                    <span className="tel-value">#{roomId ? (roomId.length > 10 ? roomId.slice(0, 8) : roomId) : "BTL"}</span>
+                  </div>
+                  <div className="drawer-tel-item">
+                    <span className="tel-label">Timer</span>
+                    <span className="tel-value" style={{ color: timeLeft <= 60 ? "#ef4444" : "#38bdf8" }}>
+                      {formatTime(timeLeft)}
+                    </span>
+                  </div>
+                  <div className="drawer-tel-item">
+                    <span className="tel-label">Problems</span>
+                    <span className="tel-value">{problems.length} Questions</span>
+                  </div>
+                  <div className="drawer-tel-item">
+                    <span className="tel-label">Anti-Cheat</span>
+                    <span className="tel-value" style={{ color: "#34d399" }}>Strict (3 Max)</span>
+                  </div>
+                </div>
+              </div>
+            </motion.aside>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ================= PROCTOR CODE INSPECTOR MODAL ================= */}
+      <AnimatePresence>
+        {inspectingPlayerCode && (
+          <motion.div
+            className="proctor-inspect-modal-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setInspectingPlayerCode(null)}
+          >
+            <motion.div
+              className="proctor-inspect-modal"
+              initial={{ scale: 0.94, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.94, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="proctor-inspect-header">
+                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                  <FontAwesomeIcon icon={faEye} style={{ color: "#38bdf8", fontSize: "1.1rem" }} />
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: "1rem", color: "#f8fafc" }}>
+                      Surveillance Inspection: {inspectingPlayerCode.username}
+                    </h3>
+                    <div style={{ fontSize: "0.75rem", color: "#94a3b8" }}>
+                      Score: {inspectingPlayerCode.score} pts • Solved: {inspectingPlayerCode.solvedCount}/{problems.length} • Rating: {inspectingPlayerCode.rating} ELO
+                    </div>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="drawer-close-btn"
+                  onClick={() => setInspectingPlayerCode(null)}
+                >
+                  <FontAwesomeIcon icon={faTimes} />
+                </button>
+              </div>
+
+              <div className="proctor-inspect-content">
+                <div className="proctor-inspect-status-banner">
+                  <span>
+                    Viewing verified live submission checkpoints and state for <strong>{inspectingPlayerCode.username}</strong>. Submissions are processed through secure sandboxed execution.
+                  </span>
+                </div>
+
+                <div className="proctor-inspect-matrix">
+                  <h4>Problems Assessment</h4>
+                  <div className="inspect-matrix-grid">
+                    {problems.map((prob, i) => {
+                      const playerObj = battlePlayers.find((p) => p.userId === inspectingPlayerCode.userId);
+                      const isSolved = playerObj?.solvedProblems?.some((sp) => sp.problemId === prob.id);
+                      return (
+                        <div key={prob.id} className={`inspect-prob-chip ${isSolved ? "solved" : "unsolved"}`}>
+                          <div className="prob-chip-header">
+                            <span>Q{i + 1}: {prob.title || `Problem ${i + 1}`}</span>
+                            <span className="diff-badge-mini">{prob.difficulty || "Medium"}</span>
+                          </div>
+                          <div className="prob-chip-verdict">
+                            {isSolved ? "✓ Passed all test cases" : "✗ Not completed or in progress"}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              <div className="proctor-inspect-footer">
+                <button
+                  type="button"
+                  className="btn-proctor-close-inspect"
+                  onClick={() => setInspectingPlayerCode(null)}
+                >
+                  Close Inspection
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
     {!isFullscreen && status !== "matched" && <Footer />}
   </BackgroundPaths>

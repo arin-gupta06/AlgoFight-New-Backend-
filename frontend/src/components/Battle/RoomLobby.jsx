@@ -25,6 +25,8 @@ import {
     faClock,
     faEye,
     faUserShield,
+    faPaperPlane,
+    faComments,
 } from "@fortawesome/free-solid-svg-icons";
 import { requestJson } from "../../services/api";
 import { useAuth } from "../../contexts/AuthContext";
@@ -56,6 +58,18 @@ export default function RoomLobby() {
     const [kickingUserId, setKickingUserId] = useState(null);
     const [searchQuery, setSearchQuery] = useState("");
     const [filterTab, setFilterTab] = useState("ALL"); // "ALL" | "READY" | "WAITING"
+
+    // Real-Time Lobby Coordination Chat
+    const [chatMessages, setChatMessages] = useState([]);
+    const [chatInput, setChatInput] = useState("");
+    const [isChatOpen, setIsChatOpen] = useState(true);
+    const chatScrollRef = useRef(null);
+
+    useEffect(() => {
+        if (chatScrollRef.current) {
+            chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
+        }
+    }, [chatMessages]);
 
     const socketRef = useRef(null);
     const hasAttemptedAutoJoin = useRef(false);
@@ -243,6 +257,13 @@ export default function RoomLobby() {
                 try {
                     const message = JSON.parse(event.data);
                     const { event: evt, payload } = message;
+
+                    if (evt === "lobby_chat_message" && payload) {
+                        setChatMessages((prev) => {
+                            if (prev.some((m) => m.id === payload.id)) return prev;
+                            return [...prev.slice(-99), payload];
+                        });
+                    }
 
                     if (evt === "join_request_received") {
                         if (isHostRef.current && payload) {
@@ -813,6 +834,46 @@ export default function RoomLobby() {
         } catch (err) {
             setStarting(false);
             notify({ type: "error", title: "Launch Failed", message: err.message || "Cannot start battle." });
+        }
+    };
+
+    const handleSendChatMessage = (quickText) => {
+        const text = (typeof quickText === "string" ? quickText : chatInput).trim();
+        if (!text) return;
+
+        const optimisticId = `msg_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+        const optimisticMsg = {
+            id: optimisticId,
+            roomCode,
+            roomId: room?.id,
+            userId: currentUserId,
+            username: currentUsername,
+            message: text,
+            userType: user?.userType || user?.role || "STUDENT",
+            rating: user?.rating ?? 1200,
+            timestamp: Date.now(),
+        };
+
+        // 🚀 Optimistic update: render message immediately in local chat feed
+        setChatMessages((prev) => [...prev.slice(-99), optimisticMsg]);
+        setChatInput("");
+
+        if (socketRef.current?.readyState === WebSocket.OPEN) {
+            socketRef.current.send(JSON.stringify({
+                action: "send_lobby_chat",
+                payload: {
+                    id: optimisticId,
+                    roomCode,
+                    roomId: room?.id,
+                    userId: currentUserId,
+                    username: currentUsername,
+                    message: text,
+                    userType: user?.userType || user?.role || "STUDENT",
+                    rating: user?.rating ?? 1200,
+                }
+            }));
+        } else {
+            notify({ type: "warning", title: "Chat Offline", message: "Connecting to lobby comms server..." });
         }
     };
 
@@ -1802,6 +1863,107 @@ export default function RoomLobby() {
                         </div>
                     </div>
                 )}
+
+                {/* Real-time Lobby Coordination Chat */}
+                <div className="lobby-chat-section">
+                    <div className="lobby-chat-header" onClick={() => setIsChatOpen((prev) => !prev)}>
+                        <div className="lobby-chat-title">
+                            <FontAwesomeIcon icon={faComments} style={{ color: "#38bdf8" }} />
+                            <span>LOBBY COORDINATION &amp; COMMS</span>
+                            <span className="lobby-chat-badge">{chatMessages.length} msgs</span>
+                        </div>
+                        <button type="button" className="lobby-chat-toggle-btn">
+                            {isChatOpen ? "Collapse ▲" : "Expand Comms ▼"}
+                        </button>
+                    </div>
+
+                    {isChatOpen && (
+                        <div className="lobby-chat-body">
+                            {/* Quick Tactical Callout Chips */}
+                            <div className="lobby-quick-chips">
+                                <span className="chips-label">Quick Comms:</span>
+                                {[
+                                    "Ready to fight! ⚔️",
+                                    "Wait 1 min ⏳",
+                                    "Need 2 min",
+                                    "GLHF everyone!",
+                                    "Let's go! 🚀",
+                                    "Host, ready to start?"
+                                ].map((msg, i) => (
+                                    <button
+                                        key={i}
+                                        type="button"
+                                        className="quick-chip-btn"
+                                        onClick={() => handleSendChatMessage(msg)}
+                                    >
+                                        {msg}
+                                    </button>
+                                ))}
+                            </div>
+
+                            {/* Chat Messages Feed */}
+                            <div className="lobby-messages-feed" ref={chatScrollRef}>
+                                {chatMessages.length === 0 ? (
+                                    <div className="lobby-chat-empty">
+                                        <FontAwesomeIcon icon={faComments} className="empty-chat-icon" />
+                                        <span>No communications yet. Send a message to coordinate before launch!</span>
+                                    </div>
+                                ) : (
+                                    chatMessages.map((msg) => {
+                                        const isMe = msg.userId === currentUserId;
+                                        const isHostMsg = room?.hostId === msg.userId || room?.host?.id === msg.userId;
+                                        const isFaculty = msg.userType === "FACULTY" || user?.role === "FACULTY";
+
+                                        return (
+                                            <div key={msg.id} className={`lobby-msg-bubble-row ${isMe ? "me" : "them"}`}>
+                                                <div className="lobby-msg-avatar">
+                                                    {(msg.username || "P")[0].toUpperCase()}
+                                                </div>
+                                                <div className="lobby-msg-content-wrap">
+                                                    <div className="lobby-msg-meta">
+                                                        <span className="msg-author">{msg.username}</span>
+                                                        {isMe && <span className="msg-tag me">YOU</span>}
+                                                        {isHostMsg && <span className="msg-tag host">HOST</span>}
+                                                        {isFaculty && <span className="msg-tag faculty">FACULTY</span>}
+                                                        <span className="msg-time">
+                                                            {new Date(msg.timestamp || Date.now()).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                                                        </span>
+                                                    </div>
+                                                    <div className="lobby-msg-text">{msg.message}</div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })
+                                )}
+                            </div>
+
+                            {/* Chat Input Bar */}
+                            <form
+                                className="lobby-chat-input-row"
+                                onSubmit={(e) => {
+                                    e.preventDefault();
+                                    handleSendChatMessage();
+                                }}
+                            >
+                                <input
+                                    type="text"
+                                    placeholder="Type a message or tactical callout..."
+                                    value={chatInput}
+                                    onChange={(e) => setChatInput(e.target.value)}
+                                    maxLength={300}
+                                />
+                                <button
+                                    type="submit"
+                                    className="btn-send-lobby-chat"
+                                    disabled={!chatInput.trim()}
+                                >
+                                    <FontAwesomeIcon icon={faPaperPlane} />
+                                    <span>Send</span>
+                                </button>
+                            </form>
+                        </div>
+                    )}
+                </div>
 
                 {/* Action Bottom Bar */}
                 <div className="lobby-actions-footer">

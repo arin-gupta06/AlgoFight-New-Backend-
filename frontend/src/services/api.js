@@ -356,7 +356,10 @@ export async function fetchAvailablePlayers({ search = "", status = "", limit = 
   if (excludeUserId) params.set("excludeUserId", excludeUserId);
 
   const queryString = params.toString();
-  return requestJson(`/api/players/available${queryString ? `?${queryString}` : ""}`, { ttlMs: 5000 });
+  return requestJson(`/api/players/available${queryString ? `?${queryString}` : ""}`, {
+    includeAuth: true,
+    ttlMs: 5000,
+  });
 }
 
 export async function fetchUserNotifications(userId) {

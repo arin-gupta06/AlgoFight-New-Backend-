@@ -8,6 +8,7 @@
   "scripts": {
     "dev": "turbo dev",
     "dev:api": "pnpm --filter @algofight/api exec tsx watch src/index.ts",
+    "dev:ws": "pnpm --filter @algofight/websocket exec tsx watch src/index.ts",
     "dev:worker": "pnpm --filter @algofight/worker exec tsx watch src/index.ts",
     "build:api": "pnpm --filter @algofight/database exec prisma generate && pnpm --filter @algofight/api run build",
     "db:generate": "pnpm --filter @algofight/database exec prisma generate",

@@ -1,6 +1,7 @@
 import { FastifyInstance } from "fastify";
 import { requireAuth } from "../plugins/auth.plugin";
 import { prisma } from "@algofight/database";
+import { isAdminEmail } from "../constants/admins";
 import {
     PointLedgerService,
     ConsistencyRewardService,
@@ -152,10 +153,19 @@ export async function rewardRoutes(app: FastifyInstance) {
         };
     });
 
-    // 5. Get user's claimed rewards ledger with full metadata
+    // 5. Get user's claimed rewards ledger with full metadata (Self or Admin only)
     app.get("/rewards/my-claims", { preHandler: [requireAuth] }, async (req, reply) => {
         const query = (req.query as any) || {};
         const targetUserId = query.targetUserId || req.user!.id;
+
+        const isSelf = req.user!.id === targetUserId;
+        const isAdmin = req.user!.role === "ADMIN" || isAdminEmail(req.user!.email);
+        if (!isSelf && !isAdmin) {
+            return reply.status(403).send({
+                error: "FORBIDDEN",
+                message: "Cannot view another user's private reward transaction ledger."
+            });
+        }
 
         const targetUser = await prisma.user.findUnique({
             where: { id: targetUserId },

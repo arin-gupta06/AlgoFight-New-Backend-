@@ -22,15 +22,9 @@ Allow: /terms
 Allow: /privacy
 Allow: /cookies
 
-# Disallow private user states and authenticated administrative routes
-Disallow: /admin
-Disallow: /admin/*
-Disallow: /api/admin/*
-Disallow: /faculty
-Disallow: /faculty/*
-Disallow: /profile
-Disallow: /battle/room/
-Disallow: /battle/live/
+# Disallow internal API endpoints and session paths
+Disallow: /api/
+Disallow: /session/
 
 # Host & Sitemap Location
 Host: https://algofight.com

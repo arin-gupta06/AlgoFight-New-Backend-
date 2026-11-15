@@ -313,27 +313,37 @@ function Home() {
     };
   }, [user]);
 
-  // Real, active battles ONLY - zero fake/hardcoded news
+  // Real, joinable public battles ONLY - excludes bot matches, private friendly duels, or full rooms
   const liveBattleItems = useMemo(() => {
-    return publicChallenges.map((c) => {
-      const isRunning = c.status === "RUNNING";
-      return {
-        id: `battle_${c.roomCode}`,
-        tag: isRunning ? "🔴 LIVE MATCH" : `⚔️ ${c.difficulty || "MIX"} DUEL`,
-        statusLabel: isRunning ? "In Progress" : `Seats: ${c.currentPlayers || 1}/${c.maxPlayers || 2}`,
-        title: isRunning
-          ? `${c.player1 || c.hostUsername} vs ${c.player2 || "Opponent"}`
-          : `${c.hostUsername}'s Arena Challenge`,
-        desc: isRunning
-          ? `Live 1v1 Battle In Progress • ${c.questionCount || 3} Problems • ${c.timeLimitMinutes || 15} Mins`
-          : `${c.questionCount || 3} Questions • ${c.timeLimitMinutes || 15} Mins • Host ELO: ${c.hostRating || 1200}`,
-        action: isRunning ? "Spectate Duel" : "Join Duel",
-        link: `/battle/room/${c.roomCode}`,
-        isLiveBattle: true,
-        isRunning,
-        raw: c,
-      };
-    });
+    return publicChallenges
+      .filter((c) => {
+        if (!c || !c.roomCode) return false;
+        if (c.isFriendly) return false; // Exclude private friendly matches with friends
+        const isBotMatch = Boolean(
+          c.isBot ||
+          c.player1?.toLowerCase()?.includes("bot") ||
+          c.player2?.toLowerCase()?.includes("bot") ||
+          c.hostUsername?.toLowerCase()?.includes("bot")
+        );
+        if (isBotMatch) return false; // Exclude AlgoBot matches
+        // Must be in WAITING/READY state with available seats so users can join
+        const hasOpenSeats = (c.currentPlayers || 1) < (c.maxPlayers || 2);
+        return hasOpenSeats && (c.status === "WAITING" || c.status === "READY");
+      })
+      .map((c) => {
+        return {
+          id: `battle_${c.roomCode}`,
+          tag: `⚔️ ${c.difficulty || "MIX"} DUEL`,
+          statusLabel: `Seats Open: ${c.currentPlayers || 1}/${c.maxPlayers || 2}`,
+          title: `${c.hostUsername}'s Arena Challenge`,
+          desc: `${c.questionCount || 3} Questions • ${c.timeLimitMinutes || 15} Mins • Host ELO: ${c.hostRating || 1200}`,
+          action: "Join Duel",
+          link: `/battle/room/${c.roomCode}`,
+          isLiveBattle: true,
+          isRunning: false,
+          raw: c,
+        };
+      });
   }, [publicChallenges]);
 
   const hasActiveBattles = liveBattleItems.length > 0;

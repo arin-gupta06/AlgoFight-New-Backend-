@@ -808,6 +808,26 @@ export class SocketHandler {
                     break;
                 }
 
+                case "send_lobby_chat": {
+                    const { roomCode, userId, username, message, userType, avatarFrame, rating } = data;
+                    if (roomCode && message && typeof message === "string" && message.trim().length > 0) {
+                        const cleanMsg = message.trim().slice(0, 500);
+                        const chatPayload = {
+                            id: `chat_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+                            roomCode,
+                            userId: userId || currentUserId.value || "guest",
+                            username: username || "Player",
+                            userType: userType || "STUDENT",
+                            avatarFrame: avatarFrame || null,
+                            rating: typeof rating === "number" ? rating : 1200,
+                            message: cleanMsg,
+                            timestamp: Date.now(),
+                        };
+                        this.connectionManager.broadcastToRoom(roomCode, "lobby_chat_message", chatPayload);
+                    }
+                    break;
+                }
+
                 case "leave_room_channel": {
                     const { roomCode, userId, username } = data;
                     if (roomCode) {
